@@ -51,5 +51,5 @@
 
 ## 接入应用（脚手架后）
 
-- Tauri：`apps/desktop/src-tauri/icons/`（`tauri icon` 从 1024 源图生成）  
+- Electron：`apps/desktop/build/icons/`（`electron-builder` 从 1024 源图生成）  
 - 源图建议：将 primary 做成 1024×1024 PNG 再跑图标流水线  

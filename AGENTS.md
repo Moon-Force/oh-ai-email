@@ -35,7 +35,7 @@ Implement against **docs + code**, not against OCR’d mockup text (mockups may 
 
 | Layer | Choice |
 |-------|--------|
-| Desktop shell | **Tauri 2** |
+| Desktop shell | **Electron** |
 | UI | **React + TypeScript + Tailwind** |
 | Mail / sync / crypto | **Rust** (prefer crates under `crates/` when split) |
 | Local DB | **SQLite** (encrypt secrets / sensitive fields) |
@@ -44,7 +44,7 @@ Implement against **docs + code**, not against OCR’d mockup text (mockups may 
 Target layout (create when scaffolding):
 
 ```text
-apps/desktop/          # Tauri + React
+apps/desktop/          # Electron + React
 crates/mail-core/      # IMAP SMTP parse sync domain
 crates/mail-store/     # SQLite
 crates/ai-router/      # cloud + local
@@ -52,7 +52,7 @@ services/ai-proxy/     # optional key-holding proxy
 docs/  design/
 ```
 
-Phase 1 may keep Rust inside `src-tauri` until stable; still respect layer boundaries.
+Phase 1 may keep Rust inside `apps/desktop/src/main` (or `electron/` bridge) until stable; still respect layer boundaries.
 
 ## Implementation order
 
@@ -78,7 +78,7 @@ Visual reference: `design/mvp/*.jpg` + `docs/design-preview.html`.
 
 - **TypeScript**: strict; prefer functional React components; shared types at clear module boundaries.
 - **Rust**: small modules; fallible I/O returns `Result`; no `unwrap` in production paths without justification.
-- **IPC**: typed Tauri commands; UI never talks IMAP/SMTP directly.
+- **IPC**: typed Electron IPC (invoke/handle); UI never talks IMAP/SMTP directly.
 - **Naming**: domain words — Account, Folder, Message, Thread, Draft, Split — not internal schema nicknames in UI.
 - **Commits**: complete sentences; say why. No secrets in git.
 - **Comments**: only non-obvious intent; no narration of obvious code.

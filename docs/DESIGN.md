@@ -2,7 +2,7 @@
 
 > 产品：**oh-ai-email**（Spark 向 AI 桌面邮箱）  
 > 视觉主轴：**苹果流动玻璃（Liquid Glass）** — 功能层玻璃浮于内容层之上  
-> 实现：Tauri 2 + React；样式以 CSS 变量落地（见 [design-tokens.css](./design-tokens.css)）  
+> 实现：Electron + React；样式以 CSS 变量落地（见 [design-tokens.css](./design-tokens.css)）  
 > 预览：[design-preview.html](./design-preview.html)
 
 ---
@@ -293,10 +293,10 @@ Sentence case；中文无多余英文夹杂（专有名除外）。
 | 环境渗色 | 选中线程时 setProperty `--ambient-tint` |
 | 预览 | 打开 `docs/design-preview.html` 验收观感 |
 
-**Tauri 注意**
+**Electron 注意**
 
-- Windows WebView2：确认 `backdrop-filter` 可用；降级为半透明实色 + 细边  
-- macOS：效果最接近 SF + vibrancy；可调研与系统 vibrancy 混用，但 **逻辑上仍遵守功能层/内容层分离**  
+- Windows/Chromium：确认 `backdrop-filter` 可用；降级为半透明实色 + 细边
+- macOS：效果最接近 SF + vibrancy；可调研与系统 vibrancy 混用，但 **逻辑上仍遵守功能层/内容层分离**
 - 透明窗口：可选 `transparent` 窗体让玻璃更真，需处理阴影与圆角窗 |
 
 ---

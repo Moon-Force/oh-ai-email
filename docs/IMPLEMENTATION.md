@@ -17,7 +17,7 @@
 | ID | 任务 | 产出 / 验收 | 状态 |
 |----|------|-------------|------|
 | 0.1 | 确认 monorepo 布局（apps/desktop + crates 或先单包） | 目录约定写入 README | [ ] |
-| 0.2 | 初始化 Tauri 2 + React + TypeScript + Tailwind | `pnpm dev` / `cargo` 可起桌面窗 | [ ] |
+| 0.2 | 初始化 Electron + React + TypeScript + Tailwind | `pnpm dev` 可起桌面窗 | [ ] |
 | 0.3 | 初始化 Rust workspace（mail-core 可先内嵌） | 空 command `ping` 前后端打通 | [ ] |
 | 0.4 | ESLint / rustfmt / clippy / 基础 CI（build） | PR 可跑通构建 | [ ] |
 | 0.5 | `.gitignore`、环境变量示例、安全基线说明 | 无密钥入库 | [ ] |
@@ -145,7 +145,7 @@
 | 6.4 | 快捷键 v1（j/k、回车、r 回复、c 新信、e 归档、/ 搜索） | 可配置表后续 | [ ] |
 | 6.5 | 深色 / 浅色主题 | 跟随系统；token 双套 | [ ] |
 | 6.6 | 开机启动（可选） | 各 OS 行为文档化 | [ ] |
-| 6.7 | 自动更新策略（Tauri updater 调研落地） | 至少 dev 关闭、prod 方案明确 | [ ] |
+| 6.7 | 自动更新策略（electron-updater 调研落地） | 至少 dev 关闭、prod 方案明确 | [ ] |
 
 **阶段 6 完成标准**：日常挂机不别扭；核心快捷键可用；Liquid Glass 不污染正文。
 
@@ -175,7 +175,7 @@
 
 | ID | 任务 | 说明 | 状态 |
 |----|------|------|------|
-| 8.1 | 评估壳层：Flutter vs Tauri Mobile vs RN | 出选型短文进 docs | [ ] |
+| 8.1 | 评估壳层：Flutter vs Electron 延伸 vs RN | 出选型短文进 docs | [ ] |
 | 8.2 | 抽取/稳定 mail-core API | FFI 或本地 HTTP 或共享协议 | [ ] |
 | 8.3 | iOS 客户端 MVP | 读信 + 推送策略 | [ ] |
 | 8.4 | Android 客户端 MVP | 同上 | [ ] |
@@ -256,7 +256,7 @@
 | HTML 邮件 XSS | 安全事故 | 沙箱、CSP、禁脚本 |
 | AI 费用与隐私质疑 | 信任 | 默认说明 + 本地模式 + 开源可审计 |
 | OAuth 审核慢 | Gmail 体验差 | 一期应用专用密码/手动 IMAP |
-| Tauri WebView 差异 | UI bug | 真机三端冒烟清单 |
+| Electron/Chromium 差异 | UI bug | 真机三端冒烟清单 |
 | 范围膨胀 | 做不完 | 死守 MVP 切片表 |
 
 ---

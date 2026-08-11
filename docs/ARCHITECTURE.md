@@ -4,7 +4,7 @@
 
 | 层 | 选型 | 职责 |
 |----|------|------|
-| 桌面壳 | **Tauri 2** | 窗口、系统集成、打包 Win/macOS/Linux |
+| 桌面壳 | **Electron** | 窗口、系统集成、打包 Win/macOS/Linux |
 | UI | **React + TypeScript + Tailwind** | 列表、读信、写信、设置、AI 面板；视觉见 [DESIGN.md](./DESIGN.md)（Liquid Glass） |
 | 原生核心 | **Rust** | IMAP/SMTP、同步、加密存储、AI 路由命令 |
 | 本地库 | **SQLite**（敏感字段加密 / SQLCipher 方向） | 邮件元数据、正文缓存、账号配置 |
@@ -20,7 +20,7 @@
 │  Presentation（React）                                 │
 │  收件箱 / 读信 / 写信 / 分箱 / 设置 / AI 面板           │
 ├──────────────────────────────────────────────────────┤
-│  Tauri IPC（typed commands + events）                  │
+│  Electron IPC（invoke/handle + events）                │
 ├──────────────────────────────────────────────────────┤
 │  Application（Rust）                                   │
 │  同步编排 · 发送流水线 · AI 用例 · 账号生命周期         │
@@ -38,9 +38,9 @@
 ```
 oh-ai-email/
 ├── apps/
-│   └── desktop/                 # Tauri 应用（前端 + src-tauri）
+│   └── desktop/                 # Electron 应用（前端 + electron 主进程）
 │       ├── src/                 # React
-│       └── src-tauri/           # Rust 壳与 commands
+│       └── electron/            # Electron 主进程与 IPC
 ├── crates/
 │   ├── mail-core/               # 协议、解析、同步、域模型
 │   ├── mail-store/              # SQLite 仓储
@@ -52,7 +52,7 @@ oh-ai-email/
 └── README.md
 ```
 
-一期允许先把 `mail-core` 放在 `src-tauri` 内，稳定后再拆 crate。
+一期允许先把 `mail-core` 放在 `electron/` 内，稳定后再拆 crate。
 
 ## 4. 邮件数据流
 

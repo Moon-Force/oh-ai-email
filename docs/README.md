@@ -25,6 +25,6 @@
 | 一期端 | 桌面 Win / macOS / Linux |
 | 二期端 | iOS / Android / 鸿蒙 |
 | AI | 混合：云端默认 + 本机 Ollama 可选 |
-| 栈 | Tauri 2 + React/TS + Rust 邮件核心 + SQLite |
+| 栈 | Electron + React/TS + Rust 邮件核心 + SQLite |
 
 从 [IMPLEMENTATION.md](./IMPLEMENTATION.md) 按阶段推进；UI 以 [DESIGN.md](./DESIGN.md) 为准。
