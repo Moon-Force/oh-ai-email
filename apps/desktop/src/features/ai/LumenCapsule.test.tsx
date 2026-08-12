@@ -12,11 +12,11 @@ function wrap(ui: React.ReactElement) {
   return <AppThemeProvider mode="light">{ui}</AppThemeProvider>;
 }
 
-test("idle capsule shows 询问 AI and expands on summary", async () => {
+test("idle capsule shows AI chip and expands on summary", async () => {
   const user = userEvent.setup();
   render(wrap(<LumenCapsule body="hello world about Q3 launch assets" />));
-  expect(screen.getByText("询问 AI")).toBeInTheDocument();
-  await user.click(screen.getByText("总结这封"));
+  expect(screen.getByText("AI")).toBeInTheDocument();
+  await user.click(screen.getByText("总结"));
   expect(await screen.findByText(/【摘要】/)).toBeInTheDocument();
   expect(screen.getByText("复制")).toBeInTheDocument();
   expect(screen.getByTestId("lumen-capsule")).toHaveAttribute("data-state", "expanded");

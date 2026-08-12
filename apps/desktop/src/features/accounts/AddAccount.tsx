@@ -25,7 +25,9 @@ import {
   findProviderById,
   type MailServerPreset,
 } from "./providers";
-import { useAccountsStore } from "./store";
+import { accountFromDto, useAccountsStore } from "./store";
+import { accountAdd, accountTest, hasDesktopApi } from "../../lib/ipc";
+import { useMailStore } from "../mail/store";
 
 type Props = {
   onClose?: () => void;
@@ -54,7 +56,9 @@ export default function AddAccount({ onClose, onAdded }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const addAccount = useAccountsStore((s) => s.addAccount);
+  const hydrateMail = useMailStore((s) => s.hydrate);
 
   const provider = useMemo(
     () => (providerId === CUSTOM_PROVIDER_ID ? undefined : findProviderById(providerId)),
@@ -114,7 +118,7 @@ export default function AddAccount({ onClose, onAdded }: Props) {
     };
   }
 
-  function submit() {
+  async function submit() {
     const draft = buildDraft();
     const errs = validateAccount(draft);
     if (!password.trim()) errs.push("请填写密码或授权码");
@@ -123,20 +127,42 @@ export default function AddAccount({ onClose, onAdded }: Props) {
       setOk(null);
       return;
     }
+
+    if (!hasDesktopApi()) {
+      // Unit tests / browser preview: local-only stub
+      setErr(null);
+      setOk("已添加（浏览器预览模式，未连接真实 IMAP）");
+      addAccount({ ...draft, id: String(Date.now()) });
+      onAdded?.();
+      return;
+    }
+
+    setSubmitting(true);
     setErr(null);
-    setOk("已添加（本地持久化；密钥后续写入系统钥匙串）");
-    addAccount({ ...draft, id: String(Date.now()) });
-    // Intentionally do not persist password in the account model yet.
-    void password;
-    onAdded?.();
+    setOk(null);
+    try {
+      const result = await accountAdd({ ...draft, password });
+      if (!result.ok) {
+        setErr(result.error);
+        return;
+      }
+      addAccount(accountFromDto(result.account));
+      await hydrateMail(result.account.id);
+      const syncNote = result.sync.error
+        ? `账号已保存，同步部分失败：${result.sync.error}`
+        : `已添加并同步 ${result.sync.messages} 封邮件`;
+      setOk(syncNote);
+      onAdded?.();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function testConnection() {
     setErr(null);
     setOk(null);
-    setTesting(true);
-    await new Promise((r) => setTimeout(r, 300));
-    setTesting(false);
     const draft = buildDraft();
     const errs = validateAccount(draft);
     if (!password.trim()) errs.push("请填写密码或授权码");
@@ -144,7 +170,25 @@ export default function AddAccount({ onClose, onAdded }: Props) {
       setErr(errs.join("；"));
       return;
     }
-    setOk(`连接检查通过（本地模拟）· ${draft.imapHost}:${draft.imapPort} / ${draft.smtpHost}:${draft.smtpPort}`);
+
+    setTesting(true);
+    try {
+      if (!hasDesktopApi()) {
+        await new Promise((r) => setTimeout(r, 200));
+        setOk(`连接检查通过（预览模拟）· ${draft.imapHost}:${draft.imapPort}`);
+        return;
+      }
+      const result = await accountTest({ ...draft, password });
+      if (!result.ok) {
+        setErr(result.error);
+        return;
+      }
+      setOk(`IMAP 连接成功 · ${draft.imapHost}:${draft.imapPort}${result.greeting ? ` · ${result.greeting}` : ""}`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setTesting(false);
+    }
   }
 
   return (
@@ -160,7 +204,7 @@ export default function AddAccount({ onClose, onAdded }: Props) {
         </Stack>
 
         <Typography variant="body2" color="text.secondary">
-          选择常用邮箱可自动填入 IMAP / SMTP；密码或授权码将存入系统钥匙串（后续接入），不会明文写入数据库。
+          选择常用邮箱可自动填入 IMAP / SMTP。密码/授权码经系统加密存储（钥匙串），不会明文写入邮件数据库。
         </Typography>
 
         <Box>
@@ -334,11 +378,11 @@ export default function AddAccount({ onClose, onAdded }: Props) {
         {err && <Alert severity="error">{err}</Alert>}
         {ok && <Alert severity="success">{ok}</Alert>}
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" onClick={testConnection} disabled={testing}>
+          <Button variant="outlined" onClick={() => void testConnection()} disabled={testing || submitting}>
             {testing ? "测试中…" : "测试连接"}
           </Button>
-          <Button variant="contained" onClick={submit}>
-            添加
+          <Button variant="contained" onClick={() => void submit()} disabled={testing || submitting}>
+            {submitting ? "添加中…" : "添加并同步"}
           </Button>
         </Stack>
       </Stack>

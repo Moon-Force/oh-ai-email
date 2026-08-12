@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import MessageList from "./MessageList";
 import Reader from "./Reader";
 import { useMailStore } from "./store";
+import { testFolders, testMessages } from "./testFixtures";
 import AppThemeProvider from "../../theme/AppThemeProvider";
 
 function wrap(ui: React.ReactElement) {
@@ -11,6 +12,8 @@ function wrap(ui: React.ReactElement) {
 
 beforeEach(() => {
   useMailStore.setState({
+    folders: testFolders,
+    messages: testMessages,
     selectedId: "1",
     activeFolderId: "inbox",
     split: "important",
@@ -27,8 +30,8 @@ test("renders list and selects message into reader", async () => {
       <>
         <MessageList />
         <Reader />
-      </>
-    )
+      </>,
+    ),
   );
   const list = screen.getByTestId("message-list");
   expect(within(list).getByText(/Q3 发布物料/)).toBeInTheDocument();
@@ -52,4 +55,33 @@ test("list pane key updates when folder changes", () => {
   });
   rerender(wrap(<MessageList />));
   expect(screen.getByTestId("message-list").getAttribute("data-pane-key") || "").toMatch(/sent/);
+});
+
+test("reader can mark message as other then important", async () => {
+  const user = userEvent.setup();
+  render(wrap(<Reader />));
+  expect(screen.getByTestId("reader")).toBeInTheDocument();
+  expect(useMailStore.getState().messages.find((m) => m.id === "1")?.split).toBe("important");
+
+  await user.click(screen.getByLabelText("标为其他"));
+  expect(useMailStore.getState().messages.find((m) => m.id === "1")?.split).toBe("other");
+
+  await user.click(screen.getByLabelText("标为重要"));
+  expect(useMailStore.getState().messages.find((m) => m.id === "1")?.split).toBe("important");
+});
+
+test("marking as other hides message from important split filter", async () => {
+  const user = userEvent.setup();
+  render(
+    wrap(
+      <>
+        <MessageList />
+        <Reader />
+      </>,
+    ),
+  );
+  expect(within(screen.getByTestId("message-list")).getByText(/Q3 发布物料/)).toBeInTheDocument();
+  await user.click(screen.getByLabelText("标为其他"));
+  expect(useMailStore.getState().messages.find((m) => m.id === "1")?.split).toBe("other");
+  expect(within(screen.getByTestId("message-list")).queryByText(/Q3 发布物料/)).not.toBeInTheDocument();
 });

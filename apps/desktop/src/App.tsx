@@ -24,8 +24,12 @@ import Composer from "./features/composer/Composer";
 import Settings from "./features/settings/Settings";
 import AddAccount from "./features/accounts/AddAccount";
 import PaneTransition from "./features/shell/PaneTransition";
+import AppToast from "./features/shell/AppToast";
+import ErrorBoundary from "./features/shell/ErrorBoundary";
 import { useMailStore } from "./features/mail/store";
+import { useAccountsStore } from "./features/accounts/store";
 import AppThemeProvider from "./theme/AppThemeProvider";
+import SyncIcon from "@mui/icons-material/Sync";
 
 export default function App() {
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -40,11 +44,20 @@ export default function App() {
     setConnectionError,
     activeFolderId,
     split,
+    hydrate,
+    syncNow,
+    syncing,
   } = useMailStore();
+  const accounts = useAccountsStore((s) => s.accounts);
+  const activeAccountId = useAccountsStore((s) => s.activeAccountId);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", mode);
   }, [mode]);
+
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
 
   const folderTitle =
     activeFolderId === "inbox"
@@ -73,6 +86,7 @@ export default function App() {
           overflow: "hidden",
         }}
       >
+        <AppToast />
         <Sidebar />
 
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
@@ -120,7 +134,20 @@ export default function App() {
                   },
                 }}
               />
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <IconButton
+                  aria-label="同步邮件"
+                  disabled={syncing || accounts.length === 0}
+                  onClick={() => void syncNow(activeAccountId ?? undefined)}
+                >
+                  <SyncIcon
+                    sx={
+                      syncing
+                        ? { animation: "spin 1s linear infinite", "@keyframes spin": { to: { transform: "rotate(360deg)" } } }
+                        : undefined
+                    }
+                  />
+                </IconButton>
                 <Button
                   variant="contained"
                   startIcon={<EditIcon />}
@@ -162,54 +189,72 @@ export default function App() {
                 borderRadius: 2,
               }}
             >
-              <PaneTransition paneKey={surfaceKey} variant="fade-up">
-                {view === "settings" ? (
-                  <Settings theme={mode} onThemeChange={setMode} onClose={() => setView("mail")} />
-                ) : view === "add-account" ? (
-                  <Box
-                    sx={{
-                      height: "100%",
-                      overflow: "auto",
-                      display: "flex",
-                      justifyContent: "center",
-                      p: 3,
-                    }}
+              <ErrorBoundary
+                fallbackTitle="主内容区出错"
+                onReset={() => {
+                  setComposeOpen(false);
+                  setView("mail");
+                }}
+              >
+                {/* Compose uses transform enter animation; TipTap mounts after the motion ends (see Composer). */}
+                {composeOpen ? (
+                  <ErrorBoundary
+                    fallbackTitle="写信界面出错"
+                    onReset={() => setComposeOpen(false)}
                   >
-                    <AddAccount onClose={() => setView("mail")} onAdded={() => setView("mail")} />
-                  </Box>
-                ) : composeOpen ? (
-                  <Composer
-                    onClose={() => setComposeOpen(false)}
-                    onSend={() => setComposeOpen(false)}
-                  />
+                    <PaneTransition paneKey="compose" variant="compose">
+                      <Composer
+                        onClose={() => setComposeOpen(false)}
+                        onSend={() => setComposeOpen(false)}
+                      />
+                    </PaneTransition>
+                  </ErrorBoundary>
                 ) : (
-                  <Box sx={{ display: "flex", height: "100%", minHeight: 0 }}>
-                    <Box
-                      className="list-pane"
-                      sx={{
-                        width: { xs: "42%", md: 360 },
-                        flexShrink: 0,
-                        borderRight: 1,
-                        borderColor: "divider",
-                        minHeight: 0,
-                        overflow: "hidden",
-                      }}
-                      aria-label="邮件列表"
-                    >
-                      <PaneTransition paneKey={listKey} variant="fade-soft">
-                        <MessageList />
-                      </PaneTransition>
-                    </Box>
-                    <Box
-                      className="reader-pane"
-                      sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}
-                      aria-label="读信"
-                    >
-                      <Reader />
-                    </Box>
-                  </Box>
+                  <PaneTransition paneKey={surfaceKey} variant="fade-up">
+                    {view === "settings" ? (
+                      <Settings theme={mode} onThemeChange={setMode} onClose={() => setView("mail")} />
+                    ) : view === "add-account" ? (
+                      <Box
+                        sx={{
+                          height: "100%",
+                          overflow: "auto",
+                          display: "flex",
+                          justifyContent: "center",
+                          p: 3,
+                        }}
+                      >
+                        <AddAccount onClose={() => setView("mail")} onAdded={() => setView("mail")} />
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: "flex", height: "100%", minHeight: 0 }}>
+                        <Box
+                          className="list-pane"
+                          sx={{
+                            width: { xs: "42%", md: 360 },
+                            flexShrink: 0,
+                            borderRight: 1,
+                            borderColor: "divider",
+                            minHeight: 0,
+                            overflow: "hidden",
+                          }}
+                          aria-label="邮件列表"
+                        >
+                          <PaneTransition paneKey={listKey} variant="fade-soft">
+                            <MessageList />
+                          </PaneTransition>
+                        </Box>
+                        <Box
+                          className="reader-pane"
+                          sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}
+                          aria-label="读信"
+                        >
+                          <Reader />
+                        </Box>
+                      </Box>
+                    )}
+                  </PaneTransition>
                 )}
-              </PaneTransition>
+              </ErrorBoundary>
             </Paper>
           </Box>
         </Box>

@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadSecret, saveSecret } from "./store";
+import { registerIpc } from "./ipc";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,17 +31,19 @@ function createWindow() {
   }
 }
 
-ipcMain.handle("ping", () => "pong");
-ipcMain.handle("secret:save", (_e, key: string, value: string) => {
-  saveSecret(key, value);
-  return true;
+app.whenReady().then(async () => {
+  try {
+    await registerIpc();
+  } catch (err) {
+    console.error("[main] failed to init mail backend", err);
+  }
+  createWindow();
 });
-ipcMain.handle("secret:load", (_e, key: string) => loadSecret(key));
 
-app.whenReady().then(createWindow);
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });

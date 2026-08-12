@@ -21,8 +21,12 @@ export default function MessageList() {
   const activeFolderId = useMailStore((s) => s.activeFolderId);
   const allMessages = useMailStore((s) => s.messages);
 
+  const folders = useMailStore((s) => s.folders);
   const messages = (() => {
-    let list = allMessages.filter((m) => m.folderId === activeFolderId);
+    const folder = folders.find((f) => f.role === activeFolderId);
+    let list = folder
+      ? allMessages.filter((m) => m.folderId === folder.id)
+      : allMessages.filter((m) => m.folderRole === activeFolderId);
     if (split !== "all") list = list.filter((m) => m.split === split);
     return searchMessages(list, searchQuery);
   })();
@@ -117,14 +121,29 @@ export default function MessageList() {
                 }
                 secondary={
                   <>
-                    <Typography
-                      variant="body2"
-                      color="text.primary"
-                      noWrap
-                      sx={{ fontWeight: m.unread ? 600 : 400 }}
-                    >
-                      {m.subject}
-                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.primary"
+                        noWrap
+                        sx={{ fontWeight: m.unread ? 600 : 400, flex: 1, minWidth: 0 }}
+                      >
+                        {m.subject}
+                      </Typography>
+                      {split === "all" && (
+                        <Chip
+                          size="small"
+                          label={m.split === "important" ? "重要" : "其他"}
+                          variant="outlined"
+                          sx={{
+                            height: 18,
+                            fontSize: "0.65rem",
+                            flexShrink: 0,
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
+                      )}
+                    </Box>
                     <Typography
                       variant="caption"
                       color="text.secondary"

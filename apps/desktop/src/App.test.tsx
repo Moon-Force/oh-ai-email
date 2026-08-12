@@ -2,9 +2,12 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { useMailStore } from "./features/mail/store";
+import { testFolders, testMessages } from "./features/mail/testFixtures";
 
 function resetStore() {
   useMailStore.setState({
+    folders: testFolders,
+    messages: testMessages,
     selectedId: "1",
     activeFolderId: "inbox",
     split: "important",
@@ -12,6 +15,11 @@ function resetStore() {
     view: "mail",
     composeOpen: false,
     connectionError: null,
+    syncing: false,
+    lastSyncAt: null,
+    // Prevent async empty snapshot from wiping fixtures in unit tests
+    hydrate: async () => undefined,
+    syncNow: async () => undefined,
   });
 }
 
@@ -49,6 +57,33 @@ describe("App shell · MUI", () => {
     await user.click(screen.getByRole("button", { name: /写新邮件/ }));
     expect(screen.getByTestId("composer")).toBeInTheDocument();
     expect(screen.getByLabelText("收件人")).toBeInTheDocument();
+  });
+
+  it("closes compose when sidebar folder is clicked", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: /写新邮件/ }));
+    expect(screen.getByTestId("composer")).toBeInTheDocument();
+
+    const sidebar = screen.getByTestId("sidebar");
+    await user.click(within(sidebar).getByText("收件箱"));
+    expect(screen.queryByTestId("composer")).not.toBeInTheDocument();
+    expect(screen.getByTestId("message-list")).toBeInTheDocument();
+    expect(useMailStore.getState().composeOpen).toBe(false);
+    expect(useMailStore.getState().activeFolderId).toBe("inbox");
+  });
+
+  it("closes compose when sidebar split is clicked", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: /写新邮件/ }));
+    expect(screen.getByTestId("composer")).toBeInTheDocument();
+
+    const sidebar = screen.getByTestId("sidebar");
+    await user.click(within(sidebar).getByText("重要"));
+    expect(screen.queryByTestId("composer")).not.toBeInTheDocument();
+    expect(useMailStore.getState().composeOpen).toBe(false);
+    expect(useMailStore.getState().split).toBe("important");
   });
 
   it("navigates to settings and AI tab", async () => {

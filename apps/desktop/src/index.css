@@ -10,11 +10,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Mail HTML iframe — solid host; theme colors come from srcDoc, not OS scheme */
+/* Mail HTML iframe — fills flex parent; theme colors come from srcDoc */
+.mail-body-frame {
+  min-height: 0;
+}
+
 .mail-body-frame iframe {
   display: block;
   width: 100%;
-  min-height: 280px;
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
   border: 0;
   background: #ffffff;
 }
@@ -58,6 +64,18 @@ body {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* Compose open: soft rise — runs on shell; TipTap mounts after this ends (no transform parent). */
+@keyframes pane-enter-compose {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -106,6 +124,10 @@ body {
   animation: pane-enter-fade var(--pane-dur-fast) var(--pane-ease) both;
 }
 
+.pane-enter-compose {
+  animation: pane-enter-compose 340ms var(--pane-ease) both;
+}
+
 .pane-enter-reader {
   animation: pane-enter-reader var(--pane-dur) var(--pane-ease) both;
 }
@@ -131,6 +153,7 @@ body {
   .pane-enter-up,
   .pane-enter-soft,
   .pane-enter-fade,
+  .pane-enter-compose,
   .pane-enter-reader,
   .pane-title-swap,
   .pane-row-stagger {

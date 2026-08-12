@@ -13,6 +13,7 @@ export type Account = {
   smtpHost: string;
   smtpPort: number;
   smtpTls: TlsMode;
+  createdAt?: number;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -38,4 +39,3 @@ export function inferHosts(email: string): { imapHost: string; smtpHost: string 
 }
 
 export { resolveServersForEmail } from "./providers";
-

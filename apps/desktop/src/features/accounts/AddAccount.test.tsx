@@ -30,7 +30,7 @@ test("validates and adds with password", async () => {
   await user.click(within(screen.getByTestId("provider-picker")).getByText("QQ 邮箱"));
   await user.type(screen.getByPlaceholderText("you@qq.com"), "a@qq.com");
   await user.type(screen.getByPlaceholderText(/授权码/), "auth-code-123");
-  await user.click(screen.getByText("添加"));
+  await user.click(screen.getByRole("button", { name: "添加并同步" }));
   expect(await screen.findByText(/已添加/)).toBeInTheDocument();
 });
 

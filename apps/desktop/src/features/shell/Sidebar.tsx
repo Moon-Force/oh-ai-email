@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import {
   Badge,
   Box,
-  Button,
   Divider,
+  IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   ListSubheader,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import InboxIcon from "@mui/icons-material/Inbox";
@@ -19,7 +20,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import StarIcon from "@mui/icons-material/Star";
 import LabelIcon from "@mui/icons-material/Label";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
-import AddIcon from "@mui/icons-material/Add";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useMailStore } from "../mail/store";
 import type { MailFolderId } from "../mail/types";
@@ -43,11 +44,21 @@ export default function Sidebar() {
   const split = useMailStore((s) => s.split);
   const setSplit = useMailStore((s) => s.setSplit);
   const setView = useMailStore((s) => s.setView);
+  const setComposeOpen = useMailStore((s) => s.setComposeOpen);
+  const unreadInFolder = useMailStore((s) => s.unreadInFolder);
   const messages = useMailStore((s) => s.messages);
   const accounts = useAccountsStore((s) => s.accounts);
 
-  function unreadInFolder(id: MailFolderId) {
-    return messages.filter((m) => m.folderId === id && m.unread).length;
+  const importantUnread = messages.filter((m) => m.split === "important" && m.unread).length;
+
+  /** Leave compose so folder/settings navigation is visible again. */
+  function leaveCompose() {
+    setComposeOpen(false);
+  }
+
+  function goMail() {
+    leaveCompose();
+    setView("mail");
   }
 
   return (
@@ -81,20 +92,20 @@ export default function Sidebar() {
           selected={split === "important"}
           onClick={() => {
             setSplit("important");
-            setView("mail");
+            goMail();
           }}
         >
           <ListItemIcon>
             <StarIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="重要" />
-          <Badge badgeContent={7} color="primary" />
+          {importantUnread > 0 && <Badge badgeContent={importantUnread} color="primary" />}
         </ListItemButton>
         <ListItemButton
           selected={split === "other"}
           onClick={() => {
             setSplit("other");
-            setView("mail");
+            goMail();
           }}
         >
           <ListItemIcon>
@@ -106,7 +117,7 @@ export default function Sidebar() {
           selected={split === "all"}
           onClick={() => {
             setSplit("all");
-            setView("mail");
+            goMail();
           }}
         >
           <ListItemIcon>
@@ -125,14 +136,14 @@ export default function Sidebar() {
         aria-label="邮箱文件夹"
       >
         {MAILBOXES.map((box) => {
-          const unread = unreadInFolder(box.id);
+          const unread = unreadInFolder(box.id as MailFolderId);
           return (
             <ListItemButton
               key={box.id}
               selected={activeFolderId === box.id}
               onClick={() => {
                 setFolder(box.id);
-                setView("mail");
+                goMail();
               }}
             >
               <ListItemIcon>{box.icon}</ListItemIcon>
@@ -143,28 +154,53 @@ export default function Sidebar() {
         })}
       </List>
 
-      <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+      <Box
+        sx={{
+          px: 1.5,
+          py: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          borderTop: 1,
+          borderColor: "divider",
+        }}
+      >
         {accounts[0] && (
-          <Typography variant="caption" color="text.secondary" noWrap title={accounts[0].email}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            noWrap
+            title={accounts[0].email}
+            sx={{ flex: 1, minWidth: 0, mr: 0.5 }}
+          >
             {accounts[0].email}
           </Typography>
         )}
-        <Button
-          fullWidth
-          variant="outlined"
-          startIcon={<AddIcon />}
-          onClick={() => setView("add-account")}
-        >
-          添加账号
-        </Button>
-        <Button
-          fullWidth
-          variant="text"
-          startIcon={<SettingsIcon />}
-          onClick={() => setView("settings")}
-        >
-          设置
-        </Button>
+        {!accounts[0] && <Box sx={{ flex: 1 }} />}
+        <Tooltip title="添加账号">
+          <IconButton
+            size="small"
+            aria-label="添加账号"
+            onClick={() => {
+              leaveCompose();
+              setView("add-account");
+            }}
+          >
+            <PersonAddAlt1Icon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="设置">
+          <IconButton
+            size="small"
+            aria-label="设置"
+            onClick={() => {
+              leaveCompose();
+              setView("settings");
+            }}
+          >
+            <SettingsIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
     </Box>
   );

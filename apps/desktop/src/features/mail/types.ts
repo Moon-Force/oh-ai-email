@@ -1,19 +1,27 @@
+/** UI folder roles (mapped from IMAP special-use / path heuristics). */
 export type MailFolderId = "inbox" | "sent" | "drafts" | "archive" | "trash";
 
 export type MailFolder = {
-  id: MailFolderId;
+  id: string;
+  role: MailFolderId | "other";
   name: string;
   unread: number;
+  remotePath?: string;
 };
 
 export type MailMessage = {
   id: string;
-  folderId: MailFolderId;
+  accountId: string;
+  folderId: string;
+  /** UI role for filtering when folderId is composite */
+  folderRole: MailFolderId | "other";
+  uid: number;
   from: string;
   fromName: string;
   subject: string;
   snippet: string;
   date: string;
+  dateMs: number;
   unread: boolean;
   split: "important" | "other";
   html?: string;

@@ -1,7 +1,7 @@
 import type { ReactNode, CSSProperties } from "react";
 import { Box } from "@mui/material";
 
-export type PaneMotion = "fade-up" | "fade-soft" | "fade" | "reader";
+export type PaneMotion = "fade-up" | "fade-soft" | "fade" | "compose" | "reader";
 
 type Props = {
   /** Changing this remounts children and replays the enter animation. */
@@ -18,6 +18,7 @@ const VARIANT_CLASS: Record<PaneMotion, string> = {
   "fade-up": "pane-enter-up",
   "fade-soft": "pane-enter-soft",
   fade: "pane-enter-fade",
+  compose: "pane-enter-compose",
   reader: "pane-enter-reader",
 };
 
