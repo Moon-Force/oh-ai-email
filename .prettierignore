@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-electron
+coverage
+target
+pnpm-lock.yaml
+Cargo.lock
+apps/desktop/dist
+apps/desktop/dist-electron
+**/*.min.js
+**/*.jpg
+**/*.png
+**/*.svg

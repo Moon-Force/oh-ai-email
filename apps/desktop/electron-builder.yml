@@ -1,0 +1,32 @@
+appId: com.oh-ai-email.desktop
+productName: oh-ai-email
+# Use monorepo-installed Electron binary (skip re-download when present)
+electronDist: ../../node_modules/.pnpm/electron@30.5.1/node_modules/electron/dist
+files:
+  - dist/**
+  - dist-electron/**
+  - "!**/*.map"
+directories:
+  output: release
+  buildResources: build
+# Icons optional — place build/icon.ico | .icns | .png when ready
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: oh-ai-email
+mac:
+  target: [dmg, zip]
+  category: public.app-category.productivity
+linux:
+  target: [AppImage, deb]
+  category: Office
+publish:
+  provider: github
+  owner: Moon-Force
+  repo: oh-ai-email

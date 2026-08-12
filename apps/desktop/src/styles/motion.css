@@ -1,0 +1,223 @@
+/**
+ * Motion language — quiet, Apple-like, glass-aware.
+ * Ease: ease-glass (0.22,1,0.36,1) · med 280–420ms
+ */
+
+/* ——— Pane / directory switch ——— */
+
+@keyframes pane-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.992);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes pane-enter-soft {
+  from {
+    opacity: 0;
+    transform: translate3d(8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes title-swap {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+    letter-spacing: 0.04em;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: -0.015em;
+  }
+}
+
+@keyframes row-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes reader-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(12px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes shimmer-line {
+  from {
+    transform: scaleX(0);
+    opacity: 0.6;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.motion-pane {
+  animation: pane-enter var(--dur-slow) var(--ease-glass) both;
+  will-change: transform, opacity;
+}
+
+.motion-pane-soft {
+  animation: pane-enter-soft var(--dur-med) var(--ease-glass) both;
+}
+
+.motion-title {
+  display: inline-block;
+  animation: title-swap var(--dur-med) var(--ease-glass) both;
+}
+
+.motion-row {
+  animation: row-enter calc(var(--dur-med) + 40ms) var(--ease-glass) both;
+  animation-delay: calc(var(--stagger, 0) * 28ms);
+}
+
+.motion-reader {
+  animation: reader-enter var(--dur-med) var(--ease-glass) both;
+}
+
+.motion-view {
+  animation: view-enter var(--dur-slow) var(--ease-glass) both;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Header accent line when directory changes */
+.motion-accent-line {
+  display: block;
+  height: 2px;
+  width: 100%;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-lumen) 70%, transparent),
+    transparent
+  );
+  transform-origin: left center;
+  animation: shimmer-line var(--dur-slow) var(--ease-glass) both;
+  pointer-events: none;
+}
+
+/* Nav liquid indicator (sidebar) */
+.nav-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-stack .nav-item {
+  position: relative;
+  z-index: 1;
+  transition:
+    color var(--dur-fast) var(--ease-soft),
+    opacity var(--dur-fast) var(--ease-soft),
+    transform var(--dur-fast) var(--ease-soft);
+}
+
+.nav-stack .nav-item:active {
+  transform: scale(0.98);
+}
+
+.nav-liquid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, white 48%, transparent) 0%,
+    color-mix(in oklab, var(--color-lumen) 14%, transparent) 100%
+  );
+  border: 1px solid color-mix(in oklab, var(--color-lumen) 28%, var(--glass-stroke));
+  box-shadow:
+    0 1px 0 var(--specular-soft) inset,
+    0 6px 18px color-mix(in oklab, var(--color-lumen) 14%, transparent);
+  backdrop-filter: blur(18px) saturate(1.55);
+  -webkit-backdrop-filter: blur(18px) saturate(1.55);
+  transition:
+    top var(--dur-med) var(--ease-glass),
+    height var(--dur-med) var(--ease-glass),
+    opacity var(--dur-fast) var(--ease-soft);
+  will-change: top, height;
+}
+
+[data-theme="dark"] .nav-liquid {
+  background: linear-gradient(155deg, rgba(70, 90, 130, 0.5) 0%, rgba(30, 50, 90, 0.42) 100%);
+}
+
+/* When liquid indicator is present, active chip style is carried by the pill */
+.nav-stack[data-has-liquid="true"] .nav-item.is-active,
+.nav-stack[data-has-liquid="true"] .nav-item[aria-current="page"] {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  font-weight: 600;
+}
+
+/* List header crossfade */
+.list-meta {
+  transition: opacity var(--dur-fast) var(--ease-soft);
+}
+
+.list-meta.is-swapping {
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-pane,
+  .motion-pane-soft,
+  .motion-title,
+  .motion-row,
+  .motion-reader,
+  .motion-view,
+  .motion-accent-line {
+    animation: none !important;
+    filter: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .nav-liquid {
+    transition: none !important;
+  }
+}

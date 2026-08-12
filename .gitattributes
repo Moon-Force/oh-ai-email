@@ -1,0 +1,4 @@
+# Normalize text to LF in the repo; avoid Windows CI prettier CRLF false failures
+* text=auto eol=lf
+*.{cmd,bat,ps1} text eol=crlf
+*.{png,jpg,jpeg,gif,webp,ico,woff,woff2} binary

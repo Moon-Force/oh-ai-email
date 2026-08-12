@@ -15,17 +15,20 @@
 ## 能做什么
 
 ### 收件与阅读
+
 - 连接邮箱账号，同步收件箱
 - 清晰的列表 + 读信视图，本地缓存，离线也能看已同步的邮件
 - 多账号结构预留（持续完善中）
 
 ### 智能整理（Spark 向）
+
 - **分箱**：把「重要」和「其他」分开，少被订阅和通知淹没
 - 归档、删除等基础整理
 - 稍后处理、固定、静音等能力按版本逐步加入
 - 本地搜索：按发件人、主题、正文快速找到邮件
 
 ### AI 助手
+
 - **一键摘要**：长邮件 / 整段对话快速看懂要点
 - **草稿回复**：根据来信生成回复，你改完再发（不会擅自发送）
 - **改语气 / 扩写 / 缩写**（及翻译等，按版本开放）
@@ -34,36 +37,35 @@
   - **本机**：可选接入本地模型（如 Ollama），邮件内容尽量不离开你的电脑
 
 ### 写信与发送
+
 - 新邮件、回复、全部回复
 - 草稿保存，避免写到一半丢失
 
 ### 体验
+
 - 桌面优先：Windows / macOS / Linux
-- 界面采用 **Apple 风格流动玻璃（Liquid Glass）**：导航和 AI 控件通透轻盈，正文保持清晰易读
-- 明暗主题
+- 界面采用 **[MUI Material UI](https://mui.com/)**：标准 Material 组件与明暗主题
 - 基础快捷键（增强效率，不绑架鼠标操作）
 
 ---
 
 ## 不做什么
 
-| 不做 | 说明 |
-|------|------|
-| 邮件托管 / 域名邮箱 | 你的信仍在原邮箱服务商 |
-| 自动乱发邮件 | AI 只给建议，发送由你确认 |
-| 一期强推手机 / 鸿蒙 | 移动端与鸿蒙在路线图二期 |
+| 不做                | 说明                      |
+| ------------------- | ------------------------- |
+| 邮件托管 / 域名邮箱 | 你的信仍在原邮箱服务商    |
+| 自动乱发邮件        | AI 只给建议，发送由你确认 |
+| 一期强推手机 / 鸿蒙 | 移动端与鸿蒙在路线图二期  |
 
 ---
 
 ## 界面预览
 
-设计稿与交互说明见仓库：
+- UI 规范：[`docs/DESIGN.md`](docs/DESIGN.md)（**MUI**）
+- 主题实现：[`apps/desktop/src/theme/createAppTheme.ts`](apps/desktop/src/theme/createAppTheme.ts)
+- 本地运行：`pnpm -C apps/desktop dev`
 
-- 视觉稿：[`design/mvp/`](design/mvp/)
-- 设计说明：[`docs/DESIGN.md`](docs/DESIGN.md)
-- 可交互预览：[`docs/design-preview.html`](docs/design-preview.html)
-
-（应用安装包随版本在 Releases 发布。）
+（`design/mvp/` 为历史示意稿，**不作为实现准绳**。安装包随版本在 Releases 发布。）
 
 ---
 
@@ -87,17 +89,28 @@
 
 完整约定见 [`AGENTS.md`](AGENTS.md)。
 
+## 开发 (Development)
+
+```bash
+pnpm install
+pnpm -C apps/desktop dev        # 启动 Electron + Vite
+pnpm -C apps/desktop build      # 构建
+pnpm -C apps/desktop test       # Vitest
+pnpm lint && pnpm format:check
+cargo test --workspace
+```
+
 ---
 
 ## 文档
 
-| 文档 | 内容 |
-|------|------|
-| [docs/PRODUCT.md](docs/PRODUCT.md) | 产品定位与范围 |
-| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | 实施名单与验收 |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构（偏开发） |
-| [docs/DESIGN.md](docs/DESIGN.md) | UI / 流动玻璃规范 |
-| [design/](design/) | MVP 界面图与生图提示词 |
+| 文档                                             | 内容                   |
+| ------------------------------------------------ | ---------------------- |
+| [docs/PRODUCT.md](docs/PRODUCT.md)               | 产品定位与范围         |
+| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | 实施名单与验收         |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | 架构（偏开发）         |
+| [docs/DESIGN.md](docs/DESIGN.md)                 | UI / MUI 规范          |
+| [design/](design/)                               | 历史示意稿（非实现准绳） |
 
 ---
 
@@ -111,8 +124,8 @@
 
 ## 参与与反馈
 
-- Issue / Discussion：欢迎提需求、缺陷与设计意见  
-- PR：请先阅读 [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) 与 [`AGENTS.md`](AGENTS.md)，小步提交  
+- Issue / Discussion：欢迎提需求、缺陷与设计意见
+- PR：请先阅读 [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) 与 [`AGENTS.md`](AGENTS.md)，小步提交
 
 ---
 

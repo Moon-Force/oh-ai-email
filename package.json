@@ -1,0 +1,31 @@
+{
+  "name": "oh-ai-email",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source AI email client — Electron desktop (Spark-like)",
+  "packageManager": "pnpm@10.31.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r test -- --run",
+    "test:coverage": "pnpm -r test -- --run --coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0"
+  }
+}

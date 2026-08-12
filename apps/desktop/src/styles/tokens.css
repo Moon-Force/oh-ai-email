@@ -1,0 +1,768 @@
+/**
+ * oh-ai-email · Liquid Glass design tokens
+ *
+ * Aligned with Apple HIG Materials (Liquid Glass) + web approximations:
+ * - Glass = navigation / chrome only (not content)
+ * - Three optical layers: highlight (specular), shadow (depth), illumination (tint + blur)
+ * - Clearer refraction: lower fill opacity + stronger blur/saturate so canvas color bleeds through
+ */
+
+:root,
+[data-theme="light"] {
+  /* Surfaces — content layer (matte paper) */
+  --color-canvas: #d8e0ee;
+  --color-paper: rgba(252, 253, 255, 0.92);
+  --color-paper-solid: #f7f8fc;
+  --color-paper-hover: rgba(235, 239, 248, 0.9);
+  --color-paper-selected: rgba(232, 238, 252, 0.98);
+
+  /* Ink */
+  --color-ink: #1a1d24;
+  --color-ink-mute: #5c6578;
+  --color-ink-faint: #8b93a7;
+
+  /* Brand */
+  --color-lumen: #2f6bff;
+  --color-lumen-soft: rgba(47, 107, 255, 0.16);
+  --color-ember: #e85d4c;
+  --color-ember-soft: rgba(232, 93, 76, 0.12);
+  --color-success: #1f9d63;
+
+  /*
+   * Glass fill — intentionally MORE translucent than classic glassmorphism.
+   * Opaque white (0.55+) reads as plastic; liquid glass lets environment through.
+   */
+  --glass-fill: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.52) 0%,
+    rgba(255, 255, 255, 0.22) 42%,
+    rgba(236, 242, 255, 0.28) 100%
+  );
+  --glass-fill-solid: rgba(255, 255, 255, 0.28);
+  --glass-stroke: rgba(255, 255, 255, 0.72);
+  --glass-stroke-soft: rgba(255, 255, 255, 0.42);
+  --glass-edge-outer: rgba(255, 255, 255, 0.35);
+  --specular: rgba(255, 255, 255, 0.88);
+  --specular-soft: rgba(255, 255, 255, 0.45);
+  --glass-blur: 48px;
+  --glass-saturate: 1.85;
+  --glass-brightness: 1.06;
+
+  /* Pointer-driven specular (0–100%) */
+  --specular-x: 32%;
+  --specular-y: 18%;
+
+  /* Ambient tint from selected message (edge bleed only) */
+  --ambient-tint: transparent;
+
+  /* Elevation — multi-layer: contact + ambient + inset highlight + rim */
+  --elev-glass:
+    0 1px 0 var(--specular-soft) inset, 0 -1px 0 rgba(15, 23, 42, 0.04) inset,
+    0 0 0 0.5px var(--glass-edge-outer), 0 10px 28px rgba(15, 23, 42, 0.1),
+    0 28px 64px rgba(47, 107, 255, 0.08), 0 0 0 1px var(--ambient-tint);
+  --elev-float:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 12px 40px rgba(15, 23, 42, 0.12),
+    0 32px 72px rgba(15, 23, 42, 0.08);
+  --elev-paper:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 4px 16px rgba(15, 23, 42, 0.05),
+    0 18px 48px rgba(15, 23, 42, 0.06);
+
+  /* Type */
+  --font-display:
+    "SF Pro Display", "Segoe UI Variable Display", system-ui, -apple-system, sans-serif;
+  --font-body: "SF Pro Text", "Segoe UI Variable", system-ui, -apple-system, sans-serif;
+  --font-mono: "SF Mono", "Cascadia Mono", ui-monospace, monospace;
+
+  --text-display: 1.75rem;
+  --text-title: 1.0625rem;
+  --text-body: 0.875rem;
+  --text-caption: 0.75rem;
+  --text-micro: 0.6875rem;
+
+  /* Radius — slightly rounder glass (Apple chrome) */
+  --radius-control: 12px;
+  --radius-glass: 24px;
+  --radius-capsule: 999px;
+  --radius-row: 12px;
+
+  /* Space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  /* Motion */
+  --ease-glass: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-med: 280ms;
+  --dur-slow: 480ms;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --color-canvas: #070a10;
+  --color-paper: rgba(20, 26, 34, 0.88);
+  --color-paper-solid: #141a22;
+  --color-paper-hover: rgba(28, 36, 48, 0.9);
+  --color-paper-selected: rgba(26, 39, 64, 0.95);
+
+  --color-ink: #f2f4f8;
+  --color-ink-mute: #9aa3b5;
+  --color-ink-faint: #6b7385;
+
+  --color-lumen: #5b8cff;
+  --color-lumen-soft: rgba(91, 140, 255, 0.22);
+  --color-ember: #ff7a6a;
+  --color-ember-soft: rgba(255, 122, 106, 0.14);
+
+  --glass-fill: linear-gradient(
+    155deg,
+    rgba(72, 86, 110, 0.42) 0%,
+    rgba(28, 36, 52, 0.38) 48%,
+    rgba(16, 22, 34, 0.48) 100%
+  );
+  --glass-fill-solid: rgba(22, 28, 40, 0.42);
+  --glass-stroke: rgba(255, 255, 255, 0.16);
+  --glass-stroke-soft: rgba(255, 255, 255, 0.1);
+  --glass-edge-outer: rgba(255, 255, 255, 0.08);
+  --specular: rgba(255, 255, 255, 0.28);
+  --specular-soft: rgba(255, 255, 255, 0.12);
+  --glass-blur: 52px;
+  --glass-saturate: 1.65;
+  --glass-brightness: 1.08;
+
+  --elev-glass:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 -1px 0 rgba(0, 0, 0, 0.25) inset,
+    0 0 0 0.5px var(--glass-edge-outer), 0 12px 36px rgba(0, 0, 0, 0.45),
+    0 28px 72px rgba(0, 0, 0, 0.35),
+    0 0 40px color-mix(in oklab, var(--color-lumen) 8%, transparent), 0 0 0 1px var(--ambient-tint);
+  --elev-float: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 16px 48px rgba(0, 0, 0, 0.5);
+  --elev-paper: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 28px rgba(0, 0, 0, 0.35);
+
+  color-scheme: dark;
+}
+
+/* ——— Liquid Glass primitives (3 layers) ———
+ * Apple HIG: regular (legibility) vs clear (over media).
+ * Layers: illumination (fill+blur) / highlight (specular) / shadow (elev)
+ */
+
+.glass {
+  --specular-x: 30%;
+  --specular-y: 12%;
+  --lg-refract: url("#lg-refract-soft");
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-fill);
+  background-color: var(--glass-fill-solid);
+  /*
+   * Chromium: SVG displacement as backdrop-filter ≈ liquid refraction.
+   * Order: blur/saturate (frost) + url() (warp) — not true raytracing,
+   * but warps backdrop pixels like a thick glass slab.
+   */
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness)) var(--lg-refract);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness)) var(--lg-refract);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--elev-glass);
+  border-radius: var(--radius-glass);
+  overflow: hidden;
+  transition:
+    box-shadow var(--dur-med) var(--ease-glass),
+    border-color var(--dur-med) var(--ease-soft);
+}
+
+/* Prefer stronger warp on clear / floating pills */
+.glass-clear,
+.lumen-capsule {
+  --lg-refract: url("#lg-refract-strong");
+}
+
+/* regular — sidebar / search / text chrome (HIG default) */
+.glass-regular {
+  --glass-blur: 44px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, white 58%, transparent) 0%,
+    color-mix(in oklab, white 28%, transparent) 100%
+  );
+  background-color: color-mix(in oklab, white 32%, transparent);
+}
+
+[data-theme="dark"] .glass-regular {
+  background: linear-gradient(160deg, rgba(60, 72, 92, 0.55) 0%, rgba(22, 28, 40, 0.48) 100%);
+  background-color: rgba(24, 30, 42, 0.5);
+}
+
+/* clear — floating pills over rich canvas (more translucent) */
+.glass-clear {
+  --glass-blur: 36px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 100%);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .glass-clear {
+  background: linear-gradient(160deg, rgba(80, 96, 120, 0.28) 0%, rgba(18, 24, 34, 0.22) 100%);
+  background-color: rgba(18, 24, 34, 0.2);
+}
+
+/* Layer 2 — specular sheen (tracks --specular-x/y) */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      120% 80% at var(--specular-x) var(--specular-y),
+      var(--specular) 0%,
+      transparent 42%
+    ),
+    linear-gradient(
+      115deg,
+      transparent 0%,
+      transparent 38%,
+      var(--specular-soft) 48%,
+      transparent 58%,
+      transparent 100%
+    );
+  opacity: 0.55;
+  mix-blend-mode: soft-light;
+  transition:
+    background-position var(--dur-med) var(--ease-soft),
+    opacity var(--dur-med) var(--ease-soft);
+}
+
+/* Layer 3 — edge rim / lensing */
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow:
+    inset 0 1px 0 var(--specular),
+    inset 0 0 0 1px color-mix(in oklab, var(--specular) 25%, transparent),
+    inset 0 -20px 40px rgba(255, 255, 255, 0.04);
+  opacity: 0.9;
+}
+
+/* Children above optical layers (WebGL canvas stays under labels) */
+.glass > *:not(.webgl-glass-overlay) {
+  position: relative;
+  z-index: 1;
+}
+
+.lumen-capsule > *:not(.webgl-glass-overlay) {
+  position: relative;
+  z-index: 1;
+}
+
+.glass:hover {
+  border-color: color-mix(in oklab, var(--glass-stroke) 70%, white);
+}
+
+.glass-subtle {
+  position: relative;
+  isolation: isolate;
+  background: color-mix(in oklab, var(--glass-fill-solid) 80%, transparent);
+  backdrop-filter: blur(28px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-stroke-soft);
+  border-radius: var(--radius-control);
+  box-shadow:
+    0 1px 0 var(--specular-soft) inset,
+    0 4px 16px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.glass-subtle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--specular-soft) 0%, transparent 40%);
+  opacity: 0.5;
+}
+
+.glass-subtle > * {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Content panel — still “content layer” for mail body text readability,
+ * but Tahoe-like soft glass vessel (translucent paper + light frost).
+ * Individual message rows / HTML body stay non-blurred (HIG).
+ */
+.surface-paper {
+  position: relative;
+  isolation: isolate;
+  color: var(--color-ink);
+  border-radius: var(--radius-glass);
+  background: linear-gradient(
+    165deg,
+    color-mix(in oklab, white 62%, transparent) 0%,
+    color-mix(in oklab, var(--color-paper-solid) 55%, transparent) 100%
+  );
+  background-color: color-mix(in oklab, var(--color-paper-solid) 72%, transparent);
+  backdrop-filter: blur(36px) saturate(1.55) brightness(1.04);
+  -webkit-backdrop-filter: blur(36px) saturate(1.55) brightness(1.04);
+  border: 1px solid var(--glass-stroke);
+  box-shadow:
+    var(--elev-paper),
+    0 1px 0 var(--specular-soft) inset;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .surface-paper {
+  background: linear-gradient(165deg, rgba(40, 50, 66, 0.55) 0%, rgba(16, 22, 32, 0.62) 100%);
+  background-color: rgba(20, 26, 34, 0.7);
+}
+
+.surface-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(120deg, var(--specular-soft) 0%, transparent 36%, transparent 100%);
+  opacity: 0.35;
+}
+
+.surface-paper > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fully opaque paper only when needed (mail iframe sandboxes) */
+.surface-paper-solid {
+  background: var(--color-paper-solid) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Environment canvas — rich blobs so glass has color to refract */
+.surface-canvas {
+  background:
+    radial-gradient(
+      90% 70% at 8% 5%,
+      color-mix(in oklab, var(--color-lumen) 22%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      70% 55% at 92% 12%,
+      color-mix(in oklab, #a78bfa 18%, transparent),
+      transparent 50%
+    ),
+    radial-gradient(
+      80% 60% at 85% 95%,
+      color-mix(in oklab, var(--color-ember) 14%, transparent),
+      transparent 48%
+    ),
+    radial-gradient(
+      50% 40% at 40% 80%,
+      color-mix(in oklab, #38bdf8 12%, transparent),
+      transparent 55%
+    ),
+    var(--color-canvas);
+  background-attachment: fixed;
+}
+
+/* ——— Controls = Liquid Glass (functional layer) ———
+ * Apple: buttons / toggles / chips / fields live on glass material.
+ * Primary = Lumen-tinted glass (not flat plastic), still high contrast.
+ */
+
+.btn {
+  --specular-x: 35%;
+  --specular-y: 20%;
+  position: relative;
+  isolation: isolate;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  border-radius: var(--radius-capsule);
+  padding: 0.5rem 0.95rem;
+  color: var(--color-ink);
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, white 55%, transparent) 0%,
+    color-mix(in oklab, white 22%, transparent) 100%
+  );
+  background-color: color-mix(in oklab, white 30%, transparent);
+  backdrop-filter: blur(22px) saturate(1.7) brightness(1.05)
+    var(--lg-refract, url("#lg-refract-soft"));
+  -webkit-backdrop-filter: blur(22px) saturate(1.7) brightness(1.05)
+    var(--lg-refract, url("#lg-refract-soft"));
+  border: 1px solid var(--glass-stroke);
+  box-shadow:
+    0 1px 0 var(--specular) inset,
+    0 4px 14px rgba(15, 23, 42, 0.08),
+    0 0 0 0.5px var(--glass-edge-outer);
+  overflow: hidden;
+  transition:
+    transform var(--dur-fast) var(--ease-soft),
+    box-shadow var(--dur-fast) var(--ease-soft),
+    border-color var(--dur-fast) var(--ease-soft),
+    background var(--dur-fast) var(--ease-soft);
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 90% at var(--specular-x) var(--specular-y),
+    var(--specular) 0%,
+    transparent 50%
+  );
+  opacity: 0.45;
+  mix-blend-mode: soft-light;
+}
+
+.btn > * {
+  position: relative;
+  z-index: 1;
+}
+
+.btn:hover {
+  border-color: color-mix(in oklab, var(--glass-stroke) 50%, white);
+  box-shadow:
+    0 1px 0 var(--specular) inset,
+    0 6px 18px rgba(15, 23, 42, 0.1),
+    0 0 20px color-mix(in oklab, var(--color-lumen) 10%, transparent);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-lumen);
+  outline-offset: 2px;
+}
+
+.btn-glass {
+  /* alias — base .btn is already glass */
+  color: var(--color-ink);
+}
+
+/* Primary CTA: Lumen-tinted liquid glass (Apple “tinted” control) */
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--color-lumen) 72%, white) 0%,
+    color-mix(in oklab, var(--color-lumen) 88%, transparent) 55%,
+    color-mix(in oklab, var(--color-lumen) 65%, #1a3a9e) 100%
+  );
+  background-color: color-mix(in oklab, var(--color-lumen) 78%, transparent);
+  border-color: color-mix(in oklab, white 45%, var(--color-lumen));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 6px 22px var(--color-lumen-soft),
+    0 0 0 0.5px color-mix(in oklab, var(--color-lumen) 40%, transparent);
+  text-shadow: 0 1px 1px rgba(15, 40, 120, 0.25);
+}
+
+.btn-primary::before {
+  opacity: 0.55;
+}
+
+.btn-danger {
+  color: var(--color-ember);
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--color-ember) 22%, white) 0%,
+    color-mix(in oklab, var(--color-ember-soft) 80%, transparent) 100%
+  );
+  background-color: var(--color-ember-soft);
+  border-color: color-mix(in oklab, var(--color-ember) 35%, white);
+}
+
+[data-theme="dark"] .btn {
+  background: linear-gradient(155deg, rgba(70, 84, 108, 0.5) 0%, rgba(24, 30, 42, 0.45) 100%);
+  background-color: rgba(28, 36, 50, 0.45);
+  color: var(--color-ink);
+}
+
+[data-theme="dark"] .btn-primary {
+  color: #fff;
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--color-lumen) 85%, white) 0%,
+    color-mix(in oklab, var(--color-lumen) 70%, #0a1630) 100%
+  );
+}
+
+/* Glass chip / nav liquid droplet */
+.glass-chip {
+  position: relative;
+  isolation: isolate;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  backdrop-filter: none;
+  transition:
+    background var(--dur-fast) var(--ease-soft),
+    border-color var(--dur-fast) var(--ease-soft),
+    box-shadow var(--dur-fast) var(--ease-soft);
+}
+
+.glass-chip:hover {
+  background: color-mix(in oklab, white 18%, transparent);
+  border-color: var(--glass-stroke-soft);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+}
+
+.glass-chip.is-active,
+.glass-chip[aria-current="page"],
+.glass-chip[aria-selected="true"] {
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklab, white 48%, transparent) 0%,
+    color-mix(in oklab, var(--color-lumen) 14%, transparent) 100%
+  );
+  border-color: color-mix(in oklab, var(--color-lumen) 28%, var(--glass-stroke));
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow:
+    0 1px 0 var(--specular-soft) inset,
+    0 4px 14px color-mix(in oklab, var(--color-lumen) 12%, transparent);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .glass-chip.is-active,
+[data-theme="dark"] .glass-chip[aria-current="page"],
+[data-theme="dark"] .glass-chip[aria-selected="true"] {
+  background: linear-gradient(155deg, rgba(70, 90, 130, 0.45) 0%, rgba(30, 50, 90, 0.4) 100%);
+}
+
+/* Lumen Capsule — signature floating glass */
+
+.lumen-capsule {
+  --capsule-pad: 0.55rem 1rem;
+  --specular-x: 28%;
+  --specular-y: 30%;
+  --lg-refract: url("#lg-refract-strong");
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: var(--capsule-pad);
+  min-height: 40px;
+  border-radius: var(--radius-capsule);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: var(--color-ink);
+  background: var(--glass-fill);
+  background-color: var(--glass-fill-solid);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness)) var(--lg-refract);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness)) var(--lg-refract);
+  border: 1px solid var(--glass-stroke);
+  box-shadow:
+    var(--elev-float),
+    0 0 0 1px color-mix(in oklab, var(--color-lumen) 12%, transparent),
+    0 0 32px color-mix(in oklab, var(--color-lumen) 18%, transparent);
+  overflow: hidden;
+  cursor: default;
+  transition:
+    width var(--dur-med) var(--ease-glass),
+    border-radius var(--dur-med) var(--ease-glass),
+    box-shadow var(--dur-med) var(--ease-glass),
+    transform var(--dur-med) var(--ease-glass);
+}
+
+.lumen-capsule::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      90% 120% at var(--specular-x) var(--specular-y),
+      var(--specular) 0%,
+      transparent 50%
+    ),
+    linear-gradient(105deg, transparent 35%, var(--specular) 50%, transparent 65%);
+  background-size:
+    100% 100%,
+    220% 100%;
+  background-position:
+    center,
+    var(--specular-x) 0;
+  opacity: 0.55;
+  mix-blend-mode: soft-light;
+}
+
+.lumen-capsule::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: inset 0 1px 0 var(--specular);
+}
+
+.lumen-capsule > *:not(.webgl-glass-overlay) {
+  position: relative;
+  z-index: 1;
+}
+
+.lumen-capsule[data-state="thinking"] {
+  box-shadow:
+    var(--elev-float),
+    0 0 0 1px var(--color-lumen-soft),
+    0 0 36px var(--color-lumen-soft);
+}
+
+.lumen-capsule[data-state="expanded"] {
+  border-radius: var(--radius-glass);
+  align-items: flex-start;
+  flex-direction: column;
+  min-width: 320px;
+  padding: var(--space-4);
+  box-shadow:
+    var(--elev-float),
+    0 0 0 1px color-mix(in oklab, var(--color-lumen) 15%, transparent),
+    0 0 48px color-mix(in oklab, var(--color-lumen) 12%, transparent);
+}
+
+.lumen-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-lumen);
+  box-shadow:
+    0 0 0 3px var(--color-lumen-soft),
+    0 0 12px var(--color-lumen);
+  flex-shrink: 0;
+}
+
+/* Type helpers */
+
+.t-display {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-ink);
+}
+
+.t-title {
+  font-family: var(--font-body);
+  font-size: var(--text-title);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--color-ink);
+}
+
+.t-body {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: 400;
+  color: var(--color-ink);
+}
+
+.t-caption {
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  color: var(--color-ink-mute);
+}
+
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-ink-mute);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .glass::before,
+  .lumen-capsule::before {
+    opacity: 0.25;
+    mix-blend-mode: normal;
+  }
+
+  /* Skip expensive displacement when user prefers less motion */
+  .glass,
+  .lumen-capsule {
+    --lg-refract: none;
+  }
+}
+
+/* Forced high contrast / no backdrop */
+@media (prefers-contrast: more) {
+  .glass,
+  .glass-subtle,
+  .lumen-capsule {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--color-paper-solid);
+    border-color: var(--color-ink-mute);
+  }
+}
+
+/* Accessibility: reduce transparency → frostier solid, no warp */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-subtle,
+  .lumen-capsule {
+    --lg-refract: none;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: var(--color-paper-solid);
+    opacity: 0.97;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-subtle,
+  .lumen-capsule,
+  .btn-glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: color-mix(in oklab, var(--color-paper-solid) 92%, var(--color-lumen));
+    border: 1px solid color-mix(in oklab, var(--color-ink) 12%, transparent);
+  }
+}
+
+/* Toggle off refraction: <html data-glass-refract="off"> */
+html[data-glass-refract="off"] .glass,
+html[data-glass-refract="off"] .lumen-capsule {
+  --lg-refract: none;
+}

@@ -1,0 +1,141 @@
+/* Minimal base — visual system comes from MUI ThemeProvider + CssBaseline */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mail HTML iframe — solid host; theme colors come from srcDoc, not OS scheme */
+.mail-body-frame iframe {
+  display: block;
+  width: 100%;
+  min-height: 280px;
+  border: 0;
+  background: #ffffff;
+}
+
+[data-theme="dark"] .mail-body-frame iframe {
+  background: #141a22;
+}
+
+/* ——— Pane / module switch transitions ——— */
+:root {
+  --pane-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pane-dur: 320ms;
+  --pane-dur-fast: 240ms;
+}
+
+@keyframes pane-enter-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pane-enter-soft {
+  from {
+    opacity: 0;
+    transform: translate3d(10px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pane-enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pane-enter-reader {
+  from {
+    opacity: 0;
+    transform: translate3d(12px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes title-swap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes row-stagger-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.pane-enter-up {
+  animation: pane-enter-up var(--pane-dur) var(--pane-ease) both;
+}
+
+.pane-enter-soft {
+  animation: pane-enter-soft var(--pane-dur) var(--pane-ease) both;
+}
+
+.pane-enter-fade {
+  animation: pane-enter-fade var(--pane-dur-fast) var(--pane-ease) both;
+}
+
+.pane-enter-reader {
+  animation: pane-enter-reader var(--pane-dur) var(--pane-ease) both;
+}
+
+.pane-title-swap {
+  display: inline-block;
+  animation: title-swap var(--pane-dur-fast) var(--pane-ease) both;
+}
+
+.pane-row-stagger {
+  animation: row-stagger-in calc(var(--pane-dur-fast) + 40ms) var(--pane-ease) both;
+  animation-delay: calc(var(--row-i, 0) * 28ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .pane-enter-up,
+  .pane-enter-soft,
+  .pane-enter-fade,
+  .pane-enter-reader,
+  .pane-title-swap,
+  .pane-row-stagger {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

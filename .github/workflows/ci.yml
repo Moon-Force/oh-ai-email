@@ -1,0 +1,45 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-test:
+    # Ubuntu avoids Windows checkout CRLF fighting Prettier endOfLine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # version comes from package.json "packageManager" — do not also set `version:` here
+      # (pnpm/action-setup errors on mismatch with packageManager field)
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm -C apps/desktop test -- --run --coverage
+      # Rust workspace is empty until crates land; keep steps non-blocking
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check || true
+      - run: cargo clippy --workspace -- -D warnings || true
+      - run: cargo test --workspace || true
+
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Unpack-only desktop build (full electron-builder needs display / longer runners)
+      - run: pnpm -C apps/desktop build:unpack

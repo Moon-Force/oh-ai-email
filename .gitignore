@@ -1,9 +1,12 @@
 # Dependencies & build
 node_modules/
 dist/
+dist-electron/
+coverage/
 target/
 .pnpm-store/
 *.local
+apps/desktop/release/
 
 # Env & secrets
 .env
@@ -23,3 +26,5 @@ Thumbs.db
 # Logs & caches
 *.log
 .cache/
+
+apps/desktop/.vite/
