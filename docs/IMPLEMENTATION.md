@@ -16,12 +16,12 @@
 
 | ID   | 任务                                                     | 产出 / 验收                            | 状态 |
 | ---- | -------------------------------------------------------- | -------------------------------------- | ---- |
-| 0.1  | 确认 monorepo 布局（apps/desktop + crates 或先单包）     | 目录约定写入 README                    | [ ]  |
-| 0.2  | 初始化 Electron + React + TypeScript + Tailwind          | `pnpm dev` 可起桌面窗                  | [ ]  |
-| 0.3  | 初始化 Rust workspace（mail-core 可先内嵌）              | 空 command `ping` 前后端打通           | [ ]  |
-| 0.4  | ESLint / rustfmt / clippy / 基础 CI（build）             | PR 可跑通构建                          | [ ]  |
-| 0.5  | `.gitignore`、环境变量示例、安全基线说明                 | 无密钥入库                             | [ ]  |
-| 0.6  | 根 README：产品一句话 + 开发启动 + 链到 docs             | 新人可按文档启动                       | [ ]  |
+| 0.1  | 确认 monorepo 布局（apps/desktop）                       | 目录约定写入 README                    | [ ]  |
+| 0.2  | 初始化 Electron + React + TypeScript + MUI               | `pnpm dev` 可起桌面窗                  | [x]  |
+| 0.3  | Electron 主进程与渲染进程 IPC 通道打通                   | `ping` / 状态通信前后端打通            | [x]  |
+| 0.4  | ESLint / Prettier / 基础 CI 构建检查                     | PR 可跑通构建                          | [x]  |
+| 0.5  | `.gitignore`、环境变量示例、安全基线说明                 | 无密钥入库                             | [x]  |
+| 0.6  | 根 README：产品一句话 + 开发启动 + 链到 docs             | 新人可按文档启动                       | [x]  |
 | 0.7  | 本 docs 定稿（PRODUCT / ARCHITECTURE / IMPLEMENTATION）  | 与决策一致                             | [x]  |
 | 0.8  | UI 规范 MUI（DESIGN + theme）                            | 见 `docs/DESIGN.md` + `apps/desktop/src/theme/` | [x]  |
 | 0.8b | 历史视觉稿归档（非实现准绳）                             | `design/mvp/` 仅参考，UI 以 MUI 为准       | [x]  |
@@ -37,7 +37,7 @@
 
 | ID  | 任务                                                      | 产出 / 验收                        | 状态 |
 | --- | --------------------------------------------------------- | ---------------------------------- | ---- |
-| 1.1 | 账号域模型（email、imap_host、smtp_host、端口、加密方式） | Rust struct + 校验                 | [ ]  |
+| 1.1 | 账号域模型（email、imap_host、smtp_host、端口、加密方式） | TypeScript interface + 校验        | [ ]  |
 | 1.2 | SQLite schema v1（accounts / folders / messages 元数据）  | migration 可重复执行               | [ ]  |
 | 1.3 | 密钥/密码安全存储（钥匙串或加密文件）                     | 重启后可取回连接                   | [ ]  |
 | 1.4 | 「添加账号」UI 表单 + 测试连接                            | 错误信息可读（认证失败/证书/超时） | [ ]  |
@@ -110,7 +110,7 @@
 
 **目标**：云端默认、本地可选；摘要与写作可用。
 
-> **权威 TODO / 冻结决策**：[AI_TODO.md](./AI_TODO.md)（Wave-1/2/3 + 灵感池）。实现以 Electron 主进程路由为准（非必须先 Rust）。
+> **权威 TODO / 冻结决策**：[AI_TODO.md](./AI_TODO.md)（Wave-1/2/3 + 灵感池）。实现以 Electron 主进程 AI 路由为准。
 
 | ID   | 任务                                        | 产出 / 验收            | 状态 |
 | ---- | ------------------------------------------- | ---------------------- | ---- |
@@ -247,7 +247,7 @@
 
 | 角色          | 主责阶段                    |
 | ------------- | --------------------------- |
-| 客户端 / Rust | 1–3、同步与存储             |
+| 桌面主进程 / 后端 | 1–3、同步与存储             |
 | 前端 UI       | 列表/读信/写信/设置、阶段 6 |
 | AI            | 阶段 5                      |
 | 工程化        | 0、7                        |

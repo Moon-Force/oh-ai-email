@@ -5,32 +5,33 @@
 | 层       | 选型                                        | 职责                                                                             |
 | -------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
 | 桌面壳   | **Electron**                                | 窗口、系统集成、打包 Win/macOS/Linux                                             |
+| 层       | 选型                                        | 职责                                                                             |
+| -------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
+| 桌面壳   | **Electron**                                | 窗口、系统集成、打包 Win/macOS/Linux                                             |
 | UI       | **React + TypeScript + MUI**                | 列表、读信、写信、设置、AI 面板；视觉见 [DESIGN.md](./DESIGN.md)（Material UI） |
-| 原生核心 | **Rust**                                    | IMAP/SMTP、同步、加密存储、AI 路由命令                                           |
-| 本地库   | **SQLite**（敏感字段加密 / SQLCipher 方向） | 邮件元数据、正文缓存、账号配置                                                   |
+| 主进程核心 | **Node.js / TypeScript (Electron)**         | IMAP/SMTP 协议管理、同步编排、安全存储 safeStorage、AI 路由与 Agent 引擎          |
+| 本地库   | **SQLite**（敏感字段加密 / safeStorage 加密）| 邮件元数据、正文缓存、账号配置                                                   |
 | 云端 AI  | 多厂商预设与 OpenAI 兼容代理通道             | DeepSeek (`deepseek-chat`, `deepseek-reasoner`), 小米 MiMo, 自定义兼容端点        |
 | 本地 AI  | **Ollama** HTTP API                         | 用户可选（`127.0.0.1:11434`），邮件内容不经云                                    |
 | 语音交互 | **Web Speech API + MiMo TTS**               | 语音听写 (STT) + 邮件/摘要朗读 (TTS)                                             |
-
-> UI 默认 React；若团队更熟 Vue，可替换前端，不改变 Rust 命令边界。
 
 ## 2. 逻辑分层
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  Presentation（React）                                 │
-│  收件箱 / 读信 / 写信 / 分箱 / 设置 / AI 面板           │
+│  Presentation（React + TypeScript + MUI）           │
+│  收件箱 / 读信 / 写信 / 分箱 / 设置 / AI 胶囊与抽屉     │
 ├──────────────────────────────────────────────────────┤
-│  Electron IPC（invoke/handle + events）                │
+│  Electron IPC（invoke/handle + events 双向通道）       │
 ├──────────────────────────────────────────────────────┤
-│  Application（Rust）                                   │
-│  同步编排 · 发送流水线 · AI 用例 · 账号生命周期         │
+│  Main Application（Node.js / Electron 主进程）         │
+│  同步编排 · 发送流水线 · AI 路由 · Agent 引擎与沙箱    │
 ├──────────────────────────────────────────────────────┤
-│  Domain                                                │
-│  Account · Message · Thread · Label/Split · Draft      │
+│  Domain & Storage                                    │
+│  Account · Message · Thread · Draft · SQLite 缓存   │
 ├──────────────────────────────────────────────────────┤
-│  Infrastructure                                        │
-│  IMAP/SMTP · SQLite · Crypto · CloudAI · Ollama · FS   │
+│  Infrastructure                                      │
+│  IMAP/SMTP · safeStorage · CloudAI · Ollama · FS     │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -39,21 +40,14 @@
 ```
 oh-ai-email/
 ├── apps/
-│   └── desktop/                 # Electron 应用（前端 + electron 主进程）
-│       ├── src/                 # React
-│       └── electron/            # Electron 主进程与 IPC
-├── crates/
-│   ├── mail-core/               # 协议、解析、同步、域模型
-│   ├── mail-store/              # SQLite 仓储
-│   └── ai-router/               # 云端/本地 AI 路由
-├── services/
-│   └── ai-proxy/                # 可选：云端 AI 代理（可后置）
-├── docs/                        # 本目录
+│   └── desktop/                 # Electron 桌面应用主体
+│       ├── src/                 # React 渲染进程（UI 界面）
+│       │   └── features/        # 按业务域自包含模块 (ai, composer, mail, settings, voice...)
+│       └── electron/            # Electron 主进程 (IPC, AI 引擎, 密钥存储, 同步)
+├── docs/                        # 架构、设计、工作流与 TODO 规范文档
 ├── package.json / pnpm-workspace
 └── README.md
 ```
-
-一期允许先把 `mail-core` 放在 `electron/` 内，稳定后再拆 crate。
 
 ## 4. 邮件数据流
 
@@ -96,7 +90,7 @@ UI 点开 message_id
 
 ```
 UI 触发（Capsule 摘要 / 润色 / 快速回复 / 意图识别）
-    → Electron 主进程 AI 路由（或 Rust ai-router）
+    → Electron 主进程 AI 路由
         → 组装上下文（去引用噪音、截断、敏感信息 Redaction 策略）
         → mode == cloud ? CloudAI : Ollama (localhost:11434)
         → 返回结构化/文本结果

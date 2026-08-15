@@ -62,7 +62,7 @@ Implement against **docs + current code**. Historical mockups under `design/mvp/
 |-------|--------|
 | Desktop shell | **Electron** |
 | UI | **React + TypeScript + MUI** (`@mui/material`, `@mui/icons-material`, Emotion) |
-| Mail / sync / crypto | **Rust** (prefer crates under `crates/` when split) |
+| Mail / sync / crypto | **TypeScript / Node.js (Electron 主进程)** |
 | Local DB | **SQLite** (encrypt secrets / sensitive fields) |
 | AI | Router: cloud (OpenAI-compatible) \| Ollama localhost |
 
@@ -72,7 +72,7 @@ Target layout:
 oh-ai-email/
 ├── apps/
 │   └── desktop/               # Electron + React + TypeScript + MUI 桌面端主应用
-│       ├── electron/          # 主进程代码 (IPC 通信、安全存储 safeStorage、AI 服务)
+│       ├── electron/          # 主进程代码 (IPC 通信、安全存储 safeStorage、AI 服务、邮件同步与解析)
 │       │   └── ai/            # AI 核心 (Providers 适配器、Prompt 工程、Agent 引擎与工具沙箱)
 │       │       └── agent/     # 智能体引擎 (engine, tools, types, 调度器)
 │       └── src/               # 渲染进程前端 UI
@@ -86,10 +86,6 @@ oh-ai-email/
 │           │   └── shell/     # 主界面框架与侧边栏
 │           ├── theme/         # MUI 主题源 (createAppTheme.ts, AppThemeProvider.tsx)
 │           └── lib/           # IPC 客户端安全封装 (ipc.ts) 与公用工具
-├── crates/                    # Rust 底层引擎 (阶段拆分后独立)
-│   ├── mail-core/             # IMAP/SMTP 协议流式解析与同步引擎
-│   ├── mail-store/            # SQLite 本地加密持久化
-│   └── ai-router/             # 本地/云端 AI 路由与加速
 ├── docs/                      # 权威设计、架构与 TODO 规范文档
 └── design/                    # 历史设计原型与静态资源 (非视觉标准)
 ```
@@ -100,8 +96,6 @@ oh-ai-email/
 2. **严禁散乱文件**：严禁在根目录、`apps/desktop/` 等层级丢弃临时的 `.js/.ts/.md` 脚本、中间结果或未命名文件。
 3. **临时调试隔离**：调试或一次性测试脚本一律放在临时沙箱中运行，测试完成**必须立即清理**，禁止提交进 git 仓库。
 4. **文档集中收敛**：全局架构、任务清单与规范必须存放在 `docs/` 目录下，禁止随手在代码根目录建立散乱的 markdown 文档。
-
-Phase 1 may keep Rust inside the desktop bridge until stable; still respect layer boundaries.
 
 ## Implementation order
 
@@ -124,7 +118,6 @@ Do not start mobile/HarmonyOS work until phase-1 desktop MVP is usable unless th
 ## Code conventions
 
 - **TypeScript**: strict; prefer functional React components; shared types at clear module boundaries.
-- **Rust**: small modules; fallible I/O returns `Result`; no `unwrap` in production paths without justification.
 - **IPC**: typed Electron IPC (invoke/handle); UI never talks IMAP/SMTP directly.
 - **Naming**: domain words — Account, Folder, Message, Thread, Draft, Split — not internal schema nicknames in UI.
 - **Commits**: complete sentences; say why. No secrets in git.
@@ -149,7 +142,7 @@ Do not start mobile/HarmonyOS work until phase-1 desktop MVP is usable unless th
 - Matches the relevant acceptance row in `IMPLEMENTATION.md`.
 - UI follows MUI theme and `docs/DESIGN.md`.
 - No new phase-2 surface area without an explicit request.
-- Builds cleanly when the desktop app exists (`pnpm` / `cargo` as in root README).
+- Builds cleanly when the desktop app exists (`pnpm build` / `pnpm test` as in root README).
 
 ## Out of scope (unless user asks)
 
