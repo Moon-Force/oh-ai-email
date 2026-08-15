@@ -28,6 +28,12 @@ vi.mock("./router", async () => {
       ],
       mode: "cloud" as const,
     })),
+    suggestSplit: vi.fn(async () => ({
+      split: "important" as const,
+      reason: "包含高管明确的直接待办事项",
+      confidence: "high" as const,
+      mode: "cloud" as const,
+    })),
     rewriteTone: vi.fn(async (t: string) => `改写：${t}`),
     ensureCloudPrivacyAck: () => true,
     ackCloudPrivacy: vi.fn(async () => undefined),
@@ -245,18 +251,40 @@ test("shows 线程摘要 button when multiple threadMessages exist and renders t
   expect(screen.getByText("复制摘要")).toBeInTheDocument();
 });
 
-test("does not show 线程摘要 button when only single message in thread", () => {
+test("shows 建议分箱 button and applies split only upon user confirmation", async () => {
+  const user = userEvent.setup();
+  const onApplySplit = vi.fn();
+
   render(
     wrap(
       <LumenCapsule
-        subject="单邮件"
-        body="单邮件正文"
-        threadMessages={[{ sender: "张三", body: "单邮件正文" }]}
+        subject="重要会议"
+        body="请务必参会讨论上线事宜"
+        from="director@corp.com"
+        onApplySplit={onApplySplit}
       />,
     ),
   );
 
-  expect(screen.queryByTestId("thread-summary-button")).not.toBeInTheDocument();
+  const suggestBtn = screen.getByTestId("suggest-split-button");
+  expect(suggestBtn).toBeInTheDocument();
+  expect(suggestBtn).toHaveTextContent("建议分箱");
+
+  await user.click(suggestBtn);
+
+  expect(router.suggestSplit).toHaveBeenCalled();
+  expect(await screen.findByText("AI 分箱建议")).toBeInTheDocument();
+  expect(screen.getByText(/包含高管明确的直接待办事项/)).toBeInTheDocument();
+
+  // Split must NOT be applied automatically
+  expect(onApplySplit).not.toHaveBeenCalled();
+
+  // Click adopt button to apply
+  const applyBtn = screen.getByTestId("apply-split-button");
+  expect(applyBtn).toHaveTextContent(/采纳移至重要/);
+  await user.click(applyBtn);
+
+  expect(onApplySplit).toHaveBeenCalledWith("important");
 });
 
 

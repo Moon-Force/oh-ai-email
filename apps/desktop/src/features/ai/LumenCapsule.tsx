@@ -25,9 +25,11 @@ import {
   extractActionItems,
   quickReplyDraft,
   rewriteTone,
+  suggestSplit,
   summarize,
   summarizeThread,
   type ActionItemsData,
+  type SuggestSplitData,
   type ThreadSummaryData,
 } from "./router";
 import { useAiSettings } from "./settingsStore";
@@ -35,7 +37,7 @@ import { useMailStore } from "../mail/store";
 import { useToastStore } from "../shell/toastStore";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
-type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary";
+type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit";
 
 export const QUICK_REPLY_OPTIONS = [
   { key: "ack", label: "收到谢谢" },
@@ -48,20 +50,26 @@ type Props = {
   subject?: string;
   from?: string;
   body: string;
+  /** Current split of this message */
+  currentSplit?: "important" | "other";
   /** Chronological messages in thread if available */
   threadMessages?: { sender: string; date?: string; body: string }[];
   /** Reply target when inserting draft */
   replyTo?: string;
   onInsertDraft?: (draftText: string, replySubject: string, replyTo: string) => void;
+  /** Explicit user confirmation to apply split suggestion */
+  onApplySplit?: (split: "important" | "other") => void;
 };
 
 export default function LumenCapsule({
   subject,
   from,
   body,
+  currentSplit,
   threadMessages,
   replyTo,
   onInsertDraft,
+  onApplySplit,
 }: Props) {
   const mode = useAiSettings((s) => s.mode);
   const hasCloudApiKey = useAiSettings((s) => s.hasCloudApiKey);
@@ -73,12 +81,13 @@ export default function LumenCapsule({
   const [text, setText] = useState("");
   const [actionItemsData, setActionItemsData] = useState<ActionItemsData | null>(null);
   const [threadSummaryData, setThreadSummaryData] = useState<ThreadSummaryData | null>(null);
+  const [suggestSplitData, setSuggestSplitData] = useState<SuggestSplitData | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [kind, setKind] = useState<ResultKind>("summary");
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
-    "summary" | "draft" | "actionItems" | "threadSummary" | { type: "quick"; replyType: string } | null
+    "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | { type: "quick"; replyType: string } | null
   >(null);
   const activeReqIdRef = useRef<string | null>(null);
 
@@ -93,7 +102,7 @@ export default function LumenCapsule({
     if (id) {
       await cancelRequest(id);
     }
-    if (text || actionItemsData || threadSummaryData) {
+    if (text || actionItemsData || threadSummaryData || suggestSplitData) {
       setState("expanded");
     } else {
       setState("idle");
@@ -253,10 +262,50 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData ? "expanded" : "idle");
+        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "线索摘要失败，请稍后重试";
+      setError(msg);
+      setState("idle");
+      showToast(msg, "error", 6000);
+    } finally {
+      if (activeReqIdRef.current === reqId) {
+        activeReqIdRef.current = null;
+      }
+    }
+  }
+
+  async function runSuggestSplit() {
+    if (mode === "cloud" && !hasCloudApiKey) {
+      guideSettings("未配置云端 API Key，请到设置 → AI 中填写");
+      return;
+    }
+    if (mode === "cloud" && !ensureCloudPrivacyAck()) {
+      setPendingAction("suggestSplit");
+      setPrivacyOpen(true);
+      return;
+    }
+    const reqId = createAiRequestId();
+    activeReqIdRef.current = reqId;
+    setPendingAction(null);
+    setError(null);
+    setState("thinking");
+    setKind("suggestSplit");
+    try {
+      const res = await suggestSplit({ subject, from, body }, { mode, requestId: reqId });
+      if (activeReqIdRef.current !== reqId) return;
+      setSuggestSplitData(res);
+      setState("expanded");
+    } catch (e) {
+      if (activeReqIdRef.current !== reqId) {
+        return;
+      }
+      if (e instanceof AiRequestError && e.code === "ABORTED") {
+        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
+        return;
+      }
+      const msg = e instanceof AiRequestError ? e.message : "分箱建议分析失败，请稍后重试";
       setError(msg);
       setState("idle");
       showToast(msg, "error", 6000);
@@ -311,7 +360,7 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData ? "expanded" : "idle");
+        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "快捷回复失败，请稍后重试";
@@ -341,7 +390,7 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData ? "expanded" : "idle");
+        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "改写失败，请稍后重试";
@@ -379,6 +428,7 @@ export default function LumenCapsule({
     setText("");
     setActionItemsData(null);
     setThreadSummaryData(null);
+    setSuggestSplitData(null);
     setCheckedItems({});
     setError(null);
   }
@@ -390,6 +440,7 @@ export default function LumenCapsule({
     else if (pendingAction === "draft") void runDraft();
     else if (pendingAction === "actionItems") void runActionItems();
     else if (pendingAction === "threadSummary") void runThreadSummary();
+    else if (pendingAction === "suggestSplit") void runSuggestSplit();
     else if (pendingAction && typeof pendingAction === "object" && pendingAction.type === "quick") {
       void runQuickReply(pendingAction.replyType);
     }
@@ -438,6 +489,15 @@ export default function LumenCapsule({
             </Button>
             <Button size="small" color="inherit" onClick={() => void runActionItems()} sx={{ minWidth: 0, px: 1 }}>
               行动项
+            </Button>
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => void runSuggestSplit()}
+              sx={{ minWidth: 0, px: 1 }}
+              data-testid="suggest-split-button"
+            >
+              建议分箱
             </Button>
             <Chip
               size="small"
@@ -559,7 +619,9 @@ export default function LumenCapsule({
                   ? "草稿回复"
                   : kind === "actionItems"
                     ? "行动项与意图"
-                    : "线索时间线摘要"}
+                    : kind === "threadSummary"
+                      ? "线索时间线摘要"
+                      : "AI 分箱建议"}
             </Typography>
             <Chip
               size="small"
@@ -570,7 +632,69 @@ export default function LumenCapsule({
             />
           </Stack>
 
-          {kind === "threadSummary" ? (
+          {kind === "suggestSplit" ? (
+            <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}>
+              {suggestSplitData && (
+                <Paper
+                  variant="outlined"
+                  data-testid="suggest-split-card"
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: (t) =>
+                      t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1, flexWrap: "wrap", gap: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      建议分箱:
+                    </Typography>
+                    <Chip
+                      size="small"
+                      data-testid="suggested-split-chip"
+                      label={suggestSplitData.split === "important" ? "重要" : "其他"}
+                      color={suggestSplitData.split === "important" ? "primary" : "default"}
+                      variant="filled"
+                      sx={{ fontWeight: 600, height: 24 }}
+                    />
+                    {suggestSplitData.confidence && (
+                      <Chip
+                        size="small"
+                        label={`置信度: ${
+                          suggestSplitData.confidence === "high"
+                            ? "高"
+                            : suggestSplitData.confidence === "medium"
+                              ? "中"
+                              : "低"
+                        }`}
+                        variant="outlined"
+                        sx={{ height: 20, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+                      />
+                    )}
+                  </Stack>
+
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontWeight: 600, display: "block", mb: 0.25 }}
+                  >
+                    分析依据
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: "0.85rem", color: "text.primary" }}>
+                    {suggestSplitData.reason}
+                  </Typography>
+
+                  {currentSplit && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                      当前分箱：{currentSplit === "important" ? "重要" : "其他"}
+                      {currentSplit === suggestSplitData.split ? " (当前已是推荐分箱)" : ""}
+                    </Typography>
+                  )}
+                </Paper>
+              )}
+            </Stack>
+          ) : kind === "threadSummary" ? (
             <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}>
               {threadSummaryData?.summary && (
                 <Paper
@@ -734,7 +858,7 @@ export default function LumenCapsule({
             </Typography>
           )}
           <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5, flexShrink: 0 }}>
-            {kind !== "actionItems" && kind !== "threadSummary" && (
+            {kind !== "actionItems" && kind !== "threadSummary" && kind !== "suggestSplit" && (
               <>
                 <Button size="small" variant="outlined" onClick={() => void runTone("shorter")}>
                   更短一点
@@ -746,6 +870,26 @@ export default function LumenCapsule({
                   扩写
                 </Button>
               </>
+            )}
+            {kind === "suggestSplit" && suggestSplitData && (
+              <Button
+                size="small"
+                variant="contained"
+                data-testid="apply-split-button"
+                onClick={() => {
+                  if (onApplySplit) {
+                    onApplySplit(suggestSplitData.split);
+                  }
+                  showToast(
+                    `已采纳建议并标记为「${suggestSplitData.split === "important" ? "重要" : "其他"}」`,
+                    "success",
+                    3000,
+                  );
+                  close();
+                }}
+              >
+                {suggestSplitData.split === "important" ? "采纳移至重要" : "采纳移至其他"}
+              </Button>
             )}
             {kind === "threadSummary" && threadSummaryData && (
               <Button

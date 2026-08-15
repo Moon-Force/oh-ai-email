@@ -241,6 +241,7 @@ export default function Reader() {
               from={msg.from}
               replyTo={msg.from}
               body={`${msg.snippet}\n${stripHtml(msg.html ?? "")}`}
+              currentSplit={msg.split}
               threadMessages={threadMessages}
               onInsertDraft={(draftText, replySubject, replyTo) => {
                 openCompose({
@@ -249,6 +250,7 @@ export default function Reader() {
                   body: draftText,
                 });
               }}
+              onApplySplit={(split) => setMessageSplit(msg.id, split)}
             />
           </Box>
         </Box>

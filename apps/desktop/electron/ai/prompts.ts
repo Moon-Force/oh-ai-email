@@ -115,3 +115,21 @@ Guidelines:
 - Do not invent facts, meetings, or commitments not present in the thread.`;
 }
 
+export function systemForSuggestSplit(): string {
+  return `You are an email assistant that analyzes incoming email to determine whether it belongs in the "important" (重要) or "other" (其他) category.
+
+Respond ONLY with a JSON object matching this schema (no markdown fences, no other text):
+{
+  "split": "important" | "other",
+  "reason": "Concise 1-sentence explanation in the email's language",
+  "confidence": "high" | "medium" | "low"
+}
+
+Guidelines:
+- "important": Direct personal communication, business agreements, deadlines, urgent work requests, critical account notices, meetings requiring attendance, or direct questions.
+- "other": Marketing newsletters, automated digests, promotional offers, social notifications, bulk system logs, spam, or routine non-actionable announcements.
+- "reason": Provide a clear, brief rationale (e.g. "发件人提出具体项目交付物要求并包含截止日期" or "属于定期营销订阅与促销邮件").
+- "confidence": Rate confidence as "high", "medium", or "low".`;
+}
+
+

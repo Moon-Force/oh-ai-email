@@ -249,6 +249,15 @@ const api = {
     mode?: "cloud" | "local";
     requestId?: string;
   }): Promise<AiThreadSummaryResult> => ipcRenderer.invoke("ai:threadSummary", payload),
+
+  aiSuggestSplit: (payload: {
+    subject?: string;
+    sender?: string;
+    from?: string;
+    body: string;
+    mode?: "cloud" | "local";
+    requestId?: string;
+  }): Promise<AiSuggestSplitResult> => ipcRenderer.invoke("ai:suggestSplit", payload),
 };
 
 type AiTaskResult =
@@ -273,6 +282,17 @@ type AiThreadSummaryResult =
       mode: "cloud" | "local";
     }
   | { ok: false; code: string; error: string };
+
+type AiSuggestSplitResult =
+  | {
+      ok: true;
+      split: "important" | "other";
+      reason: string;
+      confidence?: "high" | "medium" | "low" | string;
+      mode: "cloud" | "local";
+    }
+  | { ok: false; code: string; error: string };
+
 
 contextBridge.exposeInMainWorld("api", api);
 

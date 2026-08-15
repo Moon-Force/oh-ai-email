@@ -7,6 +7,7 @@ import {
   systemForDraftReply,
   systemForQuickReply,
   systemForRewrite,
+  systemForSuggestSplit,
   systemForSummarize,
   systemForThreadSummary,
   type QuickReplyType,
@@ -36,6 +37,16 @@ export type ThreadSummaryResult =
       ok: true;
       summary: string;
       timeline: ThreadSummaryTimelineItem[];
+      mode: AiMode;
+    }
+  | { ok: false; code: AiErrorCode; error: string };
+
+export type SuggestSplitResult =
+  | {
+      ok: true;
+      split: "important" | "other";
+      reason: string;
+      confidence?: "high" | "medium" | "low" | string;
       mode: AiMode;
     }
   | { ok: false; code: AiErrorCode; error: string };
@@ -276,4 +287,69 @@ export async function taskThreadSummary(input: {
     };
   }
 }
+
+export async function taskSuggestSplit(input: {
+  subject?: string;
+  sender?: string;
+  from?: string;
+  body: string;
+  mode?: AiMode;
+  requestId?: string;
+}): Promise<SuggestSplitResult> {
+  const from = input.from ?? input.sender;
+  const ctx = buildMailContext({ subject: input.subject, from, body: input.body });
+  const result = await chatComplete(
+    [
+      { role: "system", content: systemForSuggestSplit() },
+      { role: "user", content: ctx },
+    ],
+    { mode: input.mode, requestId: input.requestId },
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  try {
+    let raw = result.text.trim();
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      raw = jsonMatch[0];
+    }
+    const parsed = JSON.parse(raw) as {
+      split?: unknown;
+      reason?: unknown;
+      confidence?: unknown;
+    };
+    const split =
+      parsed.split === "important" || parsed.split === "other" ? parsed.split : "important";
+    const reason =
+      typeof parsed.reason === "string" && parsed.reason.trim()
+        ? parsed.reason.trim()
+        : result.text.trim();
+    const confidence =
+      typeof parsed.confidence === "string" && parsed.confidence.trim()
+        ? parsed.confidence.trim()
+        : undefined;
+
+    return {
+      ok: true,
+      split,
+      reason,
+      confidence,
+      mode: result.mode,
+    };
+  } catch {
+    return {
+      ok: true,
+      split: "important",
+      reason: result.text.slice(0, 120) || "已完成分箱建议分析",
+      mode: result.mode,
+    };
+  }
+}
+
 

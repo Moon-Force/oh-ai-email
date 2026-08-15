@@ -68,6 +68,7 @@ import {
   taskExtractActionItems,
   taskQuickReply,
   taskRewrite,
+  taskSuggestSplit,
   taskSummarize,
   taskThreadSummary,
 } from "./ai/tasks";
@@ -497,5 +498,21 @@ export async function registerIpc(): Promise<void> {
       },
     ) => taskThreadSummary(payload),
   );
+
+  ipcMain.handle(
+    "ai:suggestSplit",
+    async (
+      _e,
+      payload: {
+        subject?: string;
+        sender?: string;
+        from?: string;
+        body: string;
+        mode?: AiMode;
+        requestId?: string;
+      },
+    ) => taskSuggestSplit(payload),
+  );
 }
+
 

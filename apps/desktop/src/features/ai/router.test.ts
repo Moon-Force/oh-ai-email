@@ -9,6 +9,7 @@ import {
   rewriteTone,
   summarize,
   summarizeThread,
+  suggestSplit,
   AiRequestError,
 } from "./router";
 
@@ -42,6 +43,13 @@ vi.mock("../../lib/ipc", () => ({
     ],
     mode: "cloud" as const,
   })),
+  aiSuggestSplit: vi.fn(async () => ({
+    ok: true as const,
+    split: "important" as const,
+    reason: "包含高管明确的直接待办事项",
+    confidence: "high" as const,
+    mode: "cloud" as const,
+  })),
   aiRewrite: vi.fn(async () => ({
     ok: true as const,
     text: "敬启者：\n\nthanks\n\n此致",
@@ -59,6 +67,7 @@ beforeEach(() => {
   vi.mocked(ipc.aiQuickReply).mockClear();
   vi.mocked(ipc.aiActionItems).mockClear();
   vi.mocked(ipc.aiThreadSummary).mockClear();
+  vi.mocked(ipc.aiSuggestSplit).mockClear();
   vi.mocked(ipc.aiRewrite).mockClear();
 });
 
@@ -157,6 +166,27 @@ describe("summarizeThread", () => {
     });
     expect(ipc.aiThreadSummary).toHaveBeenCalledWith(
       expect.objectContaining({ requestId: "req_thread_1" }),
+    );
+  });
+});
+
+describe("suggestSplit", () => {
+  it("suggests email split with reason and confidence", async () => {
+    const data = await suggestSplit({
+      sender: "boss@company.com",
+      subject: "Urgent action needed",
+      body: "Please submit report today.",
+    });
+    expect(data.split).toBe("important");
+    expect(data.reason).toContain("高管");
+    expect(data.confidence).toBe("high");
+    expect(ipc.aiSuggestSplit).toHaveBeenCalled();
+  });
+
+  it("passes requestId when provided", async () => {
+    await suggestSplit({ body: "test" }, { requestId: "req_split_1" });
+    expect(ipc.aiSuggestSplit).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_split_1" }),
     );
   });
 });

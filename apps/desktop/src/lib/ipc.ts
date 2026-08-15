@@ -122,6 +122,7 @@ type Api = {
   aiRewrite: (payload: AiRewritePayload) => Promise<AiTaskResult>;
   aiCompose: (payload: AiComposePayload) => Promise<AiTaskResult>;
   aiThreadSummary: (payload: AiThreadSummaryPayload) => Promise<AiThreadSummaryResult>;
+  aiSuggestSplit: (payload: AiSuggestSplitPayload) => Promise<AiSuggestSplitResult>;
 };
 
 export type AiModeDto = "cloud" | "local";
@@ -182,6 +183,26 @@ export type AiThreadSummaryPayload = {
   mode?: AiModeDto;
   requestId?: string;
 };
+
+export type AiSuggestSplitResult =
+  | {
+      ok: true;
+      split: "important" | "other";
+      reason: string;
+      confidence?: "high" | "medium" | "low" | string;
+      mode: AiModeDto;
+    }
+  | { ok: false; code: string; error: string };
+
+export type AiSuggestSplitPayload = {
+  subject?: string;
+  sender?: string;
+  from?: string;
+  body: string;
+  mode?: AiModeDto;
+  requestId?: string;
+};
+
 
 export type AiMailPayload = {
   subject?: string;
@@ -467,4 +488,13 @@ export async function aiThreadSummary(
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
   return api.aiThreadSummary(payload);
 }
+
+export async function aiSuggestSplit(
+  payload: AiSuggestSplitPayload,
+): Promise<AiSuggestSplitResult> {
+  const api = getApi();
+  if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
+  return api.aiSuggestSplit(payload);
+}
+
 

@@ -5,6 +5,7 @@ import {
   aiDraftReply,
   aiQuickReply,
   aiRewrite,
+  aiSuggestSplit,
   aiSummarize,
   aiThreadSummary,
   hasDesktopApi,
@@ -37,6 +38,14 @@ export type ThreadSummaryData = {
   timeline: ThreadTimelineItem[];
   mode: AiMode;
 };
+
+export type SuggestSplitData = {
+  split: "important" | "other";
+  reason: string;
+  confidence?: "high" | "medium" | "low" | string;
+  mode: AiMode;
+};
+
 
 
 export function createAiRequestId(): string {
@@ -198,6 +207,29 @@ export async function summarizeThread(
     return {
       summary: res.summary,
       timeline: res.timeline,
+      mode: res.mode,
+    };
+  }
+  throw new AiRequestError(res.code, res.error);
+}
+
+export async function suggestSplit(
+  mail: { subject?: string; sender?: string; from?: string; body: string },
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+): Promise<SuggestSplitData> {
+  if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  const res = await aiSuggestSplit({
+    ...mail,
+    mode,
+    requestId: reqId,
+  });
+  if (res.ok) {
+    return {
+      split: res.split,
+      reason: res.reason,
+      confidence: res.confidence,
       mode: res.mode,
     };
   }
