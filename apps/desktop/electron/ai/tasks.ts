@@ -1,5 +1,5 @@
 import { buildMailContext, cleanContext } from "./clean";
-import { chatComplete, type AiResult } from "./complete";
+import { abortAiRequest, chatComplete, type AiResult } from "./complete";
 import type { AiMode } from "./settings";
 import {
   systemForCompose,
@@ -9,11 +9,14 @@ import {
   type RewriteTone,
 } from "./prompts";
 
+export { abortAiRequest };
+
 export async function taskSummarize(input: {
   subject?: string;
   from?: string;
   body: string;
   mode?: AiMode;
+  requestId?: string;
 }): Promise<AiResult> {
   const ctx = buildMailContext(input);
   return chatComplete(
@@ -21,7 +24,7 @@ export async function taskSummarize(input: {
       { role: "system", content: systemForSummarize() },
       { role: "user", content: ctx },
     ],
-    { mode: input.mode },
+    { mode: input.mode, requestId: input.requestId },
   );
 }
 
@@ -30,6 +33,7 @@ export async function taskDraftReply(input: {
   from?: string;
   body: string;
   mode?: AiMode;
+  requestId?: string;
 }): Promise<AiResult> {
   const ctx = buildMailContext(input);
   return chatComplete(
@@ -37,7 +41,7 @@ export async function taskDraftReply(input: {
       { role: "system", content: systemForDraftReply() },
       { role: "user", content: `Write a reply to this email:\n\n${ctx}` },
     ],
-    { mode: input.mode },
+    { mode: input.mode, requestId: input.requestId },
   );
 }
 
@@ -45,6 +49,7 @@ export async function taskRewrite(input: {
   text: string;
   tone: RewriteTone;
   mode?: AiMode;
+  requestId?: string;
 }): Promise<AiResult> {
   const cleaned = cleanContext(input.text, 6000);
   if (!cleaned.trim()) {
@@ -55,7 +60,7 @@ export async function taskRewrite(input: {
       { role: "system", content: systemForRewrite(input.tone) },
       { role: "user", content: cleaned },
     ],
-    { mode: input.mode },
+    { mode: input.mode, requestId: input.requestId },
   );
 }
 
@@ -63,6 +68,7 @@ export async function taskCompose(input: {
   prompt: string;
   existingBody?: string;
   mode?: AiMode;
+  requestId?: string;
 }): Promise<AiResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
@@ -77,6 +83,6 @@ export async function taskCompose(input: {
       { role: "system", content: systemForCompose() },
       { role: "user", content: user },
     ],
-    { mode: input.mode },
+    { mode: input.mode, requestId: input.requestId },
   );
 }

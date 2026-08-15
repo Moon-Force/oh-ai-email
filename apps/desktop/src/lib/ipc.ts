@@ -114,6 +114,7 @@ type Api = {
   aiSaveSettings: (payload: AiSaveSettingsPayload) => Promise<AiSettingsDto>;
   aiProbeOllama: () => Promise<AiProbeOllamaResult>;
   aiProbeCloud: () => Promise<AiProbeCloudResult>;
+  aiAbort: (requestId: string) => Promise<boolean>;
   aiSummarize: (payload: AiMailPayload) => Promise<AiTaskResult>;
   aiDraftReply: (payload: AiMailPayload) => Promise<AiTaskResult>;
   aiRewrite: (payload: AiRewritePayload) => Promise<AiTaskResult>;
@@ -146,18 +147,21 @@ export type AiMailPayload = {
   from?: string;
   body: string;
   mode?: AiModeDto;
+  requestId?: string;
 };
 
 export type AiRewritePayload = {
   text: string;
   tone: "shorter" | "formal" | "expand";
   mode?: AiModeDto;
+  requestId?: string;
 };
 
 export type AiComposePayload = {
   prompt: string;
   existingBody?: string;
   mode?: AiModeDto;
+  requestId?: string;
 };
 
 export type AiProbeOllamaResult =
@@ -363,6 +367,10 @@ export async function aiProbeOllama(): Promise<AiProbeOllamaResult> {
 
 export async function aiProbeCloud(): Promise<AiProbeCloudResult> {
   return getApi()?.aiProbeCloud() ?? { ok: false, error: "仅桌面端可探测云端", code: "CONFIG" };
+}
+
+export async function aiAbort(requestId: string): Promise<boolean> {
+  return getApi()?.aiAbort(requestId) ?? false;
 }
 
 export async function aiSummarize(payload: AiMailPayload): Promise<AiTaskResult> {

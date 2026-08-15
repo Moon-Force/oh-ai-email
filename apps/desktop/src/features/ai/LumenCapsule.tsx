@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Button,
   Chip,
@@ -16,6 +16,8 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import {
   AiRequestError,
   ackCloudPrivacy,
+  cancelRequest,
+  createAiRequestId,
   draftReply,
   ensureCloudPrivacyAck,
   rewriteTone,
@@ -49,10 +51,25 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"summary" | "draft" | null>(null);
+  const activeReqIdRef = useRef<string | null>(null);
 
   function guideSettings(msg: string) {
     setError(msg);
     showToast(msg, "error", 5000);
+  }
+
+  async function handleCancel() {
+    const id = activeReqIdRef.current;
+    activeReqIdRef.current = null;
+    if (id) {
+      await cancelRequest(id);
+    }
+    if (text) {
+      setState("expanded");
+    } else {
+      setState("idle");
+    }
+    showToast("已取消 AI 请求", "info", 2000);
   }
 
   async function runSummary() {
@@ -65,19 +82,33 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
       setPrivacyOpen(true);
       return;
     }
+    const reqId = createAiRequestId();
+    activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
     setState("thinking");
     setKind("summary");
     try {
-      const s = await summarize({ subject, from, body }, mode);
+      const s = await summarize({ subject, from, body }, { mode, requestId: reqId });
+      if (activeReqIdRef.current !== reqId) return;
       setText(s);
       setState("expanded");
     } catch (e) {
+      if (activeReqIdRef.current !== reqId) {
+        return;
+      }
+      if (e instanceof AiRequestError && e.code === "ABORTED") {
+        setState(text ? "expanded" : "idle");
+        return;
+      }
       const msg = e instanceof AiRequestError ? e.message : "摘要失败，请稍后重试";
       setError(msg);
       setState("idle");
       showToast(msg, "error", 6000);
+    } finally {
+      if (activeReqIdRef.current === reqId) {
+        activeReqIdRef.current = null;
+      }
     }
   }
 
@@ -91,35 +122,63 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
       setPrivacyOpen(true);
       return;
     }
+    const reqId = createAiRequestId();
+    activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
     setState("thinking");
     setKind("draft");
     try {
-      const d = await draftReply({ subject, from, body }, mode);
+      const d = await draftReply({ subject, from, body }, { mode, requestId: reqId });
+      if (activeReqIdRef.current !== reqId) return;
       setText(d);
       setState("expanded");
     } catch (e) {
+      if (activeReqIdRef.current !== reqId) {
+        return;
+      }
+      if (e instanceof AiRequestError && e.code === "ABORTED") {
+        setState(text ? "expanded" : "idle");
+        return;
+      }
       const msg = e instanceof AiRequestError ? e.message : "写回复失败，请稍后重试";
       setError(msg);
       setState("idle");
       showToast(msg, "error", 6000);
+    } finally {
+      if (activeReqIdRef.current === reqId) {
+        activeReqIdRef.current = null;
+      }
     }
   }
 
   async function runTone(tone: "shorter" | "formal" | "expand") {
+    const reqId = createAiRequestId();
+    activeReqIdRef.current = reqId;
     setError(null);
     setState("thinking");
     try {
-      const next = await rewriteTone(text || body, tone, mode);
+      const next = await rewriteTone(text || body, tone, { mode, requestId: reqId });
+      if (activeReqIdRef.current !== reqId) return;
       setText(next);
       setKind("draft");
       setState("expanded");
     } catch (e) {
+      if (activeReqIdRef.current !== reqId) {
+        return;
+      }
+      if (e instanceof AiRequestError && e.code === "ABORTED") {
+        setState(text ? "expanded" : "idle");
+        return;
+      }
       const msg = e instanceof AiRequestError ? e.message : "改写失败，请稍后重试";
       setError(msg);
       setState("expanded");
       showToast(msg, "error", 6000);
+    } finally {
+      if (activeReqIdRef.current === reqId) {
+        activeReqIdRef.current = null;
+      }
     }
   }
 
@@ -221,13 +280,26 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
           alignItems: "center",
           gap: 1,
           px: 1.5,
-          py: 0.75,
+          py: 0.5,
           borderRadius: 999,
+          border: 1,
+          borderColor: "divider",
           bgcolor: "background.paper",
         }}
       >
         <CircularProgress size={16} />
-        <Typography variant="caption">思考中…</Typography>
+        <Typography variant="caption" sx={{ fontWeight: 500 }}>
+          思考中…
+        </Typography>
+        <Button
+          size="small"
+          color="inherit"
+          onClick={() => void handleCancel()}
+          sx={{ minWidth: 0, px: 0.75, py: 0.25, fontSize: "0.75rem" }}
+          aria-label="取消 AI 请求"
+        >
+          取消
+        </Button>
       </Paper>
     );
   }

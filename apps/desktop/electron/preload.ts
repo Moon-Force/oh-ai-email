@@ -193,11 +193,14 @@ const api = {
     { ok: true } | { ok: false; error: string; code?: string }
   > => ipcRenderer.invoke("ai:probeCloud"),
 
+  aiAbort: (requestId: string): Promise<boolean> => ipcRenderer.invoke("ai:abort", requestId),
+
   aiSummarize: (payload: {
     subject?: string;
     from?: string;
     body: string;
     mode?: "cloud" | "local";
+    requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:summarize", payload),
 
   aiDraftReply: (payload: {
@@ -205,18 +208,21 @@ const api = {
     from?: string;
     body: string;
     mode?: "cloud" | "local";
+    requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:draftReply", payload),
 
   aiRewrite: (payload: {
     text: string;
     tone: "shorter" | "formal" | "expand";
     mode?: "cloud" | "local";
+    requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:rewrite", payload),
 
   aiCompose: (payload: {
     prompt: string;
     existingBody?: string;
     mode?: "cloud" | "local";
+    requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:compose", payload),
 };
 

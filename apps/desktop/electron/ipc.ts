@@ -61,7 +61,13 @@ import {
   type AiMode,
   type AiSettingsRecord,
 } from "./ai/settings";
-import { taskCompose, taskDraftReply, taskRewrite, taskSummarize } from "./ai/tasks";
+import {
+  abortAiRequest,
+  taskCompose,
+  taskDraftReply,
+  taskRewrite,
+  taskSummarize,
+} from "./ai/tasks";
 import type { RewriteTone } from "./ai/prompts";
 
 export type AddAccountPayload = {
@@ -390,11 +396,19 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle("ai:probeOllama", () => probeOllama());
   ipcMain.handle("ai:probeCloud", () => probeCloud());
 
+  ipcMain.handle("ai:abort", (_e, requestId: string) => abortAiRequest(requestId));
+
   ipcMain.handle(
     "ai:summarize",
     async (
       _e,
-      payload: { subject?: string; from?: string; body: string; mode?: AiMode },
+      payload: {
+        subject?: string;
+        from?: string;
+        body: string;
+        mode?: AiMode;
+        requestId?: string;
+      },
     ) => taskSummarize(payload),
   );
 
@@ -402,21 +416,39 @@ export async function registerIpc(): Promise<void> {
     "ai:draftReply",
     async (
       _e,
-      payload: { subject?: string; from?: string; body: string; mode?: AiMode },
+      payload: {
+        subject?: string;
+        from?: string;
+        body: string;
+        mode?: AiMode;
+        requestId?: string;
+      },
     ) => taskDraftReply(payload),
   );
 
   ipcMain.handle(
     "ai:rewrite",
-    async (_e, payload: { text: string; tone: RewriteTone; mode?: AiMode }) =>
-      taskRewrite(payload),
+    async (
+      _e,
+      payload: {
+        text: string;
+        tone: RewriteTone;
+        mode?: AiMode;
+        requestId?: string;
+      },
+    ) => taskRewrite(payload),
   );
 
   ipcMain.handle(
     "ai:compose",
     async (
       _e,
-      payload: { prompt: string; existingBody?: string; mode?: AiMode },
+      payload: {
+        prompt: string;
+        existingBody?: string;
+        mode?: AiMode;
+        requestId?: string;
+      },
     ) => taskCompose(payload),
   );
 }

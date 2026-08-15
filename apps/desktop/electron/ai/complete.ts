@@ -6,6 +6,7 @@ export type AiErrorCode =
   | "NO_KEY"
   | "OLLAMA_DOWN"
   | "TIMEOUT"
+  | "ABORTED"
   | "HTTP"
   | "EMPTY"
   | "NETWORK"
@@ -21,17 +22,44 @@ function withTimeout(ms: number): AbortSignal {
   return AbortSignal.timeout(ms);
 }
 
+const activeControllers = new Map<string, AbortController>();
+
+export function abortAiRequest(requestId: string): boolean {
+  const controller = activeControllers.get(requestId);
+  if (controller) {
+    controller.abort();
+    activeControllers.delete(requestId);
+    return true;
+  }
+  return false;
+}
+
 export async function chatComplete(
   messages: ChatMessage[],
-  opts?: { mode?: AiMode; timeoutMs?: number },
+  opts?: { mode?: AiMode; timeoutMs?: number; requestId?: string },
 ): Promise<AiResult> {
   const settings = loadAiSettings();
   const mode = opts?.mode ?? settings.mode;
   const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const requestId = opts?.requestId;
+
+  const controller = new AbortController();
+  if (requestId) {
+    activeControllers.set(requestId, controller);
+  }
+
+  const timeoutSignal = withTimeout(timeoutMs);
+  const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal]);
 
   try {
     if (mode === "local") {
-      return await callOllama(messages, settings.ollamaHost, settings.ollamaModel, timeoutMs);
+      return await callOllama(
+        messages,
+        settings.ollamaHost,
+        settings.ollamaModel,
+        combinedSignal,
+        controller.signal,
+      );
     }
     const key = getCloudApiKey();
     if (!key) {
@@ -46,14 +74,22 @@ export async function chatComplete(
       settings.baseUrl,
       key,
       settings.model,
-      timeoutMs,
+      combinedSignal,
+      controller.signal,
     );
   } catch (e) {
-    if (isTimeoutError(e)) {
+    if (controller.signal.aborted) {
+      return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };
+    }
+    if (timeoutSignal.aborted || isTimeoutError(e)) {
       return { ok: false, code: "TIMEOUT", error: "AI 请求超时（60s），请稍后重试" };
     }
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, code: "NETWORK", error: msg };
+  } finally {
+    if (requestId) {
+      activeControllers.delete(requestId);
+    }
   }
 }
 
@@ -68,22 +104,31 @@ async function callOpenAiCompatible(
   baseUrl: string,
   apiKey: string,
   model: string,
-  timeoutMs: number,
+  signal: AbortSignal,
+  userAbortSignal?: AbortSignal,
 ): Promise<AiResult> {
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.4,
-    }),
-    signal: withTimeout(timeoutMs),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.4,
+      }),
+      signal,
+    });
+  } catch (e) {
+    if (userAbortSignal?.aborted) {
+      return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };
+    }
+    throw e;
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -110,7 +155,8 @@ async function callOllama(
   messages: ChatMessage[],
   host: string,
   model: string,
-  timeoutMs: number,
+  signal: AbortSignal,
+  userAbortSignal?: AbortSignal,
 ): Promise<AiResult> {
   const base = host.replace(/\/+$/, "");
   const url = `${base}/api/chat`;
@@ -125,9 +171,12 @@ async function callOllama(
         stream: false,
         options: { temperature: 0.4 },
       }),
-      signal: withTimeout(timeoutMs),
+      signal,
     });
   } catch (e) {
+    if (userAbortSignal?.aborted) {
+      return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };
+    }
     if (isTimeoutError(e)) {
       return { ok: false, code: "TIMEOUT", error: "本机 Ollama 请求超时（60s）" };
     }

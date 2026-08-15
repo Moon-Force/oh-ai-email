@@ -1,4 +1,5 @@
 import {
+  aiAbort,
   aiCompose,
   aiDraftReply,
   aiRewrite,
@@ -9,6 +10,20 @@ import {
 import { useAiSettings, type AiMode } from "./settingsStore";
 
 export type { AiMode };
+
+export type AiRunOptions = {
+  mode?: AiMode;
+  requestId?: string;
+};
+
+export function createAiRequestId(): string {
+  return `airq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export async function cancelRequest(requestId: string): Promise<boolean> {
+  if (!hasDesktopApi()) return true;
+  return aiAbort(requestId);
+}
 
 export function cleanContext(text: string, maxLen = 6000): string {
   const withoutQuote = text
@@ -45,6 +60,22 @@ function currentMode(override?: AiMode): AiMode {
   return override ?? useAiSettings.getState().mode;
 }
 
+function parseOptions(
+  modeOrOpts?: AiMode | AiRunOptions,
+  extraRequestId?: string,
+): { mode: AiMode; requestId?: string } {
+  if (typeof modeOrOpts === "object" && modeOrOpts !== null) {
+    return {
+      mode: currentMode(modeOrOpts.mode),
+      requestId: modeOrOpts.requestId ?? extraRequestId,
+    };
+  }
+  return {
+    mode: currentMode(modeOrOpts),
+    requestId: extraRequestId,
+  };
+}
+
 /** Browser/unit-test fallback only when not in Electron — clearly labeled, not silent fake success. */
 function browserBlocked(): never {
   throw new AiRequestError(
@@ -55,45 +86,53 @@ function browserBlocked(): never {
 
 export async function summarize(
   input: { subject?: string; from?: string; body: string } | string,
-  mode?: AiMode,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
   const payload =
     typeof input === "string"
-      ? { body: input, mode: currentMode(mode) }
-      : { ...input, mode: currentMode(mode) };
+      ? { body: input, mode, requestId: reqId }
+      : { ...input, mode, requestId: reqId };
   return unwrap(await aiSummarize(payload));
 }
 
 export async function draftReply(
   input: { subject?: string; from?: string; body: string } | string,
-  mode?: AiMode,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
   const payload =
     typeof input === "string"
-      ? { body: input, mode: currentMode(mode) }
-      : { ...input, mode: currentMode(mode) };
+      ? { body: input, mode, requestId: reqId }
+      : { ...input, mode, requestId: reqId };
   return unwrap(await aiDraftReply(payload));
 }
 
 export async function rewriteTone(
   text: string,
   tone: "shorter" | "formal" | "expand",
-  mode?: AiMode,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
-  return unwrap(await aiRewrite({ text, tone, mode: currentMode(mode) }));
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  return unwrap(await aiRewrite({ text, tone, mode, requestId: reqId }));
 }
 
 export async function composeFromPrompt(
   prompt: string,
   existingBody?: string,
-  mode?: AiMode,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
   return unwrap(
-    await aiCompose({ prompt, existingBody, mode: currentMode(mode) }),
+    await aiCompose({ prompt, existingBody, mode, requestId: reqId }),
   );
 }
 

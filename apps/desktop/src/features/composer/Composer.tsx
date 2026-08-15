@@ -29,7 +29,13 @@ import { useAccountsStore } from "../accounts/store";
 import { useMailStore } from "../mail/store";
 import type { MailMessage } from "../mail/types";
 import { useToastStore } from "../shell/toastStore";
-import { AiRequestError, composeFromPrompt, rewriteTone } from "../ai/router";
+import {
+  AiRequestError,
+  cancelRequest,
+  composeFromPrompt,
+  createAiRequestId,
+  rewriteTone,
+} from "../ai/router";
 import { useAiSettings } from "../ai/settingsStore";
 import RichTextEditor from "./RichTextEditor";
 import {
@@ -92,6 +98,7 @@ export default function Composer({
   /** Mount TipTap after compose enter animation (transform parent blanks ProseMirror). */
   const [editorReady, setEditorReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const aiReqIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const reduced =
@@ -125,6 +132,16 @@ export default function Composer({
     setEditorEpoch((n) => n + 1);
   }
 
+  async function cancelOngoingAi() {
+    const id = aiReqIdRef.current;
+    aiReqIdRef.current = null;
+    if (id) {
+      await cancelRequest(id);
+    }
+    setAiBusy(false);
+    showToast("已取消 AI 请求", "info", 2000);
+  }
+
   async function runComposePrompt() {
     const p = promptText.trim();
     if (!p) {
@@ -135,18 +152,27 @@ export default function Composer({
       showToast("未配置云端 API Key，请到设置 → AI", "error");
       return;
     }
+    const reqId = createAiRequestId();
+    aiReqIdRef.current = reqId;
     setAiBusy(true);
     try {
-      const out = await composeFromPrompt(p, plain, mode);
+      const out = await composeFromPrompt(p, plain, { mode, requestId: reqId });
+      if (aiReqIdRef.current !== reqId) return;
       applyAiBody(out);
       setPromptOpen(false);
       setPromptText("");
       showToast("已生成正文，请检查后发送", "success", 3000);
     } catch (e) {
+      if (aiReqIdRef.current !== reqId || (e instanceof AiRequestError && e.code === "ABORTED")) {
+        return;
+      }
       const msg = e instanceof AiRequestError ? e.message : String(e);
       showToast(msg, "error", 6000);
     } finally {
-      setAiBusy(false);
+      if (aiReqIdRef.current === reqId) {
+        aiReqIdRef.current = null;
+        setAiBusy(false);
+      }
     }
   }
 
@@ -161,16 +187,25 @@ export default function Composer({
       showToast("未配置云端 API Key，请到设置 → AI", "error");
       return;
     }
+    const reqId = createAiRequestId();
+    aiReqIdRef.current = reqId;
     setAiBusy(true);
     try {
-      const out = await rewriteTone(src, tone, mode);
+      const out = await rewriteTone(src, tone, { mode, requestId: reqId });
+      if (aiReqIdRef.current !== reqId) return;
       applyAiBody(out);
       showToast("已润色", "success", 2000);
     } catch (e) {
+      if (aiReqIdRef.current !== reqId || (e instanceof AiRequestError && e.code === "ABORTED")) {
+        return;
+      }
       const msg = e instanceof AiRequestError ? e.message : String(e);
       showToast(msg, "error", 6000);
     } finally {
-      setAiBusy(false);
+      if (aiReqIdRef.current === reqId) {
+        aiReqIdRef.current = null;
+        setAiBusy(false);
+      }
     }
   }
 
@@ -562,13 +597,29 @@ export default function Composer({
           </Alert>
         )}
         {aiBusy && (
-          <Alert severity="info" icon={<CircularProgress size={18} />}>
+          <Alert
+            severity="info"
+            icon={<CircularProgress size={18} />}
+            action={
+              <Button color="inherit" size="small" onClick={() => void cancelOngoingAi()}>
+                取消
+              </Button>
+            }
+          >
             AI 生成中（{mode === "local" ? "本机" : "云端"}）…
           </Alert>
         )}
       </Stack>
 
-      <Dialog open={promptOpen} onClose={() => !aiBusy && setPromptOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={promptOpen}
+        onClose={() => {
+          if (aiBusy) void cancelOngoingAi();
+          setPromptOpen(false);
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>根据提示生成正文</DialogTitle>
         <DialogContent>
           <TextField
@@ -588,10 +639,20 @@ export default function Composer({
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPromptOpen(false)} disabled={aiBusy}>
-            取消
+          <Button
+            onClick={() => {
+              if (aiBusy) void cancelOngoingAi();
+              setPromptOpen(false);
+            }}
+          >
+            {aiBusy ? "取消生成" : "取消"}
           </Button>
-          <Button variant="contained" onClick={() => void runComposePrompt()} disabled={aiBusy}>
+          <Button
+            variant="contained"
+            onClick={() => void runComposePrompt()}
+            disabled={aiBusy}
+            startIcon={aiBusy ? <CircularProgress size={14} color="inherit" /> : undefined}
+          >
             {aiBusy ? "生成中…" : "生成"}
           </Button>
         </DialogActions>

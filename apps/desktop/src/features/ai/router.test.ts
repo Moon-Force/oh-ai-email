@@ -1,8 +1,17 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanContext, draftReply, rewriteTone, summarize, AiRequestError } from "./router";
+import {
+  cleanContext,
+  cancelRequest,
+  createAiRequestId,
+  draftReply,
+  rewriteTone,
+  summarize,
+  AiRequestError,
+} from "./router";
 
 vi.mock("../../lib/ipc", () => ({
   hasDesktopApi: () => true,
+  aiAbort: vi.fn(async () => true),
   aiSummarize: vi.fn(async () => ({ ok: true as const, text: "【摘要】要点：hello", mode: "cloud" as const })),
   aiDraftReply: vi.fn(async () => ({
     ok: true as const,
@@ -20,6 +29,7 @@ vi.mock("../../lib/ipc", () => ({
 import * as ipc from "../../lib/ipc";
 
 beforeEach(() => {
+  vi.mocked(ipc.aiAbort).mockClear();
   vi.mocked(ipc.aiSummarize).mockClear();
   vi.mocked(ipc.aiDraftReply).mockClear();
   vi.mocked(ipc.aiRewrite).mockClear();
@@ -38,12 +48,26 @@ describe("summarize", () => {
     await expect(summarize("hello team")).resolves.toMatch(/摘要/);
     expect(ipc.aiSummarize).toHaveBeenCalled();
   });
+
+  it("passes requestId when provided", async () => {
+    await summarize("hello team", { requestId: "req_123" });
+    expect(ipc.aiSummarize).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_123" }),
+    );
+  });
 });
 
 describe("draftReply", () => {
   it("returns editable draft", async () => {
     const d = await draftReply("Q3 assets");
     expect(d).toMatch(/你好/);
+  });
+
+  it("passes requestId when provided", async () => {
+    await draftReply({ body: "test", subject: "re" }, { requestId: "req_draft_1" });
+    expect(ipc.aiDraftReply).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_draft_1" }),
+    );
   });
 });
 
@@ -54,6 +78,28 @@ describe("rewriteTone", () => {
     expect(ipc.aiRewrite).toHaveBeenCalledWith(
       expect.objectContaining({ tone: "formal", text: "thanks" }),
     );
+  });
+
+  it("passes requestId when provided", async () => {
+    await rewriteTone("thanks", "shorter", { requestId: "req_rewrite_1" });
+    expect(ipc.aiRewrite).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_rewrite_1", tone: "shorter" }),
+    );
+  });
+});
+
+describe("cancelRequest and createAiRequestId", () => {
+  it("creates unique ai request ids", () => {
+    const id1 = createAiRequestId();
+    const id2 = createAiRequestId();
+    expect(id1).toMatch(/^airq_/);
+    expect(id1).not.toBe(id2);
+  });
+
+  it("calls aiAbort via cancelRequest", async () => {
+    const res = await cancelRequest("req_test");
+    expect(res).toBe(true);
+    expect(ipc.aiAbort).toHaveBeenCalledWith("req_test");
   });
 });
 
