@@ -525,80 +525,247 @@ export default function LumenCapsule({
             sx={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 0.75,
-              px: 1.25,
-              py: 0.5,
+              gap: 0.5,
+              p: "4px 8px",
               borderRadius: 999,
-              border: 1,
-              borderColor: "divider",
-              bgcolor: "background.paper",
+              flexWrap: "nowrap",
+              whiteSpace: "nowrap",
+              bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.95)" : "rgba(255, 255, 255, 0.95)"),
+              backdropFilter: "blur(16px)",
+              border: (t) => (t.palette.mode === "dark" ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)"),
+              boxShadow: (t) =>
+                t.palette.mode === "dark"
+                  ? "0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2)"
+                  : "0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.03)",
             }}
           >
-            <AutoAwesomeIcon color="primary" fontSize="small" />
-            <Typography variant="caption" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-              AI
-            </Typography>
-            <Button size="small" onClick={() => void runSummary()} sx={{ minWidth: 0, px: 1 }}>
+            <Box
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.5,
+                px: 1,
+                py: 0.35,
+                borderRadius: 999,
+                bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(100, 149, 237, 0.16)" : "rgba(25, 118, 210, 0.08)"),
+                color: "primary.main",
+                flexShrink: 0,
+              }}
+            >
+              <AutoAwesomeIcon sx={{ fontSize: 15 }} />
+              <Typography sx={{ fontWeight: 700, fontSize: "0.75rem", letterSpacing: "0.04em", lineHeight: 1 }}>
+                AI
+              </Typography>
+            </Box>
+
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              onClick={() => void runSummary()}
+              sx={{
+                minWidth: "auto",
+                px: 1.25,
+                py: 0.4,
+                height: 28,
+                borderRadius: 999,
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                textTransform: "none",
+                flexShrink: 0,
+                boxShadow: "none",
+                "&:hover": {
+                  boxShadow: (t) => `0 2px 8px ${t.palette.primary.main}40`,
+                },
+              }}
+            >
               总结
             </Button>
+
             {Boolean(threadMessages && threadMessages.length > 1) && (
               <Button
                 size="small"
                 color="inherit"
                 onClick={() => void runThreadSummary()}
-                sx={{ minWidth: 0, px: 1 }}
                 data-testid="thread-summary-button"
+                sx={{
+                  minWidth: "auto",
+                  px: 1,
+                  py: 0.4,
+                  height: 28,
+                  borderRadius: 999,
+                  fontSize: "0.8125rem",
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                  textTransform: "none",
+                  flexShrink: 0,
+                  color: "text.primary",
+                  transition: "all 0.15s ease",
+                  "&:hover": {
+                    bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                    color: "primary.main",
+                  },
+                }}
               >
                 线程摘要
               </Button>
             )}
-            <Button size="small" color="inherit" onClick={() => void runDraft()} sx={{ minWidth: 0, px: 1 }}>
+
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => void runDraft()}
+              sx={{
+                minWidth: "auto",
+                px: 1,
+                py: 0.4,
+                height: 28,
+                borderRadius: 999,
+                fontSize: "0.8125rem",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                textTransform: "none",
+                flexShrink: 0,
+                color: "text.primary",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  color: "primary.main",
+                },
+              }}
+            >
               写回复
             </Button>
-            <Button size="small" color="inherit" onClick={() => void runActionItems()} sx={{ minWidth: 0, px: 1 }}>
+
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => void runActionItems()}
+              sx={{
+                minWidth: "auto",
+                px: 1,
+                py: 0.4,
+                height: 28,
+                borderRadius: 999,
+                fontSize: "0.8125rem",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                textTransform: "none",
+                flexShrink: 0,
+                color: "text.primary",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  color: "primary.main",
+                },
+              }}
+            >
               行动项
             </Button>
+
             <Button
               size="small"
               color={commitmentsData.length > 0 ? "warning" : "inherit"}
               onClick={() => void runCommitments()}
-              sx={{ minWidth: 0, px: 1 }}
               data-testid="commitments-button"
+              sx={{
+                minWidth: "auto",
+                px: 1,
+                py: 0.4,
+                height: 28,
+                borderRadius: 999,
+                fontSize: "0.8125rem",
+                fontWeight: commitmentsData.length > 0 ? 600 : 500,
+                whiteSpace: "nowrap",
+                textTransform: "none",
+                flexShrink: 0,
+                color: commitmentsData.length > 0 ? "warning.main" : "text.primary",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                },
+              }}
             >
               承诺追踪{commitmentsData.length > 0 ? ` (${commitmentsData.length})` : ""}
             </Button>
+
             <Button
               size="small"
               color="inherit"
               onClick={() => void runSuggestSplit()}
-              sx={{ minWidth: 0, px: 1 }}
               data-testid="suggest-split-button"
+              sx={{
+                minWidth: "auto",
+                px: 1,
+                py: 0.4,
+                height: 28,
+                borderRadius: 999,
+                fontSize: "0.8125rem",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                textTransform: "none",
+                flexShrink: 0,
+                color: "text.primary",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  color: "primary.main",
+                },
+              }}
             >
               建议分箱
             </Button>
+
             <Button
               size="small"
               color="inherit"
               onClick={() => void runTranslate()}
-              sx={{ minWidth: 0, px: 1 }}
               data-testid="translate-button"
+              sx={{
+                minWidth: "auto",
+                px: 1,
+                py: 0.4,
+                height: 28,
+                borderRadius: 999,
+                fontSize: "0.8125rem",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                textTransform: "none",
+                flexShrink: 0,
+                color: "text.primary",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  color: "primary.main",
+                },
+              }}
             >
               翻译
             </Button>
+
             <Chip
               size="small"
               label={mode === "local" ? "本机" : "云端"}
               color="primary"
               variant="outlined"
-              sx={{ height: 22, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
+              sx={{
+                height: 22,
+                borderRadius: 999,
+                flexShrink: 0,
+                borderColor: (t) => (t.palette.mode === "dark" ? "rgba(100, 149, 237, 0.3)" : "rgba(25, 118, 210, 0.25)"),
+                bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(100, 149, 237, 0.08)" : "rgba(25, 118, 210, 0.04)"),
+                "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem", fontWeight: 500 },
+              }}
             />
+
             {error && (
-              <Button size="small" color="error" onClick={() => setView("settings")}>
+              <Button size="small" color="error" onClick={() => setView("settings")} sx={{ whiteSpace: "nowrap", flexShrink: 0 }}>
                 去设置
               </Button>
             )}
             {error && (
-              <Typography variant="caption" color="error" sx={{ maxWidth: 160 }} noWrap title={error}>
+              <Typography variant="caption" color="error" sx={{ maxWidth: 160, whiteSpace: "nowrap", flexShrink: 0 }} noWrap title={error}>
                 {error}
               </Typography>
             )}
@@ -606,9 +773,9 @@ export default function LumenCapsule({
 
           <Stack
             direction="row"
-            spacing={0.5}
+            spacing={0.75}
             data-testid="quick-reply-chips"
-            sx={{ flexWrap: "wrap", justifyContent: "flex-end", gap: 0.5 }}
+            sx={{ flexWrap: "nowrap", justifyContent: "flex-end", gap: 0.75 }}
           >
             {QUICK_REPLY_OPTIONS.map((opt) => (
               <Chip
@@ -618,12 +785,25 @@ export default function LumenCapsule({
                 onClick={() => void runQuickReply(opt.key)}
                 variant="outlined"
                 sx={{
-                  bgcolor: "background.paper",
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.85)" : "rgba(255, 255, 255, 0.9)"),
+                  backdropFilter: "blur(8px)",
                   cursor: "pointer",
                   fontSize: "0.75rem",
-                  height: 24,
-                  boxShadow: 1,
-                  "&:hover": { bgcolor: "action.hover" },
+                  fontWeight: 500,
+                  height: 26,
+                  borderRadius: 999,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  border: (t) => (t.palette.mode === "dark" ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+                  boxShadow: "0 2px 6px rgba(0, 0, 0, 0.03)",
+                  transition: "all 0.15s ease-in-out",
+                  "&:hover": {
+                    bgcolor: "primary.main",
+                    color: "primary.contrastText",
+                    borderColor: "primary.main",
+                    transform: "translateY(-1px)",
+                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+                  },
                 }}
               />
             ))}

@@ -235,7 +235,7 @@ export default function Reader() {
               `linear-gradient(to top, ${t.palette.background.paper} 55%, transparent)`,
           }}
         >
-          <Box sx={{ pointerEvents: "auto", maxWidth: "min(100%, 440px)" }}>
+          <Box sx={{ pointerEvents: "auto", maxWidth: "100%", width: "fit-content" }}>
             <LumenCapsule
               subject={msg.subject}
               from={msg.from}
