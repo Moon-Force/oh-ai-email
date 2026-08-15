@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Composer from "./Composer";
 import { buildReplyQuote } from "./quote";
@@ -80,4 +80,61 @@ test("shows rich text editor and attachment controls", async () => {
   // Editor mounts after compose enter animation delay
   expect(await screen.findByTestId("rich-text-editor", {}, { timeout: 2000 })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "粗体" })).toBeInTheDocument();
+});
+
+test("shows pre-send check dialog when attachment is missing and proceeds on confirmation", async () => {
+  const user = userEvent.setup();
+  const onSend = vi.fn();
+  render(
+    wrap(
+      <Composer
+        onSend={onSend}
+        initialTo="client@example.com"
+        initialSubject="设计稿请查收"
+        initialBody="请查收附件中的最新方案。"
+      />,
+    ),
+  );
+
+  await user.click(screen.getByRole("button", { name: "发送" }));
+
+  // Should show the pre-send check dialog instead of sending immediately
+  expect(await screen.findByTestId("presend-check-dialog")).toBeInTheDocument();
+  expect(screen.getByText("发信前检查提醒")).toBeInTheDocument();
+  expect(screen.getByText("可能遗漏附件")).toBeInTheDocument();
+  expect(onSend).not.toHaveBeenCalled();
+
+  // Click "仍然发送" to force send
+  await user.click(screen.getByTestId("presend-proceed-btn"));
+  expect(onSend).toHaveBeenCalledWith(
+    expect.objectContaining({
+      to: "client@example.com",
+      subject: "设计稿请查收",
+    }),
+  );
+});
+
+test("can dismiss pre-send check dialog to return and edit", async () => {
+  const user = userEvent.setup();
+  const onSend = vi.fn();
+  render(
+    wrap(
+      <Composer
+        onSend={onSend}
+        initialTo="client@example.com"
+        initialSubject="修改收款账户"
+        initialBody="请汇款到新账号。"
+      />,
+    ),
+  );
+
+  await user.click(screen.getByRole("button", { name: "发送" }));
+
+  expect(await screen.findByTestId("presend-check-dialog")).toBeInTheDocument();
+  expect(screen.getByText("涉及资金/转账敏感信息")).toBeInTheDocument();
+
+  // Click "返回修改"
+  await user.click(screen.getByText("返回修改"));
+  await waitForElementToBeRemoved(() => screen.queryByTestId("presend-check-dialog"));
+  expect(onSend).not.toHaveBeenCalled();
 });

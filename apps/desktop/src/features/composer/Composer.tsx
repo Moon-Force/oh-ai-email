@@ -45,6 +45,7 @@ import {
   validateAttachmentBatch,
   type LocalAttachment,
 } from "./attachments";
+import { runPreSendCheck, type PreSendIssue } from "./preSendCheck";
 import { buildReplyQuote } from "./quote";
 
 export { buildReplyQuote };
@@ -93,6 +94,8 @@ export default function Composer({
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptText, setPromptText] = useState("");
   const [toneMenuEl, setToneMenuEl] = useState<null | HTMLElement>(null);
+  const [preSendIssues, setPreSendIssues] = useState<PreSendIssue[]>([]);
+  const [preSendDialogOpen, setPreSendDialogOpen] = useState(false);
   /** Bump to remount TipTap after external AI body replace. */
   const [editorEpoch, setEditorEpoch] = useState(0);
   /** Mount TipTap after compose enter animation (transform parent blanks ProseMirror). */
@@ -292,7 +295,7 @@ export default function Composer({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
-  async function send() {
+  async function send(force = false) {
     setError(null);
     if (!to.includes("@")) {
       const msg = "收件人不正确";
@@ -310,7 +313,21 @@ export default function Composer({
     const bodyText = plain.trim() || stripHtmlQuick(html);
     const bodyHtml = html.trim() && html !== "<p></p>" ? html : plainToHtml(bodyText);
 
+    if (!force) {
+      const issues = runPreSendCheck({
+        subject,
+        bodyText,
+        attachmentsCount: attachments.length,
+      });
+      if (issues.length > 0) {
+        setPreSendIssues(issues);
+        setPreSendDialogOpen(true);
+        return;
+      }
+    }
+
     setSending(true);
+    setPreSendDialogOpen(false);
     try {
       if (!hasDesktopApi()) {
         showToast(
@@ -654,6 +671,49 @@ export default function Composer({
             startIcon={aiBusy ? <CircularProgress size={14} color="inherit" /> : undefined}
           >
             {aiBusy ? "生成中…" : "生成"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={preSendDialogOpen}
+        onClose={() => setPreSendDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        data-testid="presend-check-dialog"
+      >
+        <DialogTitle sx={{ pb: 1 }}>发信前检查提醒</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            系统检测到当前邮件可能存在以下需要注意的事项，请确认：
+          </Typography>
+          <Stack spacing={1.5}>
+            {preSendIssues.map((issue, idx) => (
+              <Alert
+                key={idx}
+                severity={issue.severity}
+                variant="outlined"
+                sx={{
+                  "& .MuiAlert-message": { width: "100%" },
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.25 }}>
+                  {issue.title}
+                </Typography>
+                <Typography variant="body2">{issue.detail}</Typography>
+              </Alert>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setPreSendDialogOpen(false)}>返回修改</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => void send(true)}
+            data-testid="presend-proceed-btn"
+          >
+            仍然发送
           </Button>
         </DialogActions>
       </Dialog>
