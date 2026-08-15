@@ -130,6 +130,14 @@ Guidelines:
 - "other": Marketing newsletters, automated digests, promotional offers, social notifications, bulk system logs, spam, or routine non-actionable announcements.
 - "reason": Provide a clear, brief rationale (e.g. "发件人提出具体项目交付物要求并包含截止日期" or "属于定期营销订阅与促销邮件").
 - "confidence": Rate confidence as "high", "medium", or "low".`;
+export function systemForTranslation(targetLang: "zh" | "en" = "zh"): string {
+  const targetName = targetLang === "en" ? "English" : "Chinese (Simplified 中文)";
+  return `You are a professional email translation assistant.
+Translate the user's email text faithfully into ${targetName}.
+Guidelines:
+- Maintain natural, professional business email phrasing and tone.
+- Preserve original formatting, bullet points, greetings, and sign-offs.
+- Output ONLY the translated text without any explanation, markdown fences, or conversational filler.`;
 }
 
 

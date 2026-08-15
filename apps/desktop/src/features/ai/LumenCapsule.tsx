@@ -28,6 +28,7 @@ import {
   suggestSplit,
   summarize,
   summarizeThread,
+  translateText,
   type ActionItemsData,
   type SuggestSplitData,
   type ThreadSummaryData,
@@ -37,7 +38,7 @@ import { useMailStore } from "../mail/store";
 import { useToastStore } from "../shell/toastStore";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
-type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit";
+type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation";
 
 export const QUICK_REPLY_OPTIONS = [
   { key: "ack", label: "收到谢谢" },
@@ -87,7 +88,7 @@ export default function LumenCapsule({
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
-    "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | { type: "quick"; replyType: string } | null
+    "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation" | { type: "quick"; replyType: string } | null
   >(null);
   const activeReqIdRef = useRef<string | null>(null);
 
@@ -433,6 +434,46 @@ export default function LumenCapsule({
     setError(null);
   }
 
+  async function runTranslate(targetLang: "zh" | "en" = "zh") {
+    if (mode === "cloud" && !hasCloudApiKey) {
+      guideSettings("未配置云端 API Key，请到设置 → AI 中填写");
+      return;
+    }
+    if (mode === "cloud" && !ensureCloudPrivacyAck()) {
+      setPendingAction("translation");
+      setPrivacyOpen(true);
+      return;
+    }
+    const reqId = createAiRequestId();
+    activeReqIdRef.current = reqId;
+    setPendingAction(null);
+    setError(null);
+    setState("thinking");
+    setKind("translation");
+    try {
+      const res = await translateText(body, targetLang, { mode, requestId: reqId });
+      if (activeReqIdRef.current !== reqId) return;
+      setText(res);
+      setState("expanded");
+    } catch (e) {
+      if (activeReqIdRef.current !== reqId) {
+        return;
+      }
+      if (e instanceof AiRequestError && e.code === "ABORTED") {
+        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
+        return;
+      }
+      const msg = e instanceof AiRequestError ? e.message : "翻译失败，请稍后重试";
+      setError(msg);
+      setState("idle");
+      showToast(msg, "error", 6000);
+    } finally {
+      if (activeReqIdRef.current === reqId) {
+        activeReqIdRef.current = null;
+      }
+    }
+  }
+
   async function acceptPrivacy() {
     await ackCloudPrivacy();
     setPrivacyOpen(false);
@@ -441,6 +482,7 @@ export default function LumenCapsule({
     else if (pendingAction === "actionItems") void runActionItems();
     else if (pendingAction === "threadSummary") void runThreadSummary();
     else if (pendingAction === "suggestSplit") void runSuggestSplit();
+    else if (pendingAction === "translation") void runTranslate();
     else if (pendingAction && typeof pendingAction === "object" && pendingAction.type === "quick") {
       void runQuickReply(pendingAction.replyType);
     }
@@ -498,6 +540,15 @@ export default function LumenCapsule({
               data-testid="suggest-split-button"
             >
               建议分箱
+            </Button>
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => void runTranslate()}
+              sx={{ minWidth: 0, px: 1 }}
+              data-testid="translate-button"
+            >
+              翻译
             </Button>
             <Chip
               size="small"
@@ -621,7 +672,9 @@ export default function LumenCapsule({
                     ? "行动项与意图"
                     : kind === "threadSummary"
                       ? "线索时间线摘要"
-                      : "AI 分箱建议"}
+                      : kind === "suggestSplit"
+                        ? "AI 分箱建议"
+                        : "邮件翻译"}
             </Typography>
             <Chip
               size="small"
@@ -928,13 +981,13 @@ export default function LumenCapsule({
                 插入草稿
               </Button>
             )}
-            {kind === "summary" && (
+            {(kind === "summary" || kind === "translation") && (
               <Button
                 size="small"
                 variant="contained"
                 onClick={() => {
                   void navigator.clipboard?.writeText(text);
-                  showToast("已复制摘要", "info", 2000);
+                  showToast(kind === "translation" ? "已复制译文" : "已复制摘要", "info", 2000);
                 }}
               >
                 复制

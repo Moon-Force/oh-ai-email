@@ -34,6 +34,7 @@ vi.mock("./router", async () => {
       confidence: "high" as const,
       mode: "cloud" as const,
     })),
+    translateText: vi.fn(async () => "翻译：这是中文翻译结果。"),
     rewriteTone: vi.fn(async (t: string) => `改写：${t}`),
     ensureCloudPrivacyAck: () => true,
     ackCloudPrivacy: vi.fn(async () => undefined),
@@ -286,5 +287,30 @@ test("shows 建议分箱 button and applies split only upon user confirmation", 
 
   expect(onApplySplit).toHaveBeenCalledWith("important");
 });
+
+test("shows 翻译 button and displays translated text", async () => {
+  const user = userEvent.setup();
+
+  render(
+    wrap(
+      <LumenCapsule
+        subject="Meeting Agenda"
+        body="Here is the agenda for tomorrow's team sync."
+      />,
+    ),
+  );
+
+  const translateBtn = screen.getByTestId("translate-button");
+  expect(translateBtn).toBeInTheDocument();
+  expect(translateBtn).toHaveTextContent("翻译");
+
+  await user.click(translateBtn);
+
+  expect(router.translateText).toHaveBeenCalled();
+  expect(await screen.findByText("邮件翻译")).toBeInTheDocument();
+  expect(screen.getByText(/这是中文翻译结果/)).toBeInTheDocument();
+  expect(screen.getByText("复制")).toBeInTheDocument();
+});
+
 
 

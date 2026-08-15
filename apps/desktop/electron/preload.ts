@@ -258,6 +258,13 @@ const api = {
     mode?: "cloud" | "local";
     requestId?: string;
   }): Promise<AiSuggestSplitResult> => ipcRenderer.invoke("ai:suggestSplit", payload),
+
+  aiTranslate: (payload: {
+    text: string;
+    targetLang?: "zh" | "en";
+    mode?: "cloud" | "local";
+    requestId?: string;
+  }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:translate", payload),
 };
 
 type AiTaskResult =

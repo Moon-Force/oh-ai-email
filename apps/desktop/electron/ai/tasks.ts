@@ -10,6 +10,7 @@ import {
   systemForSuggestSplit,
   systemForSummarize,
   systemForThreadSummary,
+  systemForTranslation,
   type QuickReplyType,
   type RewriteTone,
 } from "./prompts";
@@ -351,5 +352,27 @@ export async function taskSuggestSplit(input: {
     };
   }
 }
+
+export async function taskTranslate(input: {
+  text: string;
+  targetLang?: "zh" | "en";
+  mode?: AiMode;
+  requestId?: string;
+}): Promise<AiResult> {
+  const cleaned = cleanContext(input.text, 6_000);
+  if (!cleaned) {
+    return { ok: false, code: "EMPTY", error: "待翻译文本为空" };
+  }
+  const targetLang = input.targetLang ?? "zh";
+  const system = systemForTranslation(targetLang);
+  return chatComplete(
+    [
+      { role: "system", content: system },
+      { role: "user", content: cleaned },
+    ],
+    { mode: input.mode, requestId: input.requestId },
+  );
+}
+
 
 

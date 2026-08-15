@@ -8,6 +8,7 @@ import {
   aiSuggestSplit,
   aiSummarize,
   aiThreadSummary,
+  aiTranslate,
   hasDesktopApi,
   type AiTaskResult,
 } from "../../lib/ipc";
@@ -258,6 +259,17 @@ export async function composeFromPrompt(
   return unwrap(
     await aiCompose({ prompt, existingBody, mode, requestId: reqId }),
   );
+}
+
+export async function translateText(
+  text: string,
+  targetLang: "zh" | "en" = "zh",
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+): Promise<string> {
+  if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  return unwrap(await aiTranslate({ text, targetLang, mode, requestId: reqId }));
 }
 
 export function ensureCloudPrivacyAck(): boolean {

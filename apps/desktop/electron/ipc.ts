@@ -71,6 +71,7 @@ import {
   taskSuggestSplit,
   taskSummarize,
   taskThreadSummary,
+  taskTranslate,
 } from "./ai/tasks";
 import type { RewriteTone } from "./ai/prompts";
 
@@ -512,6 +513,19 @@ export async function registerIpc(): Promise<void> {
         requestId?: string;
       },
     ) => taskSuggestSplit(payload),
+  );
+
+  ipcMain.handle(
+    "ai:translate",
+    async (
+      _e,
+      payload: {
+        text: string;
+        targetLang?: "zh" | "en";
+        mode?: AiMode;
+        requestId?: string;
+      },
+    ) => taskTranslate(payload),
   );
 }
 

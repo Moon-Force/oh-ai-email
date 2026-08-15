@@ -10,6 +10,7 @@ import {
   summarize,
   summarizeThread,
   suggestSplit,
+  translateText,
   AiRequestError,
 } from "./router";
 
@@ -50,6 +51,11 @@ vi.mock("../../lib/ipc", () => ({
     confidence: "high" as const,
     mode: "cloud" as const,
   })),
+  aiTranslate: vi.fn(async () => ({
+    ok: true as const,
+    text: "你好世界，这是翻译后的内容。",
+    mode: "cloud" as const,
+  })),
   aiRewrite: vi.fn(async () => ({
     ok: true as const,
     text: "敬启者：\n\nthanks\n\n此致",
@@ -68,6 +74,7 @@ beforeEach(() => {
   vi.mocked(ipc.aiActionItems).mockClear();
   vi.mocked(ipc.aiThreadSummary).mockClear();
   vi.mocked(ipc.aiSuggestSplit).mockClear();
+  vi.mocked(ipc.aiTranslate).mockClear();
   vi.mocked(ipc.aiRewrite).mockClear();
 });
 
@@ -187,6 +194,23 @@ describe("suggestSplit", () => {
     await suggestSplit({ body: "test" }, { requestId: "req_split_1" });
     expect(ipc.aiSuggestSplit).toHaveBeenCalledWith(
       expect.objectContaining({ requestId: "req_split_1" }),
+    );
+  });
+});
+
+describe("translateText", () => {
+  it("translates text into target language", async () => {
+    const res = await translateText("Hello world", "zh");
+    expect(res).toContain("你好世界");
+    expect(ipc.aiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Hello world", targetLang: "zh" }),
+    );
+  });
+
+  it("passes requestId when provided", async () => {
+    await translateText("Hello", "en", { requestId: "req_trans_1" });
+    expect(ipc.aiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_trans_1", targetLang: "en" }),
     );
   });
 });

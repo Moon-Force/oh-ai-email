@@ -10,6 +10,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Menu,
   MenuItem,
   Skeleton,
@@ -35,6 +36,7 @@ import {
   composeFromPrompt,
   createAiRequestId,
   rewriteTone,
+  translateText,
 } from "../ai/router";
 import { useAiSettings } from "../ai/settingsStore";
 import RichTextEditor from "./RichTextEditor";
@@ -198,6 +200,39 @@ export default function Composer({
       if (aiReqIdRef.current !== reqId) return;
       applyAiBody(out);
       showToast("已润色", "success", 2000);
+    } catch (e) {
+      if (aiReqIdRef.current !== reqId || (e instanceof AiRequestError && e.code === "ABORTED")) {
+        return;
+      }
+      const msg = e instanceof AiRequestError ? e.message : String(e);
+      showToast(msg, "error", 6000);
+    } finally {
+      if (aiReqIdRef.current === reqId) {
+        aiReqIdRef.current = null;
+        setAiBusy(false);
+      }
+    }
+  }
+
+  async function runTranslateDraft(targetLang: "zh" | "en") {
+    setToneMenuEl(null);
+    const src = plain.trim() || stripHtmlQuick(html);
+    if (!src) {
+      showToast("请先写一点正文再翻译", "error");
+      return;
+    }
+    if (mode === "cloud" && !hasCloudApiKey) {
+      showToast("未配置云端 API Key，请到设置 → AI", "error");
+      return;
+    }
+    const reqId = createAiRequestId();
+    aiReqIdRef.current = reqId;
+    setAiBusy(true);
+    try {
+      const out = await translateText(src, targetLang, { mode, requestId: reqId });
+      if (aiReqIdRef.current !== reqId) return;
+      applyAiBody(out);
+      showToast("已翻译正文", "success", 2000);
     } catch (e) {
       if (aiReqIdRef.current !== reqId || (e instanceof AiRequestError && e.code === "ABORTED")) {
         return;
@@ -467,6 +502,9 @@ export default function Composer({
             <MenuItem onClick={() => void runPolish("shorter")}>更短一点</MenuItem>
             <MenuItem onClick={() => void runPolish("formal")}>更正式</MenuItem>
             <MenuItem onClick={() => void runPolish("expand")}>扩写</MenuItem>
+            <Divider />
+            <MenuItem onClick={() => void runTranslateDraft("zh")}>翻译为中文</MenuItem>
+            <MenuItem onClick={() => void runTranslateDraft("en")}>翻译为英文 (English)</MenuItem>
           </Menu>
           <Button
             startIcon={<AttachFileIcon />}

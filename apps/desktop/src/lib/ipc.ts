@@ -123,6 +123,12 @@ type Api = {
   aiCompose: (payload: AiComposePayload) => Promise<AiTaskResult>;
   aiThreadSummary: (payload: AiThreadSummaryPayload) => Promise<AiThreadSummaryResult>;
   aiSuggestSplit: (payload: AiSuggestSplitPayload) => Promise<AiSuggestSplitResult>;
+  aiTranslate: (payload: {
+    text: string;
+    targetLang?: "zh" | "en";
+    mode?: AiModeDto;
+    requestId?: string;
+  }) => Promise<AiTaskResult>;
 };
 
 export type AiModeDto = "cloud" | "local";
@@ -496,5 +502,17 @@ export async function aiSuggestSplit(
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
   return api.aiSuggestSplit(payload);
 }
+
+export async function aiTranslate(payload: {
+  text: string;
+  targetLang?: "zh" | "en";
+  mode?: AiModeDto;
+  requestId?: string;
+}): Promise<AiTaskResult> {
+  const api = getApi();
+  if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
+  return api.aiTranslate(payload);
+}
+
 
 
