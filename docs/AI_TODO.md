@@ -112,6 +112,11 @@
 | W3-08 | 联系人卡片 | 最近话题 / 未结事项（本地索引） | [ ] |
 | W3-09 | 流式输出 | Capsule/Composer token 流（可选） | [ ] |
 | W3-10 | 官方 ai-proxy | 仅当产品要「开箱 Key」时再做 | [ ] |
+| W3-11 | DeepSeek 预设与 R1 思考流 | `https://api.deepseek.com` · `deepseek-chat` / `deepseek-reasoner` · `reasoning_content` 提取 | [ ] |
+| W3-12 | 小米 MiMo 预设与多模态 | `https://api.xiaomimimo.com/v1` · `mimo-v2.5` / `mimo-v2.5-pro` / `mimo-v2.5-tts` | [ ] |
+| W3-13 | 动态模型拉取 | 远程 `GET /models` & 本地 Ollama `GET /api/tags` 一键同步下拉 | [ ] |
+| W3-14 | 账户余额/额度查询 | DeepSeek `GET /user/balance` 实时查询余额与可用性 | [ ] |
+| W3-15 | 语音听写与朗读能力 | Composer 语音输入 (STT) + Capsule 邮件/摘要朗读 (Web Speech / MiMo TTS) | [ ] |
 
 ### Wave-3 重点任务执行步骤细化
 
@@ -128,6 +133,51 @@
 - **步骤 3（生成变更提案清单）**：输出 [`BatchArchiveProposal`](./AGENT_WORKFLOW.md#32-变更提议工具定义-mutation-proposals) 及 [`SplitChangeProposal`](./AGENT_WORKFLOW.md#32-变更提议工具定义-mutation-proposals)。
 - **步骤 4（UI 审查与逐项控制）**：在 [`AgentDrawer`](./AGENT_WORKFLOW.md#6-mui-前端呈现与交互设计) 呈现结构化清单，提供全选、反选、单项移除与理由 Hover 展示。
 - **步骤 5（受控事务执行）**：用户点击「确认执行已选项」，主进程通过事务受控更新本地 SQLite 并增量触发 IMAP 同步，执行完毕返回审计报告。
+
+#### W3-11：DeepSeek 通道预设与 R1 深度思考流 (DeepSeek & Reasoning Content)
+- **预设配置**：内置 Endpoint `https://api.deepseek.com`，预设模型 `deepseek-chat`（通用读写）与 `deepseek-reasoner`（R1 复杂长推理）。
+- **思考链解析 (Reasoning Extraction)**：
+  - 调用 `deepseek-reasoner` 时，主进程解析响应流与完整 JSON 中的 `choices[0].delta.reasoning_content`（或 `choices[0].message.reasoning_content`）。
+  - 在前端 `LumenCapsule` 与 `AgentDrawer` 中以可折叠的 **「深度思考中... / 思考过程 (Thought Chain)」** 独立卡片呈现，与正式输出文本分离。
+- **验收标准**：
+  - [ ] 切换至 DeepSeek 预设并填入 Key 后，连通性测试通过。
+  - [ ] 选择 `deepseek-reasoner` 时，思考过程与最终回复分别渲染，思考流折叠不影响最终草稿一键插入。
+
+#### W3-12：小米 MiMo 预设与通道 (Xiaomi MiMo Integration)
+- **预设配置**：内置 Endpoint `https://api.xiaomimimo.com/v1`，模型支持 `mimo-v2.5`、`mimo-v2.5-pro` 及语音模型 `mimo-v2.5-tts`。
+- **适配要求**：完全兼容 OpenAI 格式 Chat Completions 协议，支持高速摘要与高性价比草稿生成。
+- **验收标准**：
+  - [ ] 设置页一键选择「小米 MiMo」预设，自动填入 BaseURL。
+  - [ ] 使用 MiMo Key 能稳定完成单邮件摘要与 Composer 润色。
+
+#### W3-13：远程与本地模型列表动态拉取 (Dynamic Model Discovery)
+- **功能描述**：在设置页提供「刷新模型列表」按钮，避免用户手动手输模型字符串。
+- **通道协议**：
+  - 云端通用通道（OpenAI / DeepSeek / MiMo / Custom）：主进程发起 `GET ${baseUrl}/models`（带 `Authorization: Bearer <Key>`），解析 `data[].id` 过滤可用模型。
+  - 本地 Ollama 通道：主进程发起 `GET ${ollamaHost}/api/tags`，解析 `models[].name`。
+- **验收标准**：
+  - [ ] 填入有效 Key 后点击刷新，下拉框自动列出远端支持的模型列表。
+  - [ ] Ollama 运行中点击刷新，自动列出本地已 pull 的模型列表。
+  - [ ] 拉取失败时给出轻量 Toast 提示，不阻断手动输入。
+
+#### W3-14：账户余额与额度实时查询 (Account Balance Query)
+- **功能描述**：对支持余额查询的 Provider（如 DeepSeek），在设置面板常驻显示账户可用额度与货币类型。
+- **协议实现**：主进程发起 `GET https://api.deepseek.com/user/balance`，解析 `is_available` 与 `balance_infos`（包含 `currency`、`total_balance`、`granted_balance`、`topped_up_balance`）。
+- **验收标准**：
+  - [ ] DeepSeek 模式下，设置页面显示「账户余额：¥XX.XX（赠送额度：¥XX.XX）」。
+  - [ ] 余额欠费（`is_available: false`）时，设置页高亮红色告警，提示用户充值。
+
+#### W3-15：语音口述听写 (STT) 与邮件朗读 (TTS)
+- **语音输入 (STT - Speech-to-Text)**：
+  - 在写信 `Composer` 工具栏与 Agent 输入框增加 🎙️ 语音口述按钮。
+  - 基于 Web Speech API（`webkitSpeechRecognition`）实现本地无缝语音听写，支持实时流式上屏追加，并可配合 AI 润色一键转为规范书面邮件。
+- **语音朗读 (TTS - Text-to-Speech)**：
+  - 在读信 `LumenCapsule` 与邮件详情页增加 🔊「朗读摘要」/「朗读全文」功能。
+  - 支持双引擎降级：优先调用已配置的 MiMo TTS（`mimo-v2.5-tts`），若未配置或离线则平滑切至浏览器原生 `window.speechSynthesis`。
+  - 提供播放、暂停、进度条与语速（0.8x - 1.5x）调节组件。
+- **验收标准**：
+  - [ ] 麦克风权限正常时，点击麦克风可将口述语音实时输入至 Composer。
+  - [ ] 读信时点击朗读，可平稳播报中文/英文摘要，并在切换邮件时自动停止上一条播报。
 
 ---
 

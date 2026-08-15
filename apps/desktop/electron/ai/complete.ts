@@ -14,7 +14,7 @@ export type AiErrorCode =
   | "CONFIG";
 
 export type AiResult =
-  | { ok: true; text: string; mode: AiMode }
+  | { ok: true; text: string; reasoningContent?: string; mode: AiMode }
   | { ok: false; code: AiErrorCode; error: string };
 
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -164,11 +164,24 @@ async function callOpenAiCompatible(
   }
 
   const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: {
+      message?: {
+        content?: string;
+        reasoning_content?: string;
+        reasoning?: string;
+      };
+    }[];
   };
-  const text = data.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!text) return { ok: false, code: "EMPTY", error: "模型返回为空" };
-  return { ok: true, text, mode: "cloud" };
+  const msgObj = data.choices?.[0]?.message;
+  const text = msgObj?.content?.trim() ?? "";
+  const reasoningContent = (msgObj?.reasoning_content || msgObj?.reasoning)?.trim() || undefined;
+  if (!text && !reasoningContent) return { ok: false, code: "EMPTY", error: "模型返回为空" };
+  return {
+    ok: true,
+    text: text || (reasoningContent ? "已完成思考分析。" : ""),
+    reasoningContent,
+    mode: "cloud",
+  };
 }
 
 async function callOllama(
@@ -277,3 +290,10 @@ export async function probeCloud(): Promise<{ ok: true } | { ok: false; error: s
     return { ok: false, code: "NETWORK", error: e instanceof Error ? e.message : String(e) };
   }
 }
+
+export {
+  fetchRemoteModels,
+  fetchAccountBalance,
+  synthesizeSpeechMiMo,
+} from "./providers/openai";
+

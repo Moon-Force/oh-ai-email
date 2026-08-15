@@ -193,6 +193,18 @@ const api = {
     { ok: true } | { ok: false; error: string; code?: string }
   > => ipcRenderer.invoke("ai:probeCloud"),
 
+  aiListModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
+    ipcRenderer.invoke("ai:listModels"),
+
+  aiQueryBalance: (): Promise<AiBalanceResult> =>
+    ipcRenderer.invoke("ai:queryBalance"),
+
+  aiSynthesizeSpeech: (payload: {
+    text: string;
+    voice?: string;
+  }): Promise<{ ok: boolean; audioData?: string; error?: string }> =>
+    ipcRenderer.invoke("ai:synthesizeSpeech", payload),
+
   aiAbort: (requestId: string): Promise<boolean> => ipcRenderer.invoke("ai:abort", requestId),
 
   aiSummarize: (payload: {
@@ -374,8 +386,19 @@ export type AgentRunParams = {
 };
 
 type AiTaskResult =
-  | { ok: true; text: string; mode: "cloud" | "local" }
+  | { ok: true; text: string; reasoningContent?: string; mode: "cloud" | "local" }
   | { ok: false; code: string; error: string };
+
+export type AiBalanceInfo = {
+  currency: string;
+  total_balance: string;
+  granted_balance: string;
+  topped_up_balance: string;
+};
+
+export type AiBalanceResult =
+  | { ok: true; isAvailable: boolean; balanceInfos: AiBalanceInfo[] }
+  | { ok: false; error: string };
 
 type AiActionItemsResult =
   | {

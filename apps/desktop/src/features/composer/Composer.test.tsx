@@ -138,3 +138,14 @@ test("can dismiss pre-send check dialog to return and edit", async () => {
   await waitForElementToBeRemoved(() => screen.queryByTestId("presend-check-dialog"));
   expect(onSend).not.toHaveBeenCalled();
 });
+
+test("opens AI write dialog and shows voice input button", async () => {
+  const user = userEvent.setup();
+  render(wrap(<Composer />));
+  await user.click(screen.getByRole("button", { name: "AI 根据提示生成" }));
+  expect(screen.getByText("根据提示生成正文")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "语音输入" })).toBeInTheDocument();
+});
+
+
+

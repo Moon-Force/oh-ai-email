@@ -13,20 +13,29 @@ import {
   Paper,
   Stack,
   Typography,
+  Collapse,
+  IconButton,
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import PsychologyIcon from "@mui/icons-material/Psychology";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
   AiRequestError,
   ackCloudPrivacy,
   cancelRequest,
   createAiRequestId,
   draftReply,
+  draftReplyDetailed,
   ensureCloudPrivacyAck,
   extractActionItems,
   quickReplyDraft,
   rewriteTone,
   suggestSplit,
   summarize,
+  summarizeDetailed,
   summarizeThread,
   translateText,
   type ActionItemsData,
@@ -36,6 +45,7 @@ import {
 import { useAiSettings } from "./settingsStore";
 import { useMailStore } from "../mail/store";
 import { useToastStore } from "../shell/toastStore";
+import { speakText, stopSpeaking } from "../voice/voiceService";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
 type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation";
@@ -85,6 +95,9 @@ export default function LumenCapsule({
   const [suggestSplitData, setSuggestSplitData] = useState<SuggestSplitData | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [kind, setKind] = useState<ResultKind>("summary");
+  const [reasoningContent, setReasoningContent] = useState<string | null>(null);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
@@ -128,9 +141,10 @@ export default function LumenCapsule({
     setState("thinking");
     setKind("summary");
     try {
-      const s = await summarize({ subject, from, body }, { mode, requestId: reqId });
+      const res = await summarizeDetailed({ subject, from, body }, { mode, requestId: reqId });
       if (activeReqIdRef.current !== reqId) return;
-      setText(s);
+      setText(res.text);
+      setReasoningContent(res.reasoningContent ?? null);
       setState("expanded");
     } catch (e) {
       if (activeReqIdRef.current !== reqId) {
@@ -168,9 +182,10 @@ export default function LumenCapsule({
     setState("thinking");
     setKind("draft");
     try {
-      const d = await draftReply({ subject, from, body }, { mode, requestId: reqId });
+      const res = await draftReplyDetailed({ subject, from, body }, { mode, requestId: reqId });
       if (activeReqIdRef.current !== reqId) return;
-      setText(d);
+      setText(res.text);
+      setReasoningContent(res.reasoningContent ?? null);
       setState("expanded");
     } catch (e) {
       if (activeReqIdRef.current !== reqId) {
@@ -897,12 +912,50 @@ export default function LumenCapsule({
               </Box>
             </Stack>
           ) : (
-            <Typography
-              variant="body2"
-              sx={{ whiteSpace: "pre-wrap", flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}
-            >
-              {text}
-            </Typography>
+            <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}>
+              {reasoningContent && (
+                <Paper variant="outlined" sx={{ p: 1, mb: 1, bgcolor: "action.hover", borderRadius: 1.5 }}>
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                    onClick={() => setShowReasoning(!showReasoning)}
+                  >
+                    <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+                      <PsychologyIcon fontSize="small" color="primary" />
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        AI 思考过程 (DeepSeek R1)
+                      </Typography>
+                    </Stack>
+                    <IconButton size="small">
+                      {showReasoning ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                    </IconButton>
+                  </Box>
+                  <Collapse in={showReasoning}>
+                    <Box
+                      component="pre"
+                      sx={{
+                        mt: 0.5,
+                        p: 0.75,
+                        fontFamily: "monospace",
+                        fontSize: "0.72rem",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        maxHeight: 140,
+                        overflowY: "auto",
+                        bgcolor: "background.paper",
+                        borderRadius: 1,
+                        border: 1,
+                        borderColor: "divider",
+                      }}
+                    >
+                      {reasoningContent}
+                    </Box>
+                  </Collapse>
+                </Paper>
+              )}
+              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                {text}
+              </Typography>
+            </Box>
           )}
 
           {error && (
@@ -993,6 +1046,23 @@ export default function LumenCapsule({
                 复制
               </Button>
             )}
+            <Button
+              size="small"
+              color={isSpeaking ? "secondary" : "inherit"}
+              startIcon={isSpeaking ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
+              onClick={() => {
+                if (isSpeaking) {
+                  stopSpeaking();
+                  setIsSpeaking(false);
+                } else {
+                  setIsSpeaking(true);
+                  speakText(text || body, () => setIsSpeaking(false), () => setIsSpeaking(false));
+                }
+              }}
+              data-testid="read-aloud-button"
+            >
+              {isSpeaking ? "停止朗读" : "朗读"}
+            </Button>
             <Button size="small" onClick={close}>
               关闭
             </Button>

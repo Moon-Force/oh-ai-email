@@ -25,6 +25,8 @@ import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CloseIcon from "@mui/icons-material/Close";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
 import { mailSend, mailSaveDraft, hasDesktopApi } from "../../lib/ipc";
 import { useAccountsStore } from "../accounts/store";
 import { useMailStore } from "../mail/store";
@@ -38,6 +40,7 @@ import {
   rewriteTone,
   translateText,
 } from "../ai/router";
+import { startSpeechRecognition } from "../voice/voiceService";
 import { useAiSettings } from "../ai/settingsStore";
 import RichTextEditor from "./RichTextEditor";
 import {
@@ -102,8 +105,10 @@ export default function Composer({
   const [editorEpoch, setEditorEpoch] = useState(0);
   /** Mount TipTap after compose enter animation (transform parent blanks ProseMirror). */
   const [editorReady, setEditorReady] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiReqIdRef = useRef<string | null>(null);
+  const stopRecognitionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const reduced =
@@ -689,6 +694,42 @@ export default function Composer({
             onChange={(e) => setPromptText(e.target.value)}
             disabled={aiBusy}
           />
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 1 }}>
+            <Button
+              size="small"
+              variant={isListening ? "contained" : "outlined"}
+              color={isListening ? "error" : "primary"}
+              startIcon={isListening ? <MicOffIcon /> : <MicIcon />}
+              aria-label="语音输入"
+              onClick={() => {
+                if (isListening) {
+                  stopRecognitionRef.current?.();
+                  stopRecognitionRef.current = null;
+                  setIsListening(false);
+                } else {
+                  setIsListening(true);
+                  const stop = startSpeechRecognition(
+                    (transcript) => {
+                      setPromptText(transcript);
+                    },
+                    (err) => {
+                      showToast(err, "error");
+                      setIsListening(false);
+                    },
+                    () => {
+                      setIsListening(false);
+                    },
+                  );
+                  stopRecognitionRef.current = stop;
+                }
+              }}
+            >
+              {isListening ? "停止聆听" : "语音输入"}
+            </Button>
+            {isListening && (
+              <Chip size="small" label="正在聆听录音识别中…" color="error" variant="outlined" />
+            )}
+          </Stack>
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
             将写入正文供你编辑；不会自动发送。模式：{mode === "local" ? "本机 Ollama" : "云端"}
           </Typography>
@@ -696,6 +737,11 @@ export default function Composer({
         <DialogActions>
           <Button
             onClick={() => {
+              if (isListening) {
+                stopRecognitionRef.current?.();
+                stopRecognitionRef.current = null;
+                setIsListening(false);
+              }
               if (aiBusy) void cancelOngoingAi();
               setPromptOpen(false);
             }}

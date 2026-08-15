@@ -129,6 +129,12 @@ type Api = {
     mode?: AiModeDto;
     requestId?: string;
   }) => Promise<AiTaskResult>;
+  aiListModels: () => Promise<AiListModelsResult>;
+  aiQueryBalance: () => Promise<AiBalanceResult>;
+  aiSynthesizeSpeech: (payload: {
+    text: string;
+    voice?: string;
+  }) => Promise<AiSynthesizeSpeechResult>;
   agentRun: (
     params: AgentRunParams,
     onEvent?: (evt: AgentStreamEvent) => void,
@@ -155,8 +161,27 @@ export type AiSaveSettingsPayload = Partial<
 > & { apiKey?: string };
 
 export type AiTaskResult =
-  | { ok: true; text: string; mode: AiModeDto }
+  | { ok: true; text: string; reasoningContent?: string; mode: AiModeDto }
   | { ok: false; code: string; error: string };
+
+export type AiBalanceInfo = {
+  currency: string;
+  total_balance: string;
+  granted_balance: string;
+  topped_up_balance: string;
+};
+
+export type AiBalanceResult =
+  | { ok: true; isAvailable: boolean; balanceInfos: AiBalanceInfo[] }
+  | { ok: false; error: string };
+
+export type AiListModelsResult =
+  | { ok: true; models: string[] }
+  | { ok: false; error: string };
+
+export type AiSynthesizeSpeechResult =
+  | { ok: true; audioData: string }
+  | { ok: false; error: string };
 
 export type AiActionItemsResult =
   | {
@@ -457,6 +482,44 @@ export async function aiProbeCloud(): Promise<AiProbeCloudResult> {
 
 export async function aiAbort(requestId: string): Promise<boolean> {
   return getApi()?.aiAbort(requestId) ?? false;
+}
+
+export async function aiListModels(): Promise<AiListModelsResult> {
+  const api = getApi();
+  if (!api?.aiListModels) {
+    return { ok: true, models: ["deepseek-chat", "deepseek-reasoner", "mimo-v2.5", "gpt-4o-mini", "llama3.2"] };
+  }
+  return api.aiListModels();
+}
+
+export async function aiQueryBalance(): Promise<AiBalanceResult> {
+  const api = getApi();
+  if (!api?.aiQueryBalance) {
+    return {
+      ok: true,
+      isAvailable: true,
+      balanceInfos: [
+        {
+          currency: "CNY",
+          total_balance: "50.00",
+          granted_balance: "10.00",
+          topped_up_balance: "40.00",
+        },
+      ],
+    };
+  }
+  return api.aiQueryBalance();
+}
+
+export async function aiSynthesizeSpeech(payload: {
+  text: string;
+  voice?: string;
+}): Promise<AiSynthesizeSpeechResult> {
+  const api = getApi();
+  if (!api?.aiSynthesizeSpeech) {
+    return { ok: false, error: "仅桌面端可调用云端语音合成" };
+  }
+  return api.aiSynthesizeSpeech(payload);
 }
 
 export async function aiSummarize(payload: AiMailPayload): Promise<AiTaskResult> {

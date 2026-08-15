@@ -8,8 +8,9 @@
 | UI       | **React + TypeScript + MUI**                | 列表、读信、写信、设置、AI 面板；视觉见 [DESIGN.md](./DESIGN.md)（Material UI） |
 | 原生核心 | **Rust**                                    | IMAP/SMTP、同步、加密存储、AI 路由命令                                           |
 | 本地库   | **SQLite**（敏感字段加密 / SQLCipher 方向） | 邮件元数据、正文缓存、账号配置                                                   |
-| 云端 AI  | 轻量代理 API（二选一：Rust 或 TS 服务）     | 转发大模型、保护密钥、限流                                                       |
-| 本地 AI  | **Ollama** HTTP API                         | 用户可选，邮件内容不经云                                                         |
+| 云端 AI  | 多厂商预设与 OpenAI 兼容代理通道             | DeepSeek (`deepseek-chat`, `deepseek-reasoner`), 小米 MiMo, 自定义兼容端点        |
+| 本地 AI  | **Ollama** HTTP API                         | 用户可选（`127.0.0.1:11434`），邮件内容不经云                                    |
+| 语音交互 | **Web Speech API + MiMo TTS**               | 语音听写 (STT) + 邮件/摘要朗读 (TTS)                                             |
 
 > UI 默认 React；若团队更熟 Vue，可替换前端，不改变 Rust 命令边界。
 
@@ -150,7 +151,61 @@ UI 触发（Capsule 摘要 / 润色 / 快速回复 / 意图识别）
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.3 核心原则与安全红线
+### 5.3 多 Provider 预设、动态模型发现与余额查询架构
+
+系统支持灵活的云端与本机模型路由体系，内置主流厂商快速预设并兼容任意 OpenAI 格式服务端点：
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        AI Router & Multi-Provider Architecture                         │
+│                                                                                        │
+│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+│   │ 预设 Provider 矩阵 (Settings UI & Storage)                                     │   │
+│   │ ├─ DeepSeek: https://api.deepseek.com (deepseek-chat, deepseek-reasoner)       │   │
+│   │ ├─ 小米 MiMo: https://api.xiaomimimo.com/v1 (mimo-v2.5, mimo-v2.5-pro, TTS)     │   │
+│   │ ├─ 本地 Ollama: http://127.0.0.1:11434 (llama3.2, qwen2.5, deepseek-r1 等)     │   │
+│   │ └─ Custom: 自定义 BaseURL + 自备 API Key                                       │   │
+│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
+│                                          │                                             │
+│                     ┌────────────────────┴────────────────────┐                        │
+│                     ▼                                         ▼                        │
+│   ┌───────────────────────────────────┐     ┌──────────────────────────────────────┐   │
+│   │ 动态模型拉取 (Model Discovery)    │     │ 账户余额与额度查询 (Balance Query)   │   │
+│   │ ├─ 云端通道: GET ${baseUrl}/models│     │ ├─ DeepSeek: GET /user/balance       │   │
+│   │ └─ Ollama 通道: GET /api/tags     │     │ └─ 渲染剩余配额与赠送余额状态        │   │
+│   └───────────────────────────────────┘     └──────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.4 深度思考流与 Reasoning Token 处理 (DeepSeek R1)
+
+针对带思考链（Chain-of-Thought）的推理模型（如 `deepseek-reasoner` / Ollama `deepseek-r1`）：
+- **流式解析**：主进程监听 SSE 数据流，提取 `choices[0].delta.reasoning_content`（思考 Token）与 `choices[0].delta.content`（正文 Token）。
+- **双通道广播**：通过 IPC 事件分别向前端投递 `reasoning` 与 `content` 增量。
+- **UI 独立呈现**：前端 `LumenCapsule` 与 `AgentDrawer` 中以可折叠面板单独展示「思考过程」，与最终生成文本/草稿保持物理分离，确保草稿插入 Composer 时仅写入清洁正文。
+
+### 5.5 语音交互流水线 (Voice Integration: STT & TTS)
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              Voice Capabilities Architecture                           │
+│                                                                                        │
+│   【语音口述听写 (STT)】                                                               │
+│   Composer / Agent 输入框 ──> 浏览器 Web Speech API (webkitSpeechRecognition)          │
+│                                   │                                                    │
+│                                   ▼ 实时转写文字流 (Interim & Final Results)           │
+│                               追加至编辑器光标处 ──> [可选] AI 语法标点润色            │
+│                                                                                        │
+│   【邮件与摘要朗读 (TTS)】                                                             │
+│   LumenCapsule 读信点击朗读 ──> 音频引擎分发                                            │
+│                                   ├─ 优先: 小米 MiMo TTS (mimo-v2.5-tts) 高保真音频流  │
+│                                   └─ 降级: 原生 window.speechSynthesis 本地播报        │
+│                                   │                                                    │
+│                                   ▼ 播放控制器 (Play / Pause / 进度 / 0.8x-1.5x 语速)  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.6 核心原则与安全红线
 
 - **Human-in-the-Loop 安全门**：所有 Agent 产生的外发、修改与分箱动作均为「提议」，禁止直接无监督执行。
 - **绝不自动发送邮件**：回复草稿必须插入 Composer，由用户手动点击发送。

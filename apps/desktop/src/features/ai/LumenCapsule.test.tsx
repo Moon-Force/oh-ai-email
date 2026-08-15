@@ -11,7 +11,26 @@ vi.mock("./router", async () => {
     ...actual,
     cancelRequest: vi.fn(async () => true),
     summarize: vi.fn(async () => "【摘要】要点：Q3 launch"),
+    summarizeDetailed: vi.fn(async (...args: unknown[]) => {
+      // @ts-expect-error test mock delegation
+      const text = await router.summarize(...args);
+      return {
+        text,
+        reasoningContent: "深度思考分析过程：分析邮件主要内容",
+        mode: "cloud" as const,
+      };
+    }),
     draftReply: vi.fn(async () => "你好，这是回复草稿。"),
+    draftReplyDetailed: vi.fn(async (...args: unknown[]) => {
+      // @ts-expect-error test mock delegation
+      const text = await router.draftReply(...args);
+      return {
+        text,
+        reasoningContent: "深度思考分析过程：分析回复策略",
+        mode: "cloud" as const,
+      };
+    }),
+
     quickReplyDraft: vi.fn(async ({ replyType }: { replyType: string }) => `快捷回复：${replyType}`),
     extractActionItems: vi.fn(async () => ({
       tags: ["需回复", "有截止日期"],
@@ -40,6 +59,7 @@ vi.mock("./router", async () => {
     ackCloudPrivacy: vi.fn(async () => undefined),
   };
 });
+
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -311,6 +331,26 @@ test("shows 翻译 button and displays translated text", async () => {
   expect(screen.getByText(/这是中文翻译结果/)).toBeInTheDocument();
   expect(screen.getByText("复制")).toBeInTheDocument();
 });
+
+test("shows reasoning accordion and read-aloud button", async () => {
+  const user = userEvent.setup();
+  render(
+    wrap(
+      <LumenCapsule
+        subject="Project Update"
+        body="Detailed project discussion content here."
+      />,
+    ),
+  );
+
+  await user.click(screen.getByRole("button", { name: "总结" }));
+
+  expect(await screen.findByText(/AI 思考过程/)).toBeInTheDocument();
+  const readAloudBtn = screen.getByTestId("read-aloud-button");
+  expect(readAloudBtn).toBeInTheDocument();
+  expect(readAloudBtn).toHaveTextContent("朗读");
+});
+
 
 
 

@@ -146,11 +146,17 @@ async function runWithAudit<T>(
   }
 }
 
-export async function summarize(
+export type AiTextResponse = {
+  text: string;
+  reasoningContent?: string;
+  mode: AiMode;
+};
+
+export async function summarizeDetailed(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
   requestId?: string,
-): Promise<string> {
+): Promise<AiTextResponse> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
   const payload =
@@ -159,15 +165,28 @@ export async function summarize(
       : { ...input, mode, requestId: reqId };
   const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
   return runWithAudit("summarize", charCount, mode, async () => {
-    return unwrap(await aiSummarize(payload));
+    const res = await aiSummarize(payload);
+    if (res.ok) {
+      return { text: res.text, reasoningContent: res.reasoningContent, mode: res.mode };
+    }
+    throw new AiRequestError(res.code, res.error);
   });
 }
 
-export async function draftReply(
+export async function summarize(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
   requestId?: string,
 ): Promise<string> {
+  const res = await summarizeDetailed(input, modeOrOpts, requestId);
+  return res.text;
+}
+
+export async function draftReplyDetailed(
+  input: { subject?: string; from?: string; body: string } | string,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+): Promise<AiTextResponse> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
   const payload =
@@ -176,9 +195,23 @@ export async function draftReply(
       : { ...input, mode, requestId: reqId };
   const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
   return runWithAudit("draftReply", charCount, mode, async () => {
-    return unwrap(await aiDraftReply(payload));
+    const res = await aiDraftReply(payload);
+    if (res.ok) {
+      return { text: res.text, reasoningContent: res.reasoningContent, mode: res.mode };
+    }
+    throw new AiRequestError(res.code, res.error);
   });
 }
+
+export async function draftReply(
+  input: { subject?: string; from?: string; body: string } | string,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+): Promise<string> {
+  const res = await draftReplyDetailed(input, modeOrOpts, requestId);
+  return res.text;
+}
+
 
 export async function quickReplyDraft(
   input: {

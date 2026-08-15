@@ -26,13 +26,20 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useAiSettings } from "../ai/settingsStore";
 import { useAiAuditStore } from "../ai/auditStore";
 import { SYNC_INTERVAL_OPTIONS, usePrefsStore } from "./prefsStore";
-import { aiProbeCloud, aiProbeOllama } from "../../lib/ipc";
+import {
+  aiListModels,
+  aiProbeCloud,
+  aiProbeOllama,
+  aiQueryBalance,
+  type AiBalanceResult,
+} from "../../lib/ipc";
 import { useToastStore } from "../shell/toastStore";
 
 type Tab = "general" | "accounts" | "ai";
@@ -76,6 +83,10 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
   const [generalSaved, setGeneralSaved] = useState(false);
   const [probing, setProbing] = useState(false);
   const [probeMsg, setProbeMsg] = useState<string | null>(null);
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [queryingBalance, setQueryingBalance] = useState(false);
+  const [balanceInfo, setBalanceInfo] = useState<AiBalanceResult | null>(null);
   const showToast = useToastStore((s) => s.showToast);
   const auditRecords = useAiAuditStore((s) => s.records);
   const clearAuditRecords = useAiAuditStore((s) => s.clearRecords);
@@ -137,6 +148,45 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
       setProbing(false);
     }
   }
+
+  async function onFetchModels() {
+    setFetchingModels(true);
+    try {
+      const res = await aiListModels();
+      if (res.ok) {
+        if (res.models.length > 0) {
+          setAvailableModels(res.models);
+          showToast(`成功获取 ${res.models.length} 个可用模型`, "success");
+        } else {
+          showToast("未拉取到可用模型", "error");
+        }
+      } else {
+        showToast(res.error, "error");
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "获取模型失败", "error");
+    } finally {
+      setFetchingModels(false);
+    }
+  }
+
+  async function onQueryBalance() {
+    setQueryingBalance(true);
+    try {
+      const res = await aiQueryBalance();
+      setBalanceInfo(res);
+      if (res.ok) {
+        showToast("余额查询成功", "success");
+      } else {
+        showToast(res.error, "error");
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "查询余额失败", "error");
+    } finally {
+      setQueryingBalance(false);
+    }
+  }
+
 
   return (
     <Box data-testid="settings" sx={{ display: "flex", height: "100%", minHeight: 0 }}>
@@ -258,6 +308,54 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               <Typography variant="subtitle2" gutterBottom>
                 AI 模式
               </Typography>
+              <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
+
+                <Button
+                  size="small"
+                  variant={baseUrl === "https://api.deepseek.com" && mode === "cloud" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setMode("cloud");
+                    setBaseUrl("https://api.deepseek.com");
+                    setModel("deepseek-chat");
+                  }}
+                >
+                  DeepSeek
+                </Button>
+                <Button
+                  size="small"
+                  variant={baseUrl === "https://api.xiaomimimo.com/v1" && mode === "cloud" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setMode("cloud");
+                    setBaseUrl("https://api.xiaomimimo.com/v1");
+                    setModel("mimo-v2.5");
+                  }}
+                >
+                  小米 MiMo
+                </Button>
+                <Button
+                  size="small"
+                  variant={baseUrl === "https://api.openai.com/v1" && mode === "cloud" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setMode("cloud");
+                    setBaseUrl("https://api.openai.com/v1");
+                    setModel("gpt-4o-mini");
+                  }}
+                >
+                  OpenAI
+                </Button>
+                <Button
+                  size="small"
+                  variant={mode === "local" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setMode("local");
+                    setOllamaHost("http://127.0.0.1:11434");
+                    setOllamaModel("llama3.2");
+                  }}
+                >
+                  Ollama 本地
+                </Button>
+              </Stack>
+
               <ToggleButtonGroup
                 exclusive
                 size="small"
@@ -265,8 +363,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 onChange={(_, v) => v && setMode(v)}
                 aria-label="AI 模式"
               >
-                <ToggleButton value="cloud">云端</ToggleButton>
-                <ToggleButton value="local">本机</ToggleButton>
+                <ToggleButton value="cloud">云端模式</ToggleButton>
+                <ToggleButton value="local">本机模式 (Ollama)</ToggleButton>
               </ToggleButtonGroup>
             </Box>
 
@@ -279,7 +377,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   placeholder="https://api.openai.com/v1"
-                  helperText="任意兼容 /v1/chat/completions 的服务"
+                  helperText="支持 DeepSeek (https://api.deepseek.com)、小米 MiMo、OpenAI 等"
                 />
                 <TextField
                   label="API Key"
@@ -291,14 +389,77 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   placeholder={hasCloudApiKey ? "已保存（留空则不修改）" : "sk-…"}
                   autoComplete="off"
                 />
-                <TextField
-                  label="模型"
-                  size="small"
-                  fullWidth
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  placeholder="gpt-4o-mini"
-                />
+
+                <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                  {availableModels.length > 0 ? (
+                    <FormControl fullWidth size="small">
+                      <InputLabel id="model-select-label">模型</InputLabel>
+                      <Select
+                        labelId="model-select-label"
+                        value={model}
+                        label="模型"
+                        onChange={(e) => setModel(e.target.value)}
+                      >
+                        {availableModels.map((m) => (
+                          <MenuItem key={m} value={m}>
+                            {m}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <TextField
+                      label="模型"
+                      size="small"
+                      fullWidth
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder="deepseek-chat / mimo-v2.5 / gpt-4o-mini"
+                    />
+                  )}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{ height: 40, whiteSpace: "nowrap" }}
+                    disabled={fetchingModels}
+                    onClick={() => void onFetchModels()}
+                  >
+                    {fetchingModels ? <CircularProgress size={16} /> : "拉取模型"}
+                  </Button>
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={queryingBalance}
+                    onClick={() => void onQueryBalance()}
+                  >
+                    {queryingBalance ? <CircularProgress size={16} /> : "查询余额"}
+                  </Button>
+                </Box>
+
+                {balanceInfo && balanceInfo.ok && balanceInfo.balanceInfos && balanceInfo.balanceInfos.length > 0 && (
+                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      账户余额信息
+                    </Typography>
+                    {balanceInfo.balanceInfos.map((b, idx) => (
+                      <Stack key={idx} direction="row" spacing={2} sx={{ fontSize: "0.85rem" }}>
+                        <Typography variant="body2">
+                          <strong>总余额：</strong>{b.currency} {b.total_balance}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          赠送：{b.granted_balance}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          充值：{b.topped_up_balance}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Paper>
+                )}
+
                 <FormControlLabel
                   control={
                     <Switch
@@ -332,15 +493,44 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   onChange={(e) => setOllamaHost(e.target.value)}
                   placeholder="http://127.0.0.1:11434"
                 />
-                <TextField
-                  label="Ollama 模型"
-                  size="small"
-                  fullWidth
-                  value={ollamaModel}
-                  onChange={(e) => setOllamaModel(e.target.value)}
-                  placeholder="llama3.2"
-                  helperText="需已 ollama pull 对应模型"
-                />
+                <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                  {availableModels.length > 0 ? (
+                    <FormControl fullWidth size="small">
+                      <InputLabel id="ollama-model-select-label">Ollama 模型</InputLabel>
+                      <Select
+                        labelId="ollama-model-select-label"
+                        value={ollamaModel}
+                        label="Ollama 模型"
+                        onChange={(e) => setOllamaModel(e.target.value)}
+                      >
+                        {availableModels.map((m) => (
+                          <MenuItem key={m} value={m}>
+                            {m}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <TextField
+                      label="Ollama 模型"
+                      size="small"
+                      fullWidth
+                      value={ollamaModel}
+                      onChange={(e) => setOllamaModel(e.target.value)}
+                      placeholder="llama3.2"
+                      helperText="需已 ollama pull 对应模型"
+                    />
+                  )}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{ height: 40, whiteSpace: "nowrap" }}
+                    disabled={fetchingModels}
+                    onClick={() => void onFetchModels()}
+                  >
+                    {fetchingModels ? <CircularProgress size={16} /> : "拉取模型"}
+                  </Button>
+                </Box>
               </>
             )}
 
@@ -381,6 +571,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Typography>
               )}
             </Stack>
+
 
             <Divider sx={{ my: 2 }} />
 

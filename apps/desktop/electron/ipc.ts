@@ -53,8 +53,15 @@ import {
 import type { AccountRecord, TlsMode } from "./mail/types";
 import { deleteSecret, loadSecret, saveSecret } from "./store";
 import { loadAppPrefs, saveAppPrefs, type AppPrefs } from "./prefs";
-import { probeCloud, probeOllama } from "./ai/complete";
 import {
+  fetchAccountBalance,
+  fetchRemoteModels,
+  probeCloud,
+  probeOllama,
+  synthesizeSpeechMiMo,
+} from "./ai/complete";
+import {
+  loadAiSettings,
   publicAiSettings,
   saveAiSettings,
   setCloudApiKey,
@@ -405,6 +412,13 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle("ai:probeOllama", () => probeOllama());
   ipcMain.handle("ai:probeCloud", () => probeCloud());
+  ipcMain.handle("ai:listModels", () => fetchRemoteModels(loadAiSettings()));
+  ipcMain.handle("ai:queryBalance", () => fetchAccountBalance(loadAiSettings()));
+  ipcMain.handle(
+    "ai:synthesizeSpeech",
+    (_e, payload: { text: string; voice?: string }) =>
+      synthesizeSpeechMiMo(payload.text, payload.voice, loadAiSettings()),
+  );
 
   ipcMain.handle("ai:abort", (_e, requestId: string) => abortAiRequest(requestId));
 

@@ -28,6 +28,22 @@ vi.mock("../../lib/ipc", () => ({
   })),
   aiProbeOllama: vi.fn(async () => ({ ok: false as const, error: "down" })),
   aiProbeCloud: vi.fn(async () => ({ ok: false as const, error: "no key" })),
+  aiListModels: vi.fn(async () => ({
+    ok: true as const,
+    models: ["deepseek-chat", "deepseek-reasoner", "mimo-v2.5"],
+  })),
+  aiQueryBalance: vi.fn(async () => ({
+    ok: true as const,
+    isAvailable: true,
+    balanceInfos: [
+      {
+        currency: "CNY",
+        total_balance: "88.00",
+        granted_balance: "18.00",
+        topped_up_balance: "70.00",
+      },
+    ],
+  })),
   prefsGet: vi.fn(async () => ({ syncIntervalMin: 5 })),
   prefsSave: vi.fn(async (p: { syncIntervalMin?: number }) => ({
     syncIntervalMin: p.syncIntervalMin ?? 5,
@@ -54,15 +70,30 @@ function wrap(ui: React.ReactElement) {
   return <AppThemeProvider mode="light">{ui}</AppThemeProvider>;
 }
 
-test("switches AI mode to local", async () => {
+test("switches AI mode to local via preset or toggle", async () => {
   const user = userEvent.setup();
   const onTheme = vi.fn();
   render(wrap(<Settings theme="light" onThemeChange={onTheme} />));
-  await user.click(screen.getByRole("button", { name: "本机" }));
+  await user.click(screen.getByRole("button", { name: "Ollama 本地" }));
   expect(useAiSettings.getState().mode).toBe("local");
   await user.click(screen.getByRole("button", { name: "保存更改" }));
   expect(await screen.findByText("已保存")).toBeInTheDocument();
 });
+
+test("switches preset to DeepSeek and fetches models and balance", async () => {
+  const user = userEvent.setup();
+  render(wrap(<Settings theme="light" onThemeChange={vi.fn()} />));
+  await user.click(screen.getByRole("button", { name: "DeepSeek" }));
+  expect(useAiSettings.getState().baseUrl).toBe("https://api.deepseek.com");
+  expect(useAiSettings.getState().model).toBe("deepseek-chat");
+
+  await user.click(screen.getByRole("button", { name: "拉取模型" }));
+  expect(await screen.findByText("deepseek-chat")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "查询余额" }));
+  expect(await screen.findByText(/88\.00/)).toBeInTheDocument();
+});
+
 
 test("general tab toggles theme", async () => {
   const user = userEvent.setup();
