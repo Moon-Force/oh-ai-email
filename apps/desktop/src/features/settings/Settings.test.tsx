@@ -73,10 +73,12 @@ test("general tab toggles theme", async () => {
   expect(onTheme).toHaveBeenCalledWith("dark");
 });
 
-test("AI tab shows privacy data routing", () => {
+test("AI tab shows privacy data routing and audit section", () => {
   render(wrap(<Settings theme="light" onThemeChange={vi.fn()} />));
   expect(screen.getByTestId("settings-ai")).toBeInTheDocument();
   expect(screen.getByText(/数据去向/)).toBeInTheDocument();
+  expect(screen.getByTestId("ai-audit-section")).toBeInTheDocument();
+  expect(screen.getByText(/AI 调用与隐私审计/)).toBeInTheDocument();
 });
 
 test("general tab can change auto-sync interval", async () => {

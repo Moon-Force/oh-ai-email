@@ -3,6 +3,8 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
+  Divider,
   FormControl,
   FormControlLabel,
   InputLabel,
@@ -10,16 +12,25 @@ import {
   ListItemButton,
   ListItemText,
   MenuItem,
+  Paper,
   Select,
   Stack,
   Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ClearIcon from "@mui/icons-material/Clear";
 import { useAiSettings } from "../ai/settingsStore";
+import { useAiAuditStore } from "../ai/auditStore";
 import { SYNC_INTERVAL_OPTIONS, usePrefsStore } from "./prefsStore";
 import { aiProbeCloud, aiProbeOllama } from "../../lib/ipc";
 import { useToastStore } from "../shell/toastStore";
@@ -66,6 +77,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
   const [probing, setProbing] = useState(false);
   const [probeMsg, setProbeMsg] = useState<string | null>(null);
   const showToast = useToastStore((s) => s.showToast);
+  const auditRecords = useAiAuditStore((s) => s.records);
+  const clearAuditRecords = useAiAuditStore((s) => s.clearRecords);
 
   useEffect(() => {
     void hydrate();
@@ -368,6 +381,91 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Typography>
               )}
             </Stack>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Box data-testid="ai-audit-section">
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+                <div>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    AI 调用与隐私审计
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    仅记录请求时间、模式、任务类型与字数统计；绝不持久化任何邮件正文、收件人或 API 密钥。
+                  </Typography>
+                </div>
+                {auditRecords.length > 0 && (
+                  <Button
+                    size="small"
+                    color="inherit"
+                    startIcon={<ClearIcon fontSize="small" />}
+                    onClick={() => {
+                      clearAuditRecords();
+                      showToast("已清空 AI 调用审计记录", "info", 2000);
+                    }}
+                  >
+                    清空记录
+                  </Button>
+                )}
+              </Stack>
+
+              {auditRecords.length === 0 ? (
+                <Paper variant="outlined" sx={{ p: 2, textAlign: "center", bgcolor: "action.hover" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    暂无 AI 调用记录。所有请求均严格受控且不保存邮件正文与密钥。
+                  </Typography>
+                </Paper>
+              ) : (
+                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 240 }}>
+                  <Table size="small" stickyHeader aria-label="AI 审计日志">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>时间</TableCell>
+                        <TableCell>模式</TableCell>
+                        <TableCell>任务</TableCell>
+                        <TableCell align="right">字符数</TableCell>
+                        <TableCell align="right">耗时</TableCell>
+                        <TableCell align="center">状态</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {auditRecords.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell sx={{ whiteSpace: "nowrap", fontSize: "0.75rem" }}>
+                            {new Date(r.timestamp).toLocaleTimeString()}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={r.mode === "local" ? "本机" : "云端"}
+                              color={r.mode === "local" ? "secondary" : "primary"}
+                              variant="outlined"
+                              sx={{ height: 20, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ fontSize: "0.75rem" }}>{r.task}</TableCell>
+                          <TableCell align="right" sx={{ fontSize: "0.75rem" }}>
+                            {r.charCount}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontSize: "0.75rem" }}>
+                            {r.durationMs}ms
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              size="small"
+                              label={r.status === "success" ? "成功" : r.status === "aborted" ? "已取消" : "失败"}
+                              color={r.status === "success" ? "success" : r.status === "aborted" ? "default" : "error"}
+                              variant="filled"
+                              sx={{ height: 20, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
           </Stack>
         )}
       </Box>

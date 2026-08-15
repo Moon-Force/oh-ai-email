@@ -13,6 +13,7 @@ import {
   type AiTaskResult,
 } from "../../lib/ipc";
 import { useAiSettings, type AiMode } from "./settingsStore";
+import { useAiAuditStore } from "./auditStore";
 
 export type { AiMode };
 
@@ -36,7 +37,7 @@ export type ThreadTimelineItem = {
 
 export type ThreadSummaryData = {
   summary: string;
-  timeline: ThreadTimelineItem[];
+  timeline: { sender: string; date?: string; point: string }[];
   mode: AiMode;
 };
 
@@ -46,8 +47,6 @@ export type SuggestSplitData = {
   confidence?: "high" | "medium" | "low" | string;
   mode: AiMode;
 };
-
-
 
 export function createAiRequestId(): string {
   return `airq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -117,6 +116,36 @@ function browserBlocked(): never {
   );
 }
 
+async function runWithAudit<T>(
+  task: string,
+  charCount: number,
+  mode: AiMode,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const start = Date.now();
+  try {
+    const result = await fn();
+    useAiAuditStore.getState().recordCall({
+      task,
+      charCount,
+      mode,
+      durationMs: Date.now() - start,
+      status: "success",
+    });
+    return result;
+  } catch (err) {
+    const isAborted = err instanceof AiRequestError && err.code === "ABORTED";
+    useAiAuditStore.getState().recordCall({
+      task,
+      charCount,
+      mode,
+      durationMs: Date.now() - start,
+      status: isAborted ? "aborted" : "error",
+    });
+    throw err;
+  }
+}
+
 export async function summarize(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
@@ -128,7 +157,10 @@ export async function summarize(
     typeof input === "string"
       ? { body: input, mode, requestId: reqId }
       : { ...input, mode, requestId: reqId };
-  return unwrap(await aiSummarize(payload));
+  const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
+  return runWithAudit("summarize", charCount, mode, async () => {
+    return unwrap(await aiSummarize(payload));
+  });
 }
 
 export async function draftReply(
@@ -142,7 +174,10 @@ export async function draftReply(
     typeof input === "string"
       ? { body: input, mode, requestId: reqId }
       : { ...input, mode, requestId: reqId };
-  return unwrap(await aiDraftReply(payload));
+  const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
+  return runWithAudit("draftReply", charCount, mode, async () => {
+    return unwrap(await aiDraftReply(payload));
+  });
 }
 
 export async function quickReplyDraft(
@@ -158,13 +193,16 @@ export async function quickReplyDraft(
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  return unwrap(
-    await aiQuickReply({
-      ...input,
-      mode,
-      requestId: reqId,
-    }),
-  );
+  const charCount = (input.body?.length ?? 0) + (input.subject?.length ?? 0) + (input.customNote?.length ?? 0);
+  return runWithAudit(`quickReply:${input.replyType}`, charCount, mode, async () => {
+    return unwrap(
+      await aiQuickReply({
+        ...input,
+        mode,
+        requestId: reqId,
+      }),
+    );
+  });
 }
 
 export async function extractActionItems(
@@ -178,16 +216,19 @@ export async function extractActionItems(
     typeof input === "string"
       ? { body: input, mode, requestId: reqId }
       : { ...input, mode, requestId: reqId };
-  const res = await aiActionItems(payload);
-  if (res.ok) {
-    return {
-      tags: res.tags,
-      actionItems: res.actionItems,
-      deadline: res.deadline,
-      mode: res.mode,
-    };
-  }
-  throw new AiRequestError(res.code, res.error);
+  const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
+  return runWithAudit("actionItems", charCount, mode, async () => {
+    const res = await aiActionItems(payload);
+    if (res.ok) {
+      return {
+        tags: res.tags,
+        actionItems: res.actionItems,
+        deadline: res.deadline,
+        mode: res.mode,
+      };
+    }
+    throw new AiRequestError(res.code, res.error);
+  });
 }
 
 export async function summarizeThread(
@@ -198,20 +239,23 @@ export async function summarizeThread(
 ): Promise<ThreadSummaryData> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  const res = await aiThreadSummary({
-    messages,
-    subject,
-    mode,
-    requestId: reqId,
+  const charCount = messages.reduce((acc, m) => acc + (m.body?.length ?? 0), 0) + (subject?.length ?? 0);
+  return runWithAudit("threadSummary", charCount, mode, async () => {
+    const res = await aiThreadSummary({
+      messages,
+      subject,
+      mode,
+      requestId: reqId,
+    });
+    if (res.ok) {
+      return {
+        summary: res.summary,
+        timeline: res.timeline,
+        mode: res.mode,
+      };
+    }
+    throw new AiRequestError(res.code, res.error);
   });
-  if (res.ok) {
-    return {
-      summary: res.summary,
-      timeline: res.timeline,
-      mode: res.mode,
-    };
-  }
-  throw new AiRequestError(res.code, res.error);
 }
 
 export async function suggestSplit(
@@ -221,20 +265,23 @@ export async function suggestSplit(
 ): Promise<SuggestSplitData> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  const res = await aiSuggestSplit({
-    ...mail,
-    mode,
-    requestId: reqId,
+  const charCount = (mail.body?.length ?? 0) + (mail.subject?.length ?? 0);
+  return runWithAudit("suggestSplit", charCount, mode, async () => {
+    const res = await aiSuggestSplit({
+      ...mail,
+      mode,
+      requestId: reqId,
+    });
+    if (res.ok) {
+      return {
+        split: res.split,
+        reason: res.reason,
+        confidence: res.confidence,
+        mode: res.mode,
+      };
+    }
+    throw new AiRequestError(res.code, res.error);
   });
-  if (res.ok) {
-    return {
-      split: res.split,
-      reason: res.reason,
-      confidence: res.confidence,
-      mode: res.mode,
-    };
-  }
-  throw new AiRequestError(res.code, res.error);
 }
 
 export async function rewriteTone(
@@ -245,7 +292,9 @@ export async function rewriteTone(
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  return unwrap(await aiRewrite({ text, tone, mode, requestId: reqId }));
+  return runWithAudit(`rewrite:${tone}`, text.length, mode, async () => {
+    return unwrap(await aiRewrite({ text, tone, mode, requestId: reqId }));
+  });
 }
 
 export async function composeFromPrompt(
@@ -256,9 +305,12 @@ export async function composeFromPrompt(
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  return unwrap(
-    await aiCompose({ prompt, existingBody, mode, requestId: reqId }),
-  );
+  const charCount = prompt.length + (existingBody?.length ?? 0);
+  return runWithAudit("compose", charCount, mode, async () => {
+    return unwrap(
+      await aiCompose({ prompt, existingBody, mode, requestId: reqId }),
+    );
+  });
 }
 
 export async function translateText(
@@ -269,7 +321,9 @@ export async function translateText(
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  return unwrap(await aiTranslate({ text, targetLang, mode, requestId: reqId }));
+  return runWithAudit(`translate:${targetLang}`, text.length, mode, async () => {
+    return unwrap(await aiTranslate({ text, targetLang, mode, requestId: reqId }));
+  });
 }
 
 export function ensureCloudPrivacyAck(): boolean {
