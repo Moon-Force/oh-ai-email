@@ -4,8 +4,10 @@ import type { AiMode } from "./settings";
 import {
   systemForCompose,
   systemForDraftReply,
+  systemForQuickReply,
   systemForRewrite,
   systemForSummarize,
+  type QuickReplyType,
   type RewriteTone,
 } from "./prompts";
 
@@ -40,6 +42,25 @@ export async function taskDraftReply(input: {
     [
       { role: "system", content: systemForDraftReply() },
       { role: "user", content: `Write a reply to this email:\n\n${ctx}` },
+    ],
+    { mode: input.mode, requestId: input.requestId },
+  );
+}
+
+export async function taskQuickReply(input: {
+  subject?: string;
+  from?: string;
+  body: string;
+  replyType: QuickReplyType;
+  customNote?: string;
+  mode?: AiMode;
+  requestId?: string;
+}): Promise<AiResult> {
+  const ctx = buildMailContext(input);
+  return chatComplete(
+    [
+      { role: "system", content: systemForQuickReply(input.replyType, input.customNote) },
+      { role: "user", content: `Write a quick reply to this email:\n\n${ctx}` },
     ],
     { mode: input.mode, requestId: input.requestId },
   );

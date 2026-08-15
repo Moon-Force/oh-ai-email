@@ -20,6 +20,7 @@ import {
   createAiRequestId,
   draftReply,
   ensureCloudPrivacyAck,
+  quickReplyDraft,
   rewriteTone,
   summarize,
 } from "./router";
@@ -30,15 +31,23 @@ import { useToastStore } from "../shell/toastStore";
 type CapsuleState = "idle" | "thinking" | "expanded";
 type ResultKind = "summary" | "draft";
 
+export const QUICK_REPLY_OPTIONS = [
+  { key: "ack", label: "收到谢谢" },
+  { key: "agree", label: "确认推进" },
+  { key: "defer", label: "稍后回复" },
+  { key: "decline", label: "礼貌婉拒" },
+] as const;
+
 type Props = {
   subject?: string;
   from?: string;
   body: string;
   /** Reply target when inserting draft */
   replyTo?: string;
+  onInsertDraft?: (draftText: string, replySubject: string, replyTo: string) => void;
 };
 
-export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
+export default function LumenCapsule({ subject, from, body, replyTo, onInsertDraft }: Props) {
   const mode = useAiSettings((s) => s.mode);
   const hasCloudApiKey = useAiSettings((s) => s.hasCloudApiKey);
   const openCompose = useMailStore((s) => s.openCompose);
@@ -50,7 +59,9 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
   const [kind, setKind] = useState<ResultKind>("summary");
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"summary" | "draft" | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "summary" | "draft" | { type: "quick"; replyType: string } | null
+  >(null);
   const activeReqIdRef = useRef<string | null>(null);
 
   function guideSettings(msg: string) {
@@ -152,6 +163,64 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
     }
   }
 
+  async function runQuickReply(replyType: string) {
+    if (mode === "cloud" && !hasCloudApiKey) {
+      guideSettings("未配置云端 API Key，请到设置 → AI 中填写");
+      return;
+    }
+    if (mode === "cloud" && !ensureCloudPrivacyAck()) {
+      setPendingAction({ type: "quick", replyType });
+      setPrivacyOpen(true);
+      return;
+    }
+    const reqId = createAiRequestId();
+    activeReqIdRef.current = reqId;
+    setPendingAction(null);
+    setError(null);
+    setState("thinking");
+    try {
+      const d = await quickReplyDraft(
+        { subject, from, body, replyType },
+        { mode, requestId: reqId },
+      );
+      if (activeReqIdRef.current !== reqId) return;
+      const reSubject = subject?.trim()
+        ? subject.trim().toLowerCase().startsWith("re:")
+          ? subject.trim()
+          : `Re: ${subject.trim()}`
+        : "Re:";
+      const targetTo = replyTo || from || "";
+
+      if (onInsertDraft) {
+        onInsertDraft(d, reSubject, targetTo);
+      } else {
+        openCompose({
+          to: targetTo,
+          subject: reSubject,
+          body: d,
+        });
+      }
+      showToast("已生成快捷回复并插入写信，请确认后发送", "success", 3500);
+      setState("idle");
+    } catch (e) {
+      if (activeReqIdRef.current !== reqId) {
+        return;
+      }
+      if (e instanceof AiRequestError && e.code === "ABORTED") {
+        setState(text ? "expanded" : "idle");
+        return;
+      }
+      const msg = e instanceof AiRequestError ? e.message : "快捷回复失败，请稍后重试";
+      setError(msg);
+      setState("idle");
+      showToast(msg, "error", 6000);
+    } finally {
+      if (activeReqIdRef.current === reqId) {
+        activeReqIdRef.current = null;
+      }
+    }
+  }
+
   async function runTone(tone: "shorter" | "formal" | "expand") {
     const reqId = createAiRequestId();
     activeReqIdRef.current = reqId;
@@ -188,11 +257,16 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
         ? subject.trim()
         : `Re: ${subject.trim()}`
       : "Re:";
-    openCompose({
-      to: replyTo || from || "",
-      subject: reSubject,
-      body: text,
-    });
+    const targetTo = replyTo || from || "";
+    if (onInsertDraft) {
+      onInsertDraft(text, reSubject, targetTo);
+    } else {
+      openCompose({
+        to: targetTo,
+        subject: reSubject,
+        body: text,
+      });
+    }
     showToast("已插入写信，请确认后发送", "success", 3000);
   }
 
@@ -207,55 +281,85 @@ export default function LumenCapsule({ subject, from, body, replyTo }: Props) {
     setPrivacyOpen(false);
     if (pendingAction === "summary") void runSummary();
     else if (pendingAction === "draft") void runDraft();
+    else if (pendingAction && typeof pendingAction === "object" && pendingAction.type === "quick") {
+      void runQuickReply(pendingAction.replyType);
+    }
   }
 
   if (state === "idle") {
     return (
       <>
-        <Paper
-          elevation={4}
-          data-testid="lumen-capsule"
-          data-state="idle"
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 0.75,
-            px: 1.25,
-            py: 0.5,
-            borderRadius: 999,
-            border: 1,
-            borderColor: "divider",
-            bgcolor: "background.paper",
-          }}
-        >
-          <AutoAwesomeIcon color="primary" fontSize="small" />
-          <Typography variant="caption" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-            AI
-          </Typography>
-          <Button size="small" onClick={() => void runSummary()} sx={{ minWidth: 0, px: 1 }}>
-            总结
-          </Button>
-          <Button size="small" color="inherit" onClick={() => void runDraft()} sx={{ minWidth: 0, px: 1 }}>
-            写回复
-          </Button>
-          <Chip
-            size="small"
-            label={mode === "local" ? "本机" : "云端"}
-            color="primary"
-            variant="outlined"
-            sx={{ height: 22, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
-          />
-          {error && (
-            <Button size="small" color="error" onClick={() => setView("settings")}>
-              去设置
-            </Button>
-          )}
-          {error && (
-            <Typography variant="caption" color="error" sx={{ maxWidth: 160 }} noWrap title={error}>
-              {error}
+        <Stack direction="column" spacing={0.75} sx={{ alignItems: "flex-end" }}>
+          <Paper
+            elevation={4}
+            data-testid="lumen-capsule"
+            data-state="idle"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 1.25,
+              py: 0.5,
+              borderRadius: 999,
+              border: 1,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+            }}
+          >
+            <AutoAwesomeIcon color="primary" fontSize="small" />
+            <Typography variant="caption" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+              AI
             </Typography>
-          )}
-        </Paper>
+            <Button size="small" onClick={() => void runSummary()} sx={{ minWidth: 0, px: 1 }}>
+              总结
+            </Button>
+            <Button size="small" color="inherit" onClick={() => void runDraft()} sx={{ minWidth: 0, px: 1 }}>
+              写回复
+            </Button>
+            <Chip
+              size="small"
+              label={mode === "local" ? "本机" : "云端"}
+              color="primary"
+              variant="outlined"
+              sx={{ height: 22, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
+            />
+            {error && (
+              <Button size="small" color="error" onClick={() => setView("settings")}>
+                去设置
+              </Button>
+            )}
+            {error && (
+              <Typography variant="caption" color="error" sx={{ maxWidth: 160 }} noWrap title={error}>
+                {error}
+              </Typography>
+            )}
+          </Paper>
+
+          <Stack
+            direction="row"
+            spacing={0.5}
+            data-testid="quick-reply-chips"
+            sx={{ flexWrap: "wrap", justifyContent: "flex-end", gap: 0.5 }}
+          >
+            {QUICK_REPLY_OPTIONS.map((opt) => (
+              <Chip
+                key={opt.key}
+                size="small"
+                label={opt.label}
+                onClick={() => void runQuickReply(opt.key)}
+                variant="outlined"
+                sx={{
+                  bgcolor: "background.paper",
+                  cursor: "pointer",
+                  fontSize: "0.75rem",
+                  height: 24,
+                  boxShadow: 1,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              />
+            ))}
+          </Stack>
+        </Stack>
         <PrivacyDialog
           open={privacyOpen}
           onCancel={() => {

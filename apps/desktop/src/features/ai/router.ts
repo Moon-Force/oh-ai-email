@@ -2,6 +2,7 @@ import {
   aiAbort,
   aiCompose,
   aiDraftReply,
+  aiQuickReply,
   aiRewrite,
   aiSummarize,
   hasDesktopApi,
@@ -110,6 +111,28 @@ export async function draftReply(
       ? { body: input, mode, requestId: reqId }
       : { ...input, mode, requestId: reqId };
   return unwrap(await aiDraftReply(payload));
+}
+
+export async function quickReplyDraft(
+  input: {
+    subject?: string;
+    from?: string;
+    body: string;
+    replyType: string;
+    customNote?: string;
+  },
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+): Promise<string> {
+  if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  return unwrap(
+    await aiQuickReply({
+      ...input,
+      mode,
+      requestId: reqId,
+    }),
+  );
 }
 
 export async function rewriteTone(

@@ -65,6 +65,7 @@ import {
   abortAiRequest,
   taskCompose,
   taskDraftReply,
+  taskQuickReply,
   taskRewrite,
   taskSummarize,
 } from "./ai/tasks";
@@ -424,6 +425,22 @@ export async function registerIpc(): Promise<void> {
         requestId?: string;
       },
     ) => taskDraftReply(payload),
+  );
+
+  ipcMain.handle(
+    "ai:quickReply",
+    async (
+      _e,
+      payload: {
+        subject?: string;
+        from?: string;
+        body: string;
+        replyType: string;
+        customNote?: string;
+        mode?: AiMode;
+        requestId?: string;
+      },
+    ) => taskQuickReply(payload),
   );
 
   ipcMain.handle(

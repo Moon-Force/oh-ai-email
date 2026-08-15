@@ -4,6 +4,7 @@ import {
   cancelRequest,
   createAiRequestId,
   draftReply,
+  quickReplyDraft,
   rewriteTone,
   summarize,
   AiRequestError,
@@ -16,6 +17,11 @@ vi.mock("../../lib/ipc", () => ({
   aiDraftReply: vi.fn(async () => ({
     ok: true as const,
     text: "你好，\n\n关于来信的回复。",
+    mode: "cloud" as const,
+  })),
+  aiQuickReply: vi.fn(async () => ({
+    ok: true as const,
+    text: "收到，非常感谢！",
     mode: "cloud" as const,
   })),
   aiRewrite: vi.fn(async () => ({
@@ -67,6 +73,26 @@ describe("draftReply", () => {
     await draftReply({ body: "test", subject: "re" }, { requestId: "req_draft_1" });
     expect(ipc.aiDraftReply).toHaveBeenCalledWith(
       expect.objectContaining({ requestId: "req_draft_1" }),
+    );
+  });
+});
+
+describe("quickReplyDraft", () => {
+  it("generates quick reply text", async () => {
+    const d = await quickReplyDraft({ body: "test", replyType: "ack" });
+    expect(d).toMatch(/收到/);
+    expect(ipc.aiQuickReply).toHaveBeenCalledWith(
+      expect.objectContaining({ replyType: "ack", body: "test" }),
+    );
+  });
+
+  it("passes requestId when provided", async () => {
+    await quickReplyDraft(
+      { body: "test", replyType: "agree" },
+      { requestId: "req_qr_1" },
+    );
+    expect(ipc.aiQuickReply).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_qr_1", replyType: "agree" }),
     );
   });
 });

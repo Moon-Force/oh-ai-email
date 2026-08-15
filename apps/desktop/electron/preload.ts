@@ -211,6 +211,16 @@ const api = {
     requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:draftReply", payload),
 
+  aiQuickReply: (payload: {
+    subject?: string;
+    from?: string;
+    body: string;
+    replyType: string;
+    customNote?: string;
+    mode?: "cloud" | "local";
+    requestId?: string;
+  }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:quickReply", payload),
+
   aiRewrite: (payload: {
     text: string;
     tone: "shorter" | "formal" | "expand";

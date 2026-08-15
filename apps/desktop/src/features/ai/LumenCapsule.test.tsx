@@ -12,6 +12,7 @@ vi.mock("./router", async () => {
     cancelRequest: vi.fn(async () => true),
     summarize: vi.fn(async () => "【摘要】要点：Q3 launch"),
     draftReply: vi.fn(async () => "你好，这是回复草稿。"),
+    quickReplyDraft: vi.fn(async ({ replyType }: { replyType: string }) => `快捷回复：${replyType}`),
     rewriteTone: vi.fn(async (t: string) => `改写：${t}`),
     ensureCloudPrivacyAck: () => true,
     ackCloudPrivacy: vi.fn(async () => undefined),
@@ -39,6 +40,39 @@ test("idle capsule shows AI chip and expands on summary", async () => {
   expect(await screen.findByText(/【摘要】/)).toBeInTheDocument();
   expect(screen.getByText("复制")).toBeInTheDocument();
   expect(screen.getByTestId("lumen-capsule")).toHaveAttribute("data-state", "expanded");
+});
+
+test("shows quick reply chips and inserts draft on click", async () => {
+  const user = userEvent.setup();
+  const onInsertDraft = vi.fn();
+  render(
+    wrap(
+      <LumenCapsule
+        body="Let's meet tomorrow"
+        subject="Project sync"
+        from="boss@example.com"
+        onInsertDraft={onInsertDraft}
+      />,
+    ),
+  );
+
+  expect(screen.getByTestId("quick-reply-chips")).toBeInTheDocument();
+  expect(screen.getByText("收到谢谢")).toBeInTheDocument();
+  expect(screen.getByText("确认推进")).toBeInTheDocument();
+  expect(screen.getByText("稍后回复")).toBeInTheDocument();
+  expect(screen.getByText("礼貌婉拒")).toBeInTheDocument();
+
+  await user.click(screen.getByText("收到谢谢"));
+
+  expect(router.quickReplyDraft).toHaveBeenCalledWith(
+    expect.objectContaining({ replyType: "ack" }),
+    expect.anything(),
+  );
+  expect(onInsertDraft).toHaveBeenCalledWith(
+    "快捷回复：ack",
+    "Re: Project sync",
+    "boss@example.com",
+  );
 });
 
 test("can cancel ongoing request in thinking state", async () => {

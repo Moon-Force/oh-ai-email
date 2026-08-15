@@ -227,6 +227,13 @@ export default function Reader() {
               from={msg.from}
               replyTo={msg.from}
               body={`${msg.snippet}\n${stripHtml(msg.html ?? "")}`}
+              onInsertDraft={(draftText, replySubject, replyTo) => {
+                openCompose({
+                  to: replyTo,
+                  subject: replySubject,
+                  body: draftText,
+                });
+              }}
             />
           </Box>
         </Box>
