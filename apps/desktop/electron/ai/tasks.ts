@@ -1,7 +1,8 @@
 import { buildMailContext, cleanContext } from "./clean";
-import { abortAiRequest, chatComplete, type AiResult } from "./complete";
+import { abortAiRequest, chatComplete, type AiErrorCode, type AiResult } from "./complete";
 import type { AiMode } from "./settings";
 import {
+  systemForActionItems,
   systemForCompose,
   systemForDraftReply,
   systemForQuickReply,
@@ -12,6 +13,16 @@ import {
 } from "./prompts";
 
 export { abortAiRequest };
+
+export type ActionItemsResult =
+  | {
+      ok: true;
+      tags: string[];
+      actionItems: string[];
+      deadline?: string;
+      mode: AiMode;
+    }
+  | { ok: false; code: AiErrorCode; error: string };
 
 export async function taskSummarize(input: {
   subject?: string;
@@ -64,6 +75,70 @@ export async function taskQuickReply(input: {
     ],
     { mode: input.mode, requestId: input.requestId },
   );
+}
+
+export async function taskExtractActionItems(input: {
+  subject?: string;
+  from?: string;
+  body: string;
+  mode?: AiMode;
+  requestId?: string;
+}): Promise<ActionItemsResult> {
+  const ctx = buildMailContext(input);
+  const result = await chatComplete(
+    [
+      { role: "system", content: systemForActionItems() },
+      { role: "user", content: ctx },
+    ],
+    { mode: input.mode, requestId: input.requestId },
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  try {
+    let raw = result.text.trim();
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      raw = jsonMatch[0];
+    }
+    const parsed = JSON.parse(raw) as {
+      tags?: unknown;
+      actionItems?: unknown;
+      deadline?: unknown;
+    };
+    const tags = Array.isArray(parsed.tags) ? parsed.tags.map(String).filter(Boolean) : [];
+    const actionItems = Array.isArray(parsed.actionItems)
+      ? parsed.actionItems.map(String).filter(Boolean)
+      : [];
+    const deadline =
+      typeof parsed.deadline === "string" && parsed.deadline.trim()
+        ? parsed.deadline.trim()
+        : undefined;
+
+    return {
+      ok: true,
+      tags: tags.length > 0 ? tags : ["仅供参考"],
+      actionItems,
+      deadline,
+      mode: result.mode,
+    };
+  } catch {
+    const lines = result.text
+      .split("\n")
+      .map((l) => l.replace(/^[-*•\d.)\s]+/, "").trim())
+      .filter(Boolean);
+    return {
+      ok: true,
+      tags: lines.length > 0 ? ["待办事项"] : ["仅供参考"],
+      actionItems: lines,
+      mode: result.mode,
+    };
+  }
 }
 
 export async function taskRewrite(input: {

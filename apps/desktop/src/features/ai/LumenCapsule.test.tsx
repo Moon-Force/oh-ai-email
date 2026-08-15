@@ -13,6 +13,12 @@ vi.mock("./router", async () => {
     summarize: vi.fn(async () => "【摘要】要点：Q3 launch"),
     draftReply: vi.fn(async () => "你好，这是回复草稿。"),
     quickReplyDraft: vi.fn(async ({ replyType }: { replyType: string }) => `快捷回复：${replyType}`),
+    extractActionItems: vi.fn(async () => ({
+      tags: ["需回复", "有截止日期"],
+      actionItems: ["审核设计稿", "安排会议"],
+      deadline: "周五下午5点",
+      mode: "cloud" as const,
+    })),
     rewriteTone: vi.fn(async (t: string) => `改写：${t}`),
     ensureCloudPrivacyAck: () => true,
     ackCloudPrivacy: vi.fn(async () => undefined),
@@ -148,6 +154,28 @@ test("can cancel ongoing tone rewrite in thinking state and restore expanded sta
   expect(screen.getByText(/【摘要】/)).toBeInTheDocument();
 
   resolveRewrite("late rewrite");
+});
+
+test("can extract action items, display intent tags, and check off items", async () => {
+  const user = userEvent.setup();
+  render(wrap(<LumenCapsule body="Please review designs by Friday 5pm and set up meeting" />));
+  expect(screen.getByText("行动项")).toBeInTheDocument();
+
+  await user.click(screen.getByText("行动项"));
+
+  expect(await screen.findByText("行动项与意图")).toBeInTheDocument();
+  expect(screen.getByText("需回复")).toBeInTheDocument();
+  expect(screen.getByText("截止: 周五下午5点")).toBeInTheDocument();
+  expect(screen.getByText("审核设计稿")).toBeInTheDocument();
+  expect(screen.getByText("安排会议")).toBeInTheDocument();
+  expect(screen.getByText("复制行动项")).toBeInTheDocument();
+
+  const checkboxes = screen.getAllByRole("checkbox");
+  expect(checkboxes).toHaveLength(2);
+  expect(checkboxes[0]).not.toBeChecked();
+
+  await user.click(checkboxes[0]);
+  expect(checkboxes[0]).toBeChecked();
 });
 
 test("handles ABORTED error gracefully without displaying error message", async () => {

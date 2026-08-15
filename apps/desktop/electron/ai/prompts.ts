@@ -74,3 +74,18 @@ Task: Write a new email body from the user's short instruction.
 - Do not include subject or headers unless asked.
 - Match the language of the instruction.`;
 }
+
+export function systemForActionItems(): string {
+  return `You are an email assistant that analyzes emails to extract intent tags, action items, and deadlines.
+Respond ONLY with a JSON object matching this schema (no markdown fences, no other text):
+{
+  "tags": string[],
+  "actionItems": string[],
+  "deadline": string | null
+}
+
+Guidelines:
+- "tags": Choose 1 to 3 relevant tags from ["需回复", "待办事项", "有截止日期", "仅供参考", "通知公告"] (use English equivalents if the source email is English, e.g. ["Action Required", "Follow-up", "Has Deadline", "FYI", "Announcement"]).
+- "actionItems": A list of clear, concise tasks/actions the recipient needs to do. If none, return [].
+- "deadline": If a specific deadline, meeting time, or expiration date/time is mentioned, extract it as a concise string (e.g. "周五下午5点" or "2026-08-20 18:00"). If no deadline, use null.`;
+}

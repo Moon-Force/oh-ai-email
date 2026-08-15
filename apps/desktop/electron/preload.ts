@@ -221,6 +221,14 @@ const api = {
     requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:quickReply", payload),
 
+  aiActionItems: (payload: {
+    subject?: string;
+    from?: string;
+    body: string;
+    mode?: "cloud" | "local";
+    requestId?: string;
+  }): Promise<AiActionItemsResult> => ipcRenderer.invoke("ai:actionItems", payload),
+
   aiRewrite: (payload: {
     text: string;
     tone: "shorter" | "formal" | "expand";
@@ -238,6 +246,16 @@ const api = {
 
 type AiTaskResult =
   | { ok: true; text: string; mode: "cloud" | "local" }
+  | { ok: false; code: string; error: string };
+
+type AiActionItemsResult =
+  | {
+      ok: true;
+      tags: string[];
+      actionItems: string[];
+      deadline?: string;
+      mode: "cloud" | "local";
+    }
   | { ok: false; code: string; error: string };
 
 contextBridge.exposeInMainWorld("api", api);

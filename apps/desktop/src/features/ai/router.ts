@@ -1,5 +1,6 @@
 import {
   aiAbort,
+  aiActionItems,
   aiCompose,
   aiDraftReply,
   aiQuickReply,
@@ -15,6 +16,13 @@ export type { AiMode };
 export type AiRunOptions = {
   mode?: AiMode;
   requestId?: string;
+};
+
+export type ActionItemsData = {
+  tags: string[];
+  actionItems: string[];
+  deadline?: string;
+  mode: AiMode;
 };
 
 export function createAiRequestId(): string {
@@ -133,6 +141,29 @@ export async function quickReplyDraft(
       requestId: reqId,
     }),
   );
+}
+
+export async function extractActionItems(
+  input: { subject?: string; from?: string; body: string } | string,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+): Promise<ActionItemsData> {
+  if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  const payload =
+    typeof input === "string"
+      ? { body: input, mode, requestId: reqId }
+      : { ...input, mode, requestId: reqId };
+  const res = await aiActionItems(payload);
+  if (res.ok) {
+    return {
+      tags: res.tags,
+      actionItems: res.actionItems,
+      deadline: res.deadline,
+      mode: res.mode,
+    };
+  }
+  throw new AiRequestError(res.code, res.error);
 }
 
 export async function rewriteTone(

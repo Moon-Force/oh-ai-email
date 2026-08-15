@@ -118,6 +118,7 @@ type Api = {
   aiSummarize: (payload: AiMailPayload) => Promise<AiTaskResult>;
   aiDraftReply: (payload: AiMailPayload) => Promise<AiTaskResult>;
   aiQuickReply: (payload: AiQuickReplyPayload) => Promise<AiTaskResult>;
+  aiActionItems: (payload: AiMailPayload) => Promise<AiActionItemsResult>;
   aiRewrite: (payload: AiRewritePayload) => Promise<AiTaskResult>;
   aiCompose: (payload: AiComposePayload) => Promise<AiTaskResult>;
 };
@@ -141,6 +142,16 @@ export type AiSaveSettingsPayload = Partial<
 
 export type AiTaskResult =
   | { ok: true; text: string; mode: AiModeDto }
+  | { ok: false; code: string; error: string };
+
+export type AiActionItemsResult =
+  | {
+      ok: true;
+      tags: string[];
+      actionItems: string[];
+      deadline?: string;
+      mode: AiModeDto;
+    }
   | { ok: false; code: string; error: string };
 
 export type AiMailPayload = {
@@ -400,6 +411,12 @@ export async function aiQuickReply(payload: AiQuickReplyPayload): Promise<AiTask
   const api = getApi();
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
   return api.aiQuickReply(payload);
+}
+
+export async function aiActionItems(payload: AiMailPayload): Promise<AiActionItemsResult> {
+  const api = getApi();
+  if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
+  return api.aiActionItems(payload);
 }
 
 export async function aiRewrite(payload: AiRewritePayload): Promise<AiTaskResult> {

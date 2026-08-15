@@ -4,6 +4,7 @@ import {
   cancelRequest,
   createAiRequestId,
   draftReply,
+  extractActionItems,
   quickReplyDraft,
   rewriteTone,
   summarize,
@@ -24,6 +25,13 @@ vi.mock("../../lib/ipc", () => ({
     text: "收到，非常感谢！",
     mode: "cloud" as const,
   })),
+  aiActionItems: vi.fn(async () => ({
+    ok: true as const,
+    tags: ["需回复", "待办事项"],
+    actionItems: ["提交 Q3 报告", "确认预算"],
+    deadline: "周五下午5点",
+    mode: "cloud" as const,
+  })),
   aiRewrite: vi.fn(async () => ({
     ok: true as const,
     text: "敬启者：\n\nthanks\n\n此致",
@@ -38,6 +46,8 @@ beforeEach(() => {
   vi.mocked(ipc.aiAbort).mockClear();
   vi.mocked(ipc.aiSummarize).mockClear();
   vi.mocked(ipc.aiDraftReply).mockClear();
+  vi.mocked(ipc.aiQuickReply).mockClear();
+  vi.mocked(ipc.aiActionItems).mockClear();
   vi.mocked(ipc.aiRewrite).mockClear();
 });
 
@@ -93,6 +103,23 @@ describe("quickReplyDraft", () => {
     );
     expect(ipc.aiQuickReply).toHaveBeenCalledWith(
       expect.objectContaining({ requestId: "req_qr_1", replyType: "agree" }),
+    );
+  });
+});
+
+describe("extractActionItems", () => {
+  it("extracts tags and action items", async () => {
+    const data = await extractActionItems({ body: "Please submit Q3 report by Friday", subject: "Report" });
+    expect(data.tags).toContain("需回复");
+    expect(data.actionItems).toContain("提交 Q3 报告");
+    expect(data.deadline).toBe("周五下午5点");
+    expect(ipc.aiActionItems).toHaveBeenCalled();
+  });
+
+  it("passes requestId when provided", async () => {
+    await extractActionItems({ body: "test" }, { requestId: "req_act_1" });
+    expect(ipc.aiActionItems).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_act_1" }),
     );
   });
 });
