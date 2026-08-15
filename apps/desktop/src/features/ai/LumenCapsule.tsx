@@ -22,6 +22,7 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import HandshakeIcon from "@mui/icons-material/Handshake";
 import {
   AiRequestError,
   ackCloudPrivacy,
@@ -31,6 +32,7 @@ import {
   draftReplyDetailed,
   ensureCloudPrivacyAck,
   extractActionItems,
+  extractCommitments,
   quickReplyDraft,
   rewriteTone,
   suggestSplit,
@@ -39,6 +41,7 @@ import {
   summarizeThread,
   translateText,
   type ActionItemsData,
+  type CommitmentItem,
   type SuggestSplitData,
   type ThreadSummaryData,
 } from "./router";
@@ -48,7 +51,7 @@ import { useToastStore } from "../shell/toastStore";
 import { speakText, stopSpeaking } from "../voice/voiceService";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
-type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation";
+type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation" | "commitments";
 
 export const QUICK_REPLY_OPTIONS = [
   { key: "ack", label: "收到谢谢" },
@@ -93,6 +96,7 @@ export default function LumenCapsule({
   const [actionItemsData, setActionItemsData] = useState<ActionItemsData | null>(null);
   const [threadSummaryData, setThreadSummaryData] = useState<ThreadSummaryData | null>(null);
   const [suggestSplitData, setSuggestSplitData] = useState<SuggestSplitData | null>(null);
+  const [commitmentsData, setCommitmentsData] = useState<CommitmentItem[]>([]);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [kind, setKind] = useState<ResultKind>("summary");
   const [reasoningContent, setReasoningContent] = useState<string | null>(null);
@@ -104,6 +108,13 @@ export default function LumenCapsule({
     "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation" | { type: "quick"; replyType: string } | null
   >(null);
   const activeReqIdRef = useRef<string | null>(null);
+
+  function runCommitments() {
+    const res = extractCommitments(subject, body);
+    setCommitmentsData(res.commitments);
+    setKind("commitments");
+    setState("expanded");
+  }
 
   function guideSettings(msg: string) {
     setError(msg);
@@ -549,6 +560,15 @@ export default function LumenCapsule({
             </Button>
             <Button
               size="small"
+              color={commitmentsData.length > 0 ? "warning" : "inherit"}
+              onClick={() => void runCommitments()}
+              sx={{ minWidth: 0, px: 1 }}
+              data-testid="commitments-button"
+            >
+              承诺追踪{commitmentsData.length > 0 ? ` (${commitmentsData.length})` : ""}
+            </Button>
+            <Button
+              size="small"
               color="inherit"
               onClick={() => void runSuggestSplit()}
               sx={{ minWidth: 0, px: 1 }}
@@ -685,11 +705,13 @@ export default function LumenCapsule({
                   ? "草稿回复"
                   : kind === "actionItems"
                     ? "行动项与意图"
-                    : kind === "threadSummary"
-                      ? "线索时间线摘要"
-                      : kind === "suggestSplit"
-                        ? "AI 分箱建议"
-                        : "邮件翻译"}
+                    : kind === "commitments"
+                      ? "承诺追踪 (Commitments)"
+                      : kind === "threadSummary"
+                        ? "线索时间线摘要"
+                        : kind === "suggestSplit"
+                          ? "AI 分箱建议"
+                          : "邮件翻译"}
             </Typography>
             <Chip
               size="small"
@@ -762,6 +784,64 @@ export default function LumenCapsule({
                 </Paper>
               )}
             </Stack>
+          ) : kind === "commitments" ? (
+            <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }} data-testid="commitments-section">
+              {commitmentsData.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  正文中未检测到明确的双方承诺或截止日期。
+                </Typography>
+              ) : (
+                <Stack spacing={1} data-testid="commitments-list">
+                  {commitmentsData.map((c, idx) => (
+                    <Paper
+                      key={idx}
+                      variant="outlined"
+                      data-testid="commitment-card"
+                      sx={{
+                        p: 1.25,
+                        borderRadius: 2,
+                        bgcolor: (t) =>
+                          c.direction === "i_promised"
+                            ? t.palette.mode === "dark"
+                              ? "rgba(46, 125, 50, 0.12)"
+                              : "rgba(46, 125, 50, 0.06)"
+                            : t.palette.mode === "dark"
+                              ? "rgba(237, 108, 2, 0.12)"
+                              : "rgba(237, 108, 2, 0.06)",
+                        borderColor: (t) =>
+                          c.direction === "i_promised"
+                            ? t.palette.success.main
+                            : t.palette.warning.main,
+                      }}
+                    >
+                      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 0.5, flexWrap: "wrap", gap: 0.5 }}>
+                        <Chip
+                          size="small"
+                          data-testid="commitment-direction-chip"
+                          label={c.direction === "i_promised" ? "我方承诺" : "对方承诺"}
+                          color={c.direction === "i_promised" ? "success" : "warning"}
+                          variant="filled"
+                          sx={{ fontWeight: 600, height: 22, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
+                        />
+                        {c.deadline && (
+                          <Chip
+                            size="small"
+                            data-testid="commitment-deadline-chip"
+                            label={`截止: ${c.deadline}`}
+                            color="error"
+                            variant="outlined"
+                            sx={{ height: 22, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
+                          />
+                        )}
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontSize: "0.85rem", color: "text.primary" }}>
+                        {c.text}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Box>
           ) : kind === "threadSummary" ? (
             <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}>
               {threadSummaryData?.summary && (

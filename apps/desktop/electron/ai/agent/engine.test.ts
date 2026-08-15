@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   generateIcsContent,
+  toolExtractCommitments,
   toolExtractMeetingDetails,
   toolExtractTriageSuggestions,
   toolSearchMessages,
@@ -115,6 +116,23 @@ describe("Agent Tools", () => {
     const spam = triage.find((t) => t.messageId === "msg_spam");
     expect(spam?.targetSplit).toBe("other");
   });
+
+  it("toolExtractCommitments extracts i_promised and they_promised commitments with deadlines", () => {
+    const res = toolExtractCommitments(
+      "项目合作推进",
+      "我会在本周五前发送终版报价单。请于8月22日前确认商务条款，另外您提到下周二提供系统演示。",
+    );
+
+    expect(res.commitments.length).toBeGreaterThanOrEqual(2);
+    const iPromised = res.commitments.find((c) => c.direction === "i_promised");
+    expect(iPromised).toBeDefined();
+    expect(iPromised?.text).toContain("发送终版报价单");
+    expect(iPromised?.deadline).toBe("本周五前");
+
+    const theyPromised = res.commitments.filter((c) => c.direction === "they_promised");
+    expect(theyPromised.length).toBeGreaterThanOrEqual(1);
+    expect(theyPromised.some((c) => c.text.includes("确认商务条款") && c.deadline?.includes("8月22日"))).toBe(true);
+  });
 });
 
 describe("Agent Workflow Engine", () => {
@@ -178,6 +196,22 @@ describe("Agent Workflow Engine", () => {
       expect(draftItem.targetTo).toBe("partner@corp.com");
       expect(draftItem.body).toContain("合作意向方案");
     }
+  });
+
+  it("runs daily_briefing workflow and generates briefing proposals", async () => {
+    const events: AgentStreamEvent[] = [];
+    const proposal = await runAgentWorkflow({
+      agentType: "daily_briefing",
+      context: {
+        subject: "每日工作待办总结",
+      },
+      onEvent: (evt) => events.push(evt),
+    });
+
+    expect(proposal.items.length).toBeGreaterThan(0);
+    const calEvent = proposal.items.find((i) => i.kind === "calendar_event");
+    expect(calEvent).toBeDefined();
+    expect(calEvent?.title).toContain("今日工作规划");
   });
 
   it("handles workflow abort correctly", async () => {

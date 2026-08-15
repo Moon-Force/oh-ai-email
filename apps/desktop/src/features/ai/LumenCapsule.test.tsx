@@ -351,6 +351,28 @@ test("shows reasoning accordion and read-aloud button", async () => {
   expect(readAloudBtn).toHaveTextContent("朗读");
 });
 
+test("displays commitments tracker section when commitments are found in body", async () => {
+  const user = userEvent.setup();
+  render(
+    wrap(
+      <LumenCapsule
+        subject="商务合作确认"
+        body="我会在本周五前发送终版合同。请于8月22日前确认条款。"
+      />,
+    ),
+  );
+
+  const commitmentBtn = screen.getByTestId("commitments-button");
+  expect(commitmentBtn).toBeInTheDocument();
+  await user.click(commitmentBtn);
+
+  expect(await screen.findByText(/承诺追踪/)).toBeInTheDocument();
+  expect(screen.getByText("我方承诺")).toBeInTheDocument();
+  expect(screen.getByText("对方承诺")).toBeInTheDocument();
+  expect(screen.getByText(/发送终版合同/)).toBeInTheDocument();
+});
+
+
 
 
 

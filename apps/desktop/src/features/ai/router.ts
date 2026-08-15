@@ -48,9 +48,80 @@ export type SuggestSplitData = {
   mode: AiMode;
 };
 
+export type CommitmentItem = {
+  direction: "i_promised" | "they_promised";
+  text: string;
+  deadline?: string;
+};
+
+export type ExtractCommitmentsResult = {
+  commitments: CommitmentItem[];
+};
+
+export function extractCommitments(
+  subject = "",
+  body = "",
+): ExtractCommitmentsResult {
+  const fullText = `${subject}\n${body}`.trim();
+  if (!fullText) {
+    return { commitments: [] };
+  }
+
+  const rawSentences = fullText
+    .split(/[。！？\n.!?]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 4);
+
+  const commitments: CommitmentItem[] = [];
+  const seen = new Set<string>();
+
+  const deadlineRegex =
+    /(?:(?:(?:本周|下周|周|星期)[一二三四五六日天](?:前|下午\d*点?|上午\d*点?|晚上|中午)?)|(?:\d{1,2}月\d{1,2}[号日](?:前)?)|(?:\d{4}-\d{2}-\d{2})|明天(?:前|下午\d*点?|上午\d*点?|晚上|中午)?|后天|今晚|下周|月底|周五前|截止[：:]?\s*[^，。]+|by\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next week|\d{1,2}(?:st|nd|rd|th)?\s+[a-zA-Z]+|\d{4}-\d{2}-\d{2}))/i;
+
+
+  const iPromisedPatterns = [
+    /我(?:会|将|稍后|承诺|打算|负责|去办|来安排|会在)/i,
+    /我们(?:会|将|承诺|稍后|来)/i,
+    /我方(?:会|将|承诺|确认)/i,
+    /I\s+will|I'll|I\s+promise|We\s+will|We'll|I\s+am\s+going\s+to|I\s+shall/i,
+  ];
+
+  const theyPromisedPatterns = [
+    /你(?:说|提到|承诺|会|将|答应|负责|需要在)/i,
+    /您(?:提到|承诺|会|将|答应|负责|请在|需要在)/i,
+    /对方(?:承诺|答应|会|将)/i,
+    /贵方(?:承诺|会|将)/i,
+    /请于|请在|务必在|请于.*前/i,
+    /You\s+promised|You\s+mentioned|You\s+will|Please\s+provide|Please\s+send/i,
+  ];
+
+  for (const s of rawSentences) {
+    const isIPromised = iPromisedPatterns.some((p) => p.test(s));
+    const isTheyPromised = !isIPromised && theyPromisedPatterns.some((p) => p.test(s));
+
+    if (isIPromised || isTheyPromised) {
+      const deadlineMatch = s.match(deadlineRegex);
+      const deadline = deadlineMatch ? deadlineMatch[0].trim() : undefined;
+      const direction: "i_promised" | "they_promised" = isIPromised ? "i_promised" : "they_promised";
+      const key = `${direction}_${s}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        commitments.push({
+          direction,
+          text: s,
+          deadline,
+        });
+      }
+    }
+  }
+
+  return { commitments };
+}
+
 export function createAiRequestId(): string {
   return `airq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
+
 
 export async function cancelRequest(requestId: string): Promise<boolean> {
   if (!hasDesktopApi()) return true;

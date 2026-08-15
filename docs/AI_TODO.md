@@ -103,20 +103,20 @@
 | ID | 任务 | 说明 | 状态 |
 |----|------|------|------|
 | W3-01 | 学用户语气 | 从已发送采样（优先本机）；可选、可关 | [ ] |
-| W3-02 | 承诺追踪 | 「周五给你」→ 本地提醒，不自动发跟进 | [ ] |
+| W3-02 | 承诺追踪 | 「周五给你」→ 本地提醒，不自动发跟进 | [x] |
 | W3-03 | 附件理解 | PDF/图 OCR 摘要；默认关，显式选附件 | [ ] |
-| W3-04 | 会议 → 日历草稿 | 抽时间地点 → ICS，冲突排查，人确认（执行步骤详见下文） | [ ] |
-| W3-05 | 每日简报 | 今早必处理 vs 可忽略 | [ ] |
-| W3-06 | 可确认 Agent | 批量分箱/归档：**清单预览 → 逐项/全选确认执行**（执行步骤详见下文） | [ ] |
-| W3-07 | 跟进草稿序列 | N 天未回 → 生成 follow-up 草稿，不自动发 | [ ] |
+| W3-04 | 会议 → 日历草稿 | 抽时间地点 → ICS，冲突排查，人确认（执行步骤详见下文） | [x] |
+| W3-05 | 每日简报 | 今早必处理 vs 可忽略 | [x] |
+| W3-06 | 可确认 Agent | 批量分箱/归档：**清单预览 → 逐项/全选确认执行**（执行步骤详见下文） | [x] |
+| W3-07 | 跟进草稿序列 | N 天未回 → 生成 follow-up 草稿，不自动发 | [x] |
 | W3-08 | 联系人卡片 | 最近话题 / 未结事项（本地索引） | [ ] |
 | W3-09 | 流式输出 | Capsule/Composer token 流（可选） | [ ] |
 | W3-10 | 官方 ai-proxy | 仅当产品要「开箱 Key」时再做 | [ ] |
-| W3-11 | DeepSeek 预设与 R1 思考流 | `https://api.deepseek.com` · `deepseek-chat` / `deepseek-reasoner` · `reasoning_content` 提取 | [ ] |
-| W3-12 | 小米 MiMo 预设与多模态 | `https://api.xiaomimimo.com/v1` · `mimo-v2.5` / `mimo-v2.5-pro` / `mimo-v2.5-tts` | [ ] |
-| W3-13 | 动态模型拉取 | 远程 `GET /models` & 本地 Ollama `GET /api/tags` 一键同步下拉 | [ ] |
-| W3-14 | 账户余额/额度查询 | DeepSeek `GET /user/balance` 实时查询余额与可用性 | [ ] |
-| W3-15 | 语音听写与朗读能力 | Composer 语音输入 (STT) + Capsule 邮件/摘要朗读 (Web Speech / MiMo TTS) | [ ] |
+| W3-11 | DeepSeek 预设与 R1 思考流 | `https://api.deepseek.com` · `deepseek-chat` / `deepseek-reasoner` · `reasoning_content` 提取 | [x] |
+| W3-12 | 小米 MiMo 预设与多模态 | `https://api.xiaomimimo.com/v1` · `mimo-v2.5` / `mimo-v2.5-pro` / `mimo-v2.5-tts` | [x] |
+| W3-13 | 动态模型拉取 | 远程 `GET /models` & 本地 Ollama `GET /api/tags` 一键同步下拉 | [x] |
+| W3-14 | 账户余额/额度查询 | DeepSeek `GET /user/balance` 实时查询余额与可用性 | [x] |
+| W3-15 | 语音听写与朗读能力 | Composer 语音输入 (STT) + Capsule 邮件/摘要朗读 (Web Speech / MiMo TTS) | [x] |
 
 ### Wave-3 重点任务执行步骤细化
 

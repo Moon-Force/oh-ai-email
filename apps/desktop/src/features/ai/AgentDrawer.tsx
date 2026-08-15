@@ -193,10 +193,59 @@ export default function AgentDrawer() {
       {/* Body Content */}
       <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
         <Stack spacing={2.5}>
+          {/* Quick Agent Shortcuts */}
+          <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "action.hover" }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 1, display: "block" }}>
+              快捷智能助手
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 0.75 }}>
+              <Button
+                size="small"
+                variant={agentType === "daily_briefing" ? "contained" : "outlined"}
+                disabled={isRunning}
+                onClick={() => {
+                  setAgentType("daily_briefing");
+                  setSuccessToast(null);
+                  void runWorkflow("daily_briefing");
+                }}
+                data-testid="quick-agent-daily-briefing"
+              >
+                今日晨报 (Daily Briefing)
+              </Button>
+              <Button
+                size="small"
+                variant={agentType === "followup_sequence" ? "contained" : "outlined"}
+                disabled={isRunning}
+                onClick={() => {
+                  setAgentType("followup_sequence");
+                  setSuccessToast(null);
+                  void runWorkflow("followup_sequence");
+                }}
+                data-testid="quick-agent-followup"
+              >
+                未回跟进 (Follow-up)
+              </Button>
+              <Button
+                size="small"
+                variant={agentType === "batch_triage" ? "contained" : "outlined"}
+                disabled={isRunning}
+                onClick={() => {
+                  setAgentType("batch_triage");
+                  setSuccessToast(null);
+                  void runWorkflow("batch_triage");
+                }}
+                data-testid="quick-agent-triage"
+              >
+                收件箱分拣 (Triage)
+              </Button>
+            </Stack>
+          </Paper>
+
           {/* Agent Type Selector */}
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
             <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
               <InputLabel id="agent-type-select-label">选择工作流类型</InputLabel>
+
               <Select
                 labelId="agent-type-select-label"
                 value={agentType}

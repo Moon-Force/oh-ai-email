@@ -17,6 +17,7 @@ import type {
 } from "./types";
 import {
   generateIcsContent,
+  toolExtractCommitments,
   toolExtractMeetingDetails,
   toolExtractTriageSuggestions,
   toolSearchMessages,
@@ -143,23 +144,36 @@ export async function runAgentWorkflow(
 
       if (targetMessages.length > 0) {
         for (const msg of targetMessages) {
+          const { commitments } = toolExtractCommitments(msg.subject, msg.snippet);
+          let contextNote = "";
+          if (commitments.length > 0) {
+            const first = commitments[0];
+            contextNote = `（涉及承诺事项：${first.text}${first.deadline ? `，截止: ${first.deadline}` : ""}）\n\n`;
+          }
+
           proposedItems.push({
             id: `prop_draft_followup_${msg.id}`,
             kind: "draft_reply",
             targetTo: msg.from,
             subject: `Re: ${msg.subject}`,
-            body: `您好，\n\n关于您此前发来的「${msg.subject}」，已进行跟进审阅。如有更新我将第一时间与您同步。\n\n谢谢！`,
+            body: `您好，\n\n关于此前沟通的「${msg.subject}」在此跟进确认最新进展。${contextNote}如有任何需要协助或补充的信息，请随时告知。\n\n顺祝商祺！`,
             selected: true,
           });
         }
         toolDataSummary += `已为 ${targetMessages.length} 封重要往来邮件生成跟进回复草稿。\n`;
       } else if (contextFrom || contextSubject) {
+        const { commitments } = toolExtractCommitments(contextSubject, contextBody);
+        let note = "";
+        if (commitments.length > 0) {
+          note = `（涉及事项：${commitments[0].text}）\n\n`;
+        }
+
         proposedItems.push({
           id: `prop_draft_followup_ctx_${Date.now()}`,
           kind: "draft_reply",
           targetTo: contextFrom || "recipient@example.com",
           subject: contextSubject ? `Re: ${contextSubject}` : "跟进：项目进展",
-          body: `您好，\n\n关于「${contextSubject || "此前讨论事宜"}」在此跟进最新进展，若有需要协助的地方请随时告知。\n\n顺祝安好！`,
+          body: `您好，\n\n关于「${contextSubject || "此前讨论事宜"}」在此跟进最新进展。${note}若有需要协助的地方请随时告知。\n\n顺祝安好！`,
           selected: true,
         });
       }
@@ -169,26 +183,39 @@ export async function runAgentWorkflow(
       const importantUnread = allMsgs.filter((m) => m.unread && m.split === "important");
       const generalUnread = allMsgs.filter((m) => m.unread);
 
-      toolDataSummary += `今日待处理：共 ${generalUnread.length} 封未读邮件（其中 ${importantUnread.length} 封重要）。\n`;
+      // Extract top 3 urgent topics
+      const topUrgent = (importantUnread.length > 0 ? importantUnread : generalUnread).slice(0, 3);
+      const urgentSummaries = topUrgent.map((m, i) => `${i + 1}. [${m.fromName || m.from}] ${m.subject}`);
 
-      if (importantUnread.length > 0) {
-        const first = importantUnread[0];
+      toolDataSummary += `今日待处理：共 ${generalUnread.length} 封未读邮件（其中 ${importantUnread.length} 封重要）。\n`;
+      if (urgentSummaries.length > 0) {
+        toolDataSummary += `今日 Top 3 紧急焦点：\n${urgentSummaries.join("\n")}\n`;
+      }
+
+      // Generate draft proposals for the top urgent items
+      for (const item of topUrgent) {
+        const { commitments } = toolExtractCommitments(item.subject, item.snippet);
+        let commitText = "";
+        if (commitments.length > 0) {
+          commitText = `对于您提到的「${commitments[0].text}」，我方已在同步跟进。`;
+        }
         proposedItems.push({
-          id: `prop_draft_briefing_${first.id}`,
+          id: `prop_draft_briefing_${item.id}`,
           kind: "draft_reply",
-          targetTo: first.from,
-          subject: `Re: ${first.subject}`,
-          body: `您好，\n\n邮件已收悉，正在处理「${first.subject}」，稍后为您提供详细答复。\n\n谢谢！`,
+          targetTo: item.from,
+          subject: `Re: ${item.subject}`,
+          body: `您好，\n\n邮件已收悉，正在处理「${item.subject}」。${commitText}\n\n如有进一步进展将及时与您同步，谢谢！`,
           selected: true,
         });
       }
 
-      // Add a briefing calendar event item if context or mock contains timing
-      const cal = toolExtractMeetingDetails("每日工作规划与复盘", "今日邮件与任务优先级梳理", {
-        title: "今日工作规划与复盘",
+      // Add a briefing calendar event item
+      const cal = toolExtractMeetingDetails("今日工作规划与任务复盘", "今日晨报梳理：重点处理 " + topUrgent.map((m) => m.subject).join("、 "), {
+        title: "今日工作规划与任务复盘",
       });
       if (cal) proposedItems.push(cal);
     } else {
+
       // custom agent
       emitStreamTokens(`[工具] 正在根据提示词「${prompt.slice(0, 30)}」检索并提取上下文...\n`, onEvent);
       const searchResults = toolSearchMessages(prompt, undefined);

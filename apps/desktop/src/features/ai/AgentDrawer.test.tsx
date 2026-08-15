@@ -87,9 +87,38 @@ describe("AgentDrawer Component", () => {
     render(wrap(<AgentDrawer />));
 
     const checkbox = screen.getByRole("checkbox", { name: "" });
+
     expect(checkbox).toBeChecked();
 
     fireEvent.click(checkbox);
     expect(useAgentStore.getState().proposal?.items[0].selected).toBe(false);
   });
+
+  it("triggers quick agent shortcuts on click", () => {
+    useAgentStore.setState({
+      open: true,
+      status: "idle",
+      agentType: "custom",
+    });
+
+    render(wrap(<AgentDrawer />));
+
+    const dailyBtn = screen.getByTestId("quick-agent-daily-briefing");
+    const followupBtn = screen.getByTestId("quick-agent-followup");
+    const triageBtn = screen.getByTestId("quick-agent-triage");
+
+    expect(dailyBtn).toBeInTheDocument();
+    expect(followupBtn).toBeInTheDocument();
+    expect(triageBtn).toBeInTheDocument();
+
+    fireEvent.click(followupBtn);
+    expect(useAgentStore.getState().agentType).toBe("followup_sequence");
+
+    fireEvent.click(triageBtn);
+    expect(useAgentStore.getState().agentType).toBe("batch_triage");
+
+    fireEvent.click(dailyBtn);
+    expect(useAgentStore.getState().agentType).toBe("daily_briefing");
+  });
 });
+
