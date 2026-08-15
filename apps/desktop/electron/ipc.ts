@@ -74,6 +74,11 @@ import {
   taskTranslate,
 } from "./ai/tasks";
 import type { RewriteTone } from "./ai/prompts";
+import {
+  abortAgentWorkflow,
+  runAgentWorkflow,
+} from "./ai/agent/engine";
+import type { AgentRunParams, AgentStreamEvent } from "./ai/agent/types";
 
 export type AddAccountPayload = {
   email: string;
@@ -527,6 +532,32 @@ export async function registerIpc(): Promise<void> {
       },
     ) => taskTranslate(payload),
   );
+
+  // ── Agent Stream & Workflow ────────────────────────────────────
+  ipcMain.handle(
+    "agent:run",
+    async (
+      event,
+      params: AgentRunParams,
+    ) => {
+      return runAgentWorkflow({
+        ...params,
+        onEvent: (evt: AgentStreamEvent) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send("agent:stream-event", {
+              requestId: params.requestId,
+              ...evt,
+            });
+          }
+        },
+      });
+    },
+  );
+
+  ipcMain.handle("agent:abort", (_e, requestId: string) => {
+    return abortAgentWorkflow(requestId);
+  });
 }
+
 
 

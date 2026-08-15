@@ -129,6 +129,11 @@ type Api = {
     mode?: AiModeDto;
     requestId?: string;
   }) => Promise<AiTaskResult>;
+  agentRun: (
+    params: AgentRunParams,
+    onEvent?: (evt: AgentStreamEvent) => void,
+  ) => Promise<AgentProposalData>;
+  agentAbort: (requestId: string) => Promise<boolean>;
 };
 
 export type AiModeDto = "cloud" | "local";
@@ -515,6 +520,149 @@ export async function aiTranslate(payload: {
   const api = getApi();
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
   return api.aiTranslate(payload);
+}
+
+// ── Agent Stream & Workflow Foundation ──────────────────────────
+
+export type AgentType =
+  | "daily_briefing"
+  | "meeting_extractor"
+  | "batch_triage"
+  | "followup_sequence"
+  | "custom";
+
+export type AgentStatus =
+  | "idle"
+  | "planning"
+  | "executing_tools"
+  | "review_pending"
+  | "completed"
+  | "cancelled"
+  | "error";
+
+export type AgentStepEvent = {
+  type: "step";
+  stepIndex: number;
+  totalSteps: number;
+  message: string;
+};
+
+export type AgentTokenEvent = {
+  type: "token";
+  textChunk: string;
+};
+
+export type AgentProposalCalendarItem = {
+  id: string;
+  kind: "calendar_event";
+  title: string;
+  startTime: string;
+  endTime?: string;
+  location?: string;
+  attendees?: string[];
+  icsContent?: string;
+  selected: boolean;
+};
+
+export type AgentProposalDraftItem = {
+  id: string;
+  kind: "draft_reply";
+  targetTo: string;
+  subject: string;
+  body: string;
+  selected: boolean;
+};
+
+export type AgentProposalSplitItem = {
+  id: string;
+  kind: "split_change";
+  messageId: string;
+  subject: string;
+  targetSplit: "important" | "other";
+  reason: string;
+  selected: boolean;
+};
+
+export type AgentProposalItem =
+  | AgentProposalCalendarItem
+  | AgentProposalDraftItem
+  | AgentProposalSplitItem;
+
+export type AgentProposalData = {
+  title: string;
+  summary: string;
+  items: AgentProposalItem[];
+  rawResult?: string;
+};
+
+export type AgentStreamEvent =
+  | AgentStepEvent
+  | AgentTokenEvent
+  | { type: "proposal"; data: AgentProposalData }
+  | { type: "done"; summary: string }
+  | { type: "error"; code: string; message: string };
+
+export type AgentRunParams = {
+  agentType: AgentType;
+  prompt?: string;
+  context?: Record<string, unknown>;
+  requestId?: string;
+};
+
+export async function agentRun(
+  params: AgentRunParams,
+  onEvent?: (evt: AgentStreamEvent) => void,
+): Promise<AgentProposalData> {
+  const api = getApi();
+  if (!api?.agentRun) {
+    // Browser fallback / mock simulation
+    onEvent?.({
+      type: "step",
+      stepIndex: 1,
+      totalSteps: 3,
+      message: "正在规划 Agent 工作流...",
+    });
+    onEvent?.({
+      type: "step",
+      stepIndex: 2,
+      totalSteps: 3,
+      message: "正在提取并分析上下文...",
+    });
+    onEvent?.({
+      type: "token",
+      textChunk: "正在分析邮件上下文并生成操作提议...\n",
+    });
+    const fallbackProposal: AgentProposalData = {
+      title: "Agent 工作流提议 (测试/演示模式)",
+      summary: "已基于当前邮件上下文生成 1 项建议草稿与日程提议。",
+      items: [
+        {
+          id: "demo_draft_1",
+          kind: "draft_reply",
+          targetTo: typeof params.context?.from === "string" ? params.context.from : "contact@example.com",
+          subject: typeof params.context?.subject === "string" ? `Re: ${params.context.subject}` : "关于跟进事项的回复",
+          body: "您好，\n\n已收到相关信息并已审阅，我们将尽快按计划推进。\n\n顺祝商祺！",
+          selected: true,
+        },
+      ],
+    };
+    onEvent?.({
+      type: "step",
+      stepIndex: 3,
+      totalSteps: 3,
+      message: "生成待审阅提议完成",
+    });
+    onEvent?.({ type: "proposal", data: fallbackProposal });
+    onEvent?.({ type: "done", summary: fallbackProposal.summary });
+    return fallbackProposal;
+  }
+  return api.agentRun(params, onEvent);
+}
+
+export async function agentAbort(requestId: string): Promise<boolean> {
+  const api = getApi();
+  if (!api?.agentAbort) return true;
+  return api.agentAbort(requestId);
 }
 
 

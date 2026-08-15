@@ -3,7 +3,7 @@
 > **状态**：2026-03 产品讨论 + grill-me 冻结  
 > **分支**：`feat/ai`  
 > **定位**：副驾（建议 + 可编辑草稿），不是代发秘书  
-> **相关**：[`PRODUCT.md`](./PRODUCT.md) · [`IMPLEMENTATION.md`](./IMPLEMENTATION.md) 阶段 5 · [`AGENTS.md`](../AGENTS.md)
+> **相关**：[`PRODUCT.md`](./PRODUCT.md) · [`IMPLEMENTATION.md`](./IMPLEMENTATION.md) 阶段 5 · [`ARCHITECTURE.md`](./ARCHITECTURE.md) · [`AGENT_WORKFLOW.md`](./AGENT_WORKFLOW.md) · [`AGENTS.md`](../AGENTS.md)
 
 代理与贡献者：**改 AI 前先读本文件**。变更冻结决策需显式改本文档，不可 silent 漂移。
 
@@ -98,18 +98,36 @@
 
 ## 4. Wave-3 TODO（更重 · 差异化）
 
+> **详细架构与流程规范**：参见 [`docs/AGENT_WORKFLOW.md`](./AGENT_WORKFLOW.md)（定义了 HITL 安全门、工具沙箱注册表、两层流式协议与四大基准工作流）。
+
 | ID | 任务 | 说明 | 状态 |
 |----|------|------|------|
 | W3-01 | 学用户语气 | 从已发送采样（优先本机）；可选、可关 | [ ] |
 | W3-02 | 承诺追踪 | 「周五给你」→ 本地提醒，不自动发跟进 | [ ] |
 | W3-03 | 附件理解 | PDF/图 OCR 摘要；默认关，显式选附件 | [ ] |
-| W3-04 | 会议 → 日历草稿 | 抽时间地点 → ICS，人确认 | [ ] |
+| W3-04 | 会议 → 日历草稿 | 抽时间地点 → ICS，冲突排查，人确认（执行步骤详见下文） | [ ] |
 | W3-05 | 每日简报 | 今早必处理 vs 可忽略 | [ ] |
-| W3-06 | 可确认 Agent | 批量归档/标签：**清单预览 → 确认执行** | [ ] |
+| W3-06 | 可确认 Agent | 批量分箱/归档：**清单预览 → 逐项/全选确认执行**（执行步骤详见下文） | [ ] |
 | W3-07 | 跟进草稿序列 | N 天未回 → 生成 follow-up 草稿，不自动发 | [ ] |
 | W3-08 | 联系人卡片 | 最近话题 / 未结事项（本地索引） | [ ] |
 | W3-09 | 流式输出 | Capsule/Composer token 流（可选） | [ ] |
 | W3-10 | 官方 ai-proxy | 仅当产品要「开箱 Key」时再做 | [ ] |
+
+### Wave-3 重点任务执行步骤细化
+
+#### W3-04：会议提取 → 日历草稿 ICS（Meeting-to-Calendar）
+- **步骤 1（上下文抓取）**：调用只读工具 [`get_thread_context`](./AGENT_WORKFLOW.md#31-只读工具定义-read-only-tools)，清洗邮件会话文本与发件人元数据。
+- **步骤 2（要素提取与 ICS 生成）**：LLM 提取会议主题、标准 ISO 8601 起止时间（含本地时区换算）、地点/在线会议链接（腾讯会议/Zoom/Teams 等），并构造符合 RFC 5545 规范的 `.ics` 字符串。
+- **步骤 3（冲突检测）**：调用 [`check_calendar_conflicts`](./AGENT_WORKFLOW.md#31-只读工具定义-read-only-tools) 对比已有日程，如冲突则输出备选建议时段。
+- **步骤 4（提案封装与 HITL 审查）**：生成 [`CalendarEventProposal`](./AGENT_WORKFLOW.md#32-变更提议工具定义-mutation-proposals)，在前端呈现可编辑卡片（时间微调、地点修改）。
+- **步骤 5（受控落地）**：用户显式点击「导入系统日历」或「保存 ICS 文件」，主进程通过受控 API 写入文件并调用系统日历打开。
+
+#### W3-06：可确认智能分拣 Agent（Confirmable Agent Triage）
+- **步骤 1（范围检索）**：调用 [`search_messages`](./AGENT_WORKFLOW.md#31-只读工具定义-read-only-tools) 抓取目标文件夹（如收件箱）指定时间段内的邮件。
+- **步骤 2（意图分析与分类评分）**：批量调用分类与 [`extract_action_items`](./AGENT_WORKFLOW.md#31-只读工具定义-read-only-tools)，计算风险等级（高风险：含未决待办；低风险：通知/广告/CI 告警）。
+- **步骤 3（生成变更提案清单）**：输出 [`BatchArchiveProposal`](./AGENT_WORKFLOW.md#32-变更提议工具定义-mutation-proposals) 及 [`SplitChangeProposal`](./AGENT_WORKFLOW.md#32-变更提议工具定义-mutation-proposals)。
+- **步骤 4（UI 审查与逐项控制）**：在 [`AgentDrawer`](./AGENT_WORKFLOW.md#6-mui-前端呈现与交互设计) 呈现结构化清单，提供全选、反选、单项移除与理由 Hover 展示。
+- **步骤 5（受控事务执行）**：用户点击「确认执行已选项」，主进程通过事务受控更新本地 SQLite 并增量触发 IMAP 同步，执行完毕返回审计报告。
 
 ---
 

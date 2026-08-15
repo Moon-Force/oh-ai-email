@@ -25,6 +25,7 @@ Remote: `https://github.com/Moon-Force/oh-ai-email` · default branch `main`.
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layers, protocols, monorepo layout |
 | [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) | Phased task list & acceptance |
 | [`docs/AI_TODO.md`](docs/AI_TODO.md) | **AI 冻结决策 + 分波 TODO**（`feat/ai` 权威清单） |
+| [`docs/AGENT_WORKFLOW.md`](docs/AGENT_WORKFLOW.md) | **Agent 流与工作流规范**（HITL 门、工具沙箱、双层流） |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | MUI UI rules, layout, copy |
 | [`apps/desktop/src/theme/createAppTheme.ts`](apps/desktop/src/theme/createAppTheme.ts) | Theme source of truth |
 

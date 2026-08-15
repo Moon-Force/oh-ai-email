@@ -32,6 +32,9 @@ import { useAiSettings } from "./features/ai/settingsStore";
 import { usePrefsStore } from "./features/settings/prefsStore";
 import AppThemeProvider from "./theme/AppThemeProvider";
 import SyncIcon from "@mui/icons-material/Sync";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AgentDrawer from "./features/ai/AgentDrawer";
+import { useAgentStore } from "./features/ai/agentStore";
 
 export default function App() {
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -55,6 +58,7 @@ export default function App() {
   const hydrateAi = useAiSettings((s) => s.hydrate);
   const hydratePrefs = usePrefsStore((s) => s.hydrate);
   const syncIntervalMin = usePrefsStore((s) => s.syncIntervalMin);
+  const openAgentDrawer = useAgentStore((s) => s.openDrawer);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", mode);
@@ -110,6 +114,7 @@ export default function App() {
         }}
       >
         <AppToast />
+        <AgentDrawer />
         <Sidebar />
 
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
@@ -171,6 +176,15 @@ export default function App() {
                     }
                   />
                 </IconButton>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<AutoAwesomeIcon />}
+                  aria-label="打开智能工作流"
+                  onClick={() => openAgentDrawer()}
+                >
+                  AI Agent
+                </Button>
                 <Button
                   variant="contained"
                   startIcon={<EditIcon />}
