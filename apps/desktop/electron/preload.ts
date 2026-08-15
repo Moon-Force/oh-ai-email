@@ -219,6 +219,7 @@ const api = {
     subject?: string;
     from?: string;
     body: string;
+    userPersona?: string;
     mode?: "cloud" | "local";
     requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:draftReply", payload),
@@ -243,7 +244,8 @@ const api = {
 
   aiRewrite: (payload: {
     text: string;
-    tone: "shorter" | "formal" | "expand";
+    tone: "shorter" | "formal" | "expand" | "persona";
+    userPersona?: string;
     mode?: "cloud" | "local";
     requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:rewrite", payload),
@@ -277,6 +279,32 @@ const api = {
     mode?: "cloud" | "local";
     requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:translate", payload),
+
+  aiLearnUserTone: (payload: {
+    accountId?: string;
+    mode?: "cloud" | "local";
+    requestId?: string;
+  }): Promise<AiUserPersonaResult> => ipcRenderer.invoke("ai:learnUserTone", payload),
+
+  aiAnalyzeAttachment: (payload: {
+    filename: string;
+    contentType?: string;
+    textContent?: string;
+    base64Data?: string;
+    mode?: "cloud" | "local";
+    requestId?: string;
+  }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:analyzeAttachment", payload),
+
+  onMailEvent: (
+    channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose",
+    callback: (data: unknown) => void,
+  ): (() => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    ipcRenderer.on(channel, listener);
+    return () => {
+      ipcRenderer.removeListener(channel, listener);
+    };
+  },
 
   agentRun: (
     params: AgentRunParams,
@@ -429,6 +457,17 @@ type AiSuggestSplitResult =
     }
   | { ok: false; code: string; error: string };
 
+export type AiUserPersonaResult =
+  | {
+      ok: true;
+      personaSummary: string;
+      toneStyle: string;
+      greetingHabit: string;
+      signoffHabit: string;
+      keyTraits: string[];
+      mode: "cloud" | "local";
+    }
+  | { ok: false; code: string; error: string };
 
 contextBridge.exposeInMainWorld("api", api);
 

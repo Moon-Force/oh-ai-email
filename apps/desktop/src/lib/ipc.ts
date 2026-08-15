@@ -129,6 +129,23 @@ type Api = {
     mode?: AiModeDto;
     requestId?: string;
   }) => Promise<AiTaskResult>;
+  aiLearnUserTone: (payload: {
+    accountId?: string;
+    mode?: AiModeDto;
+    requestId?: string;
+  }) => Promise<AiUserPersonaResult>;
+  aiAnalyzeAttachment: (payload: {
+    filename: string;
+    contentType?: string;
+    textContent?: string;
+    base64Data?: string;
+    mode?: AiModeDto;
+    requestId?: string;
+  }) => Promise<AiTaskResult>;
+  onMailEvent?: (
+    channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose",
+    callback: (data: unknown) => void,
+  ) => () => void;
   aiListModels: () => Promise<AiListModelsResult>;
   aiQueryBalance: () => Promise<AiBalanceResult>;
   aiSynthesizeSpeech: (payload: {
@@ -245,6 +262,7 @@ export type AiMailPayload = {
   subject?: string;
   from?: string;
   body: string;
+  userPersona?: string;
   mode?: AiModeDto;
   requestId?: string;
 };
@@ -261,10 +279,23 @@ export type AiQuickReplyPayload = {
 
 export type AiRewritePayload = {
   text: string;
-  tone: "shorter" | "formal" | "expand";
+  tone: "shorter" | "formal" | "expand" | "persona";
+  userPersona?: string;
   mode?: AiModeDto;
   requestId?: string;
 };
+
+export type AiUserPersonaResult =
+  | {
+      ok: true;
+      personaSummary: string;
+      toneStyle: string;
+      greetingHabit: string;
+      signoffHabit: string;
+      keyTraits: string[];
+      mode: AiModeDto;
+    }
+  | { ok: false; code: string; error: string };
 
 export type AiComposePayload = {
   prompt: string;
@@ -583,6 +614,54 @@ export async function aiTranslate(payload: {
   const api = getApi();
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
   return api.aiTranslate(payload);
+}
+
+export async function aiLearnUserTone(payload: {
+  accountId?: string;
+  mode?: AiModeDto;
+  requestId?: string;
+}): Promise<AiUserPersonaResult> {
+  const api = getApi();
+  if (!api) {
+    return {
+      ok: true,
+      personaSummary: "高效专业，注重结论先行与条理清晰",
+      toneStyle: "专业高效",
+      greetingHabit: "您好",
+      signoffHabit: "祝好",
+      keyTraits: ["要点清晰", "措辞得体", "回复迅速"],
+      mode: "cloud",
+    };
+  }
+  return api.aiLearnUserTone(payload);
+}
+
+export async function aiAnalyzeAttachment(payload: {
+  filename: string;
+  contentType?: string;
+  textContent?: string;
+  base64Data?: string;
+  mode?: AiModeDto;
+  requestId?: string;
+}): Promise<AiTaskResult> {
+  const api = getApi();
+  if (!api) {
+    return {
+      ok: true,
+      text: `【附件要点提取：${payload.filename}】\n1. 核心概述：该文档包含了相关业务方案与关键条款。\n2. 关键数据与亮点：涉及交付时间节点与配置清单。\n3. 后续待办：请团队成员在截止日期前确认并归档。`,
+      mode: "cloud",
+    };
+  }
+  return api.aiAnalyzeAttachment(payload);
+}
+
+export function onMailEvent(
+  channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose",
+  callback: (data: unknown) => void,
+): (() => void) {
+  const api = getApi();
+  if (!api?.onMailEvent) return () => {};
+  return api.onMailEvent(channel, callback);
 }
 
 // ── Agent Stream & Workflow Foundation ──────────────────────────

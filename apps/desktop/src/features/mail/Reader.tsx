@@ -4,11 +4,17 @@ import {
   Box,
   Button,
   Chip,
-  Stack,
-  Typography,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
+  IconButton,
   Paper,
+  Stack,
   Tooltip,
+  Typography,
   useTheme,
 } from "@mui/material";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -18,9 +24,12 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import DownloadIcon from "@mui/icons-material/Download";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useMailStore, ambientFromSender } from "./store";
 import { useToastStore } from "../shell/toastStore";
 import LumenCapsule from "../ai/LumenCapsule";
+import { TypewriterText } from "../ai/TypewriterText";
+import { analyzeAttachment } from "../ai/router";
 import PaneTransition from "../shell/PaneTransition";
 import { mailOpenAttachment, mailSaveAttachment } from "../../lib/ipc";
 import type { MailAttachment } from "./types";
@@ -268,6 +277,9 @@ function formatBytes(n: number): string {
 function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
   const showToast = useToastStore((s) => s.showToast);
   const [busy, setBusy] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   async function save() {
     setBusy(true);
@@ -293,22 +305,86 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
     }
   }
 
+  async function analyze() {
+    setAnalyzing(true);
+    try {
+      const res = await analyzeAttachment({
+        filename: attachment.filename,
+        contentType: attachment.contentType,
+      });
+      setAnalysisResult(res);
+      setDialogOpen(true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "附件分析失败", "error");
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   return (
-    <Chip
-      icon={<AttachFileIcon />}
-      label={`${attachment.filename} (${formatBytes(attachment.size)})`}
-      variant="outlined"
-      disabled={busy}
-      onClick={() => void open()}
-      onDelete={() => void save()}
-      deleteIcon={
-        <Tooltip title="另存为…">
-          <DownloadIcon />
-        </Tooltip>
-      }
-      sx={{ maxWidth: "100%" }}
-      title="单击打开，右侧下载另存为"
-    />
+    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+      <Chip
+        icon={<AttachFileIcon />}
+        label={`${attachment.filename} (${formatBytes(attachment.size)})`}
+        variant="outlined"
+        disabled={busy || analyzing}
+        onClick={() => void open()}
+        onDelete={() => void save()}
+        deleteIcon={
+          <Tooltip title="另存为…">
+            <DownloadIcon />
+          </Tooltip>
+        }
+        sx={{ maxWidth: "100%" }}
+        title="单击打开，右侧下载另存为"
+      />
+      <Tooltip title="AI 提取附件要点">
+        <IconButton
+          size="small"
+          color="primary"
+          disabled={analyzing}
+          onClick={() => void analyze()}
+          aria-label="AI 提炼附件"
+          sx={{ p: 0.5 }}
+        >
+          {analyzing ? <CircularProgress size={16} /> : <AutoAwesomeIcon fontSize="small" />}
+        </IconButton>
+      </Tooltip>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <AutoAwesomeIcon color="primary" fontSize="small" />
+          附件智能提炼 · {attachment.filename}
+        </DialogTitle>
+        <DialogContent dividers>
+          <TypewriterText
+            variant="body2"
+            sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+            text={analysisResult || ""}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              if (analysisResult) {
+                void navigator.clipboard.writeText(analysisResult);
+                showToast("已复制提炼要点", "success", 2000);
+              }
+            }}
+          >
+            复制要点
+          </Button>
+          <Button variant="contained" onClick={() => setDialogOpen(false)}>
+            关闭
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Stack>
   );
 }
 

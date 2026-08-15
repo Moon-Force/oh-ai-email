@@ -2,8 +2,12 @@ import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerIpc } from "./ipc";
+import { destroyTray, initTray } from "./tray";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+let mainWindow: BrowserWindow | null = null;
+(app as unknown as { isQuitting: boolean }).isQuitting = false;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -22,13 +26,31 @@ function createWindow() {
     show: false,
   });
 
+  mainWindow = win;
+
   win.once("ready-to-show", () => win.show());
+
+  win.on("close", (event) => {
+    if (!(app as unknown as { isQuitting: boolean }).isQuitting) {
+      event.preventDefault();
+      win.hide();
+    }
+  });
 
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
+
+  initTray(win, {
+    onSyncNow: () => {
+      win.webContents.send("mail:trigger-sync");
+    },
+    onOpenCompose: () => {
+      win.webContents.send("mail:open-compose");
+    },
+  });
 }
 
 app.whenReady().then(async () => {
@@ -40,12 +62,23 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
+app.on("before-quit", () => {
+  (app as unknown as { isQuitting: boolean }).isQuitting = true;
+  destroyTray();
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  } else if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
 });
 
 if (process.platform === "win32") app.setAppUserModelId("com.oh-ai-email.desktop");
+

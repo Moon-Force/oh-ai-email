@@ -49,6 +49,7 @@ import { useAiSettings } from "./settingsStore";
 import { useMailStore } from "../mail/store";
 import { useToastStore } from "../shell/toastStore";
 import { speakText, stopSpeaking } from "../voice/voiceService";
+import { TypewriterText } from "./TypewriterText";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
 type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation" | "commitments";
@@ -401,7 +402,7 @@ export default function LumenCapsule({
     }
   }
 
-  async function runTone(tone: "shorter" | "formal" | "expand") {
+  async function runTone(tone: "shorter" | "formal" | "expand" | "persona") {
     const reqId = createAiRequestId();
     activeReqIdRef.current = reqId;
     setError(null);
@@ -1224,9 +1225,7 @@ export default function LumenCapsule({
                   </Collapse>
                 </Paper>
               )}
-              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                {text}
-              </Typography>
+              <TypewriterText variant="body2" sx={{ whiteSpace: "pre-wrap" }} text={text} />
             </Box>
           )}
 
@@ -1246,6 +1245,9 @@ export default function LumenCapsule({
                 </Button>
                 <Button size="small" variant="outlined" onClick={() => void runTone("expand")}>
                   扩写
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => void runTone("persona")}>
+                  ✦ 以我的风格
                 </Button>
               </>
             )}

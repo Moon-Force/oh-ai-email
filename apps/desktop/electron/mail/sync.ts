@@ -28,6 +28,7 @@ import {
   type FetchedAttachment,
 } from "./imap";
 import type { AccountRecord, AttachmentMeta, FolderRecord, MessageRecord, SyncResult } from "./types";
+import { showMailNotification } from "../notifications";
 
 export function storeFetchedAttachments(messageId: string, fetched: FetchedAttachment[]) {
   // Wipe old files first, then write new ones — never delete after write.
@@ -201,7 +202,22 @@ export async function syncAccount(accountId: string, limitPerFolder = 40): Promi
               split: existing?.split ?? classifySplit(m.from, m.subject),
               html: m.html,
             };
+            const isNewUnread = !existing && m.unread && rf.role === "inbox";
             upsertMessage(rec);
+            if (isNewUnread) {
+              try {
+                showMailNotification({
+                  messageId: mid,
+                  accountId,
+                  from: m.from,
+                  fromName: m.fromName,
+                  subject: m.subject,
+                  snippet: m.snippet,
+                });
+              } catch (notifErr) {
+                console.warn("[sync] notification error", notifErr);
+              }
+            }
             try {
               storeFetchedAttachments(mid, m.attachments ?? []);
             } catch (attErr) {

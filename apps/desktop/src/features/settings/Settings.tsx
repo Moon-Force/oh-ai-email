@@ -30,6 +30,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ClearIcon from "@mui/icons-material/Clear";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useAiSettings } from "../ai/settingsStore";
 import { useAiAuditStore } from "../ai/auditStore";
 import { SYNC_INTERVAL_OPTIONS, usePrefsStore } from "./prefsStore";
@@ -72,6 +73,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     hasCloudApiKey,
     cloudPrivacyAck,
     setCloudPrivacyAck,
+    userPersona,
+    userPersonaTraits,
+    setUserPersona,
+    learningTone,
+    learnUserTone,
     hydrate,
     save,
   } = useAiSettings();
@@ -551,6 +557,53 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               }
               label="探测到 Ollama 时提示优先本机（不自动跨模式回退请求）"
             />
+
+            {/* Tone Persona Section */}
+            <Divider sx={{ my: 1 }} />
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  <AutoAwesomeIcon color="primary" fontSize="small" />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    专属写作语气画像
+                  </Typography>
+                </Stack>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={learningTone}
+                  onClick={async () => {
+                    const res = await learnUserTone();
+                    if (!res.ok && res.error) {
+                      setProbeMsg(res.error);
+                    } else if (res.ok) {
+                      showToast("已成功从发件箱提炼您的专属语气风格！", "success", 3000);
+                    }
+                  }}
+                  startIcon={learningTone ? <CircularProgress size={14} /> : <AutoAwesomeIcon />}
+                >
+                  {learningTone ? "正在分析发件箱…" : "从发件箱一键学习"}
+                </Button>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                基于您在本地发件箱（Sent）中的真实邮件采样，提炼个性化写作习惯。在写信或回复时，可一键选择「以我的风格」自动生成贴合您习惯的拟人化草稿。
+              </Typography>
+              <TextField
+                label="个性化语气画像描述"
+                size="small"
+                fullWidth
+                multiline
+                rows={2}
+                value={userPersona}
+                onChange={(e) => setUserPersona(e.target.value)}
+                placeholder="例如：语言干练高效，语气诚恳专业，习惯先给出明确结论并分条阐述要点，结尾使用祝好。"
+                helperText={
+                  userPersonaTraits.length > 0
+                    ? `已识别特征：${userPersonaTraits.join(" · ")}`
+                    : "可直接手动修改或点击上方按钮智能从发件箱提炼"
+                }
+              />
+            </Paper>
 
             {probeMsg && (
               <Alert severity={probeMsg.includes("失败") || probeMsg.includes("无法") ? "warning" : "success"}>

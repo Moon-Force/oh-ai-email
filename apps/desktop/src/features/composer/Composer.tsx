@@ -186,7 +186,7 @@ export default function Composer({
     }
   }
 
-  async function runPolish(tone: "shorter" | "formal" | "expand") {
+  async function runPolish(tone: "shorter" | "formal" | "expand" | "persona") {
     setToneMenuEl(null);
     const src = plain.trim() || stripHtmlQuick(html);
     if (!src) {
@@ -507,6 +507,7 @@ export default function Composer({
             <MenuItem onClick={() => void runPolish("shorter")}>更短一点</MenuItem>
             <MenuItem onClick={() => void runPolish("formal")}>更正式</MenuItem>
             <MenuItem onClick={() => void runPolish("expand")}>扩写</MenuItem>
+            <MenuItem onClick={() => void runPolish("persona")}>✦ 以我的风格润色</MenuItem>
             <Divider />
             <MenuItem onClick={() => void runTranslateDraft("zh")}>翻译为中文</MenuItem>
             <MenuItem onClick={() => void runTranslateDraft("en")}>翻译为英文 (English)</MenuItem>

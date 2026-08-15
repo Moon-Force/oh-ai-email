@@ -9,6 +9,7 @@ import {
   listAccounts,
   listAllMessages,
   listFolders,
+  listMessages,
   persist,
   recomputeFolderUnread,
   setMessageSplit,
@@ -70,9 +71,11 @@ import {
 } from "./ai/settings";
 import {
   abortAiRequest,
+  taskAnalyzeAttachment,
   taskCompose,
   taskDraftReply,
   taskExtractActionItems,
+  taskLearnUserTone,
   taskQuickReply,
   taskRewrite,
   taskSuggestSplit,
@@ -444,6 +447,7 @@ export async function registerIpc(): Promise<void> {
         subject?: string;
         from?: string;
         body: string;
+        userPersona?: string;
         mode?: AiMode;
         requestId?: string;
       },
@@ -487,6 +491,7 @@ export async function registerIpc(): Promise<void> {
       payload: {
         text: string;
         tone: RewriteTone;
+        userPersona?: string;
         mode?: AiMode;
         requestId?: string;
       },
@@ -545,6 +550,60 @@ export async function registerIpc(): Promise<void> {
         requestId?: string;
       },
     ) => taskTranslate(payload),
+  );
+
+  ipcMain.handle(
+    "ai:learnUserTone",
+    async (
+      _e,
+      payload: {
+        accountId?: string;
+        mode?: AiMode;
+        requestId?: string;
+      },
+    ) => {
+      const accounts = listAccounts();
+      const targetAccId = payload.accountId || accounts[0]?.id;
+      let sentSamples: string[] = [];
+      if (targetAccId) {
+        const folders = listFolders(targetAccId);
+        const sentFolder = folders.find((f) => f.role === "sent");
+        if (sentFolder) {
+          const messages = listMessages(targetAccId, sentFolder.id);
+          sentSamples = messages
+            .slice(0, 15)
+            .map((m) => m.snippet || m.subject || "")
+            .filter((s) => s.length > 10);
+        }
+        if (sentSamples.length === 0) {
+          const allMessages = listAllMessages(targetAccId);
+          sentSamples = allMessages
+            .slice(0, 10)
+            .map((m) => m.snippet || m.subject || "")
+            .filter((s) => s.length > 10);
+        }
+      }
+      return taskLearnUserTone({
+        sentSamples,
+        mode: payload.mode,
+        requestId: payload.requestId,
+      });
+    },
+  );
+
+  ipcMain.handle(
+    "ai:analyzeAttachment",
+    async (
+      _e,
+      payload: {
+        filename: string;
+        contentType?: string;
+        textContent?: string;
+        base64Data?: string;
+        mode?: AiMode;
+        requestId?: string;
+      },
+    ) => taskAnalyzeAttachment(payload),
   );
 
   // ── Agent Stream & Workflow ────────────────────────────────────

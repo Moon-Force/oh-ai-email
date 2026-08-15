@@ -3,8 +3,10 @@ import { abortAiRequest, chatComplete, type AiErrorCode, type AiResult } from ".
 import type { AiMode } from "./settings";
 import {
   systemForActionItems,
+  systemForAttachmentAnalysis,
   systemForCompose,
   systemForDraftReply,
+  systemForLearnUserTone,
   systemForQuickReply,
   systemForRewrite,
   systemForSuggestSplit,
@@ -73,13 +75,14 @@ export async function taskDraftReply(input: {
   subject?: string;
   from?: string;
   body: string;
+  userPersona?: string;
   mode?: AiMode;
   requestId?: string;
 }): Promise<AiResult> {
   const ctx = buildMailContext(input);
   return chatComplete(
     [
-      { role: "system", content: systemForDraftReply() },
+      { role: "system", content: systemForDraftReply(input.userPersona) },
       { role: "user", content: `Write a reply to this email:\n\n${ctx}` },
     ],
     { mode: input.mode, requestId: input.requestId },
@@ -172,6 +175,7 @@ export async function taskExtractActionItems(input: {
 export async function taskRewrite(input: {
   text: string;
   tone: RewriteTone;
+  userPersona?: string;
   mode?: AiMode;
   requestId?: string;
 }): Promise<AiResult> {
@@ -181,7 +185,7 @@ export async function taskRewrite(input: {
   }
   return chatComplete(
     [
-      { role: "system", content: systemForRewrite(input.tone) },
+      { role: "system", content: systemForRewrite(input.tone, input.userPersona) },
       { role: "user", content: cleaned },
     ],
     { mode: input.mode, requestId: input.requestId },
@@ -373,6 +377,104 @@ export async function taskTranslate(input: {
     { mode: input.mode, requestId: input.requestId },
   );
 }
+
+export type UserPersonaResult =
+  | {
+      ok: true;
+      personaSummary: string;
+      toneStyle: string;
+      greetingHabit: string;
+      signoffHabit: string;
+      keyTraits: string[];
+      mode: AiMode;
+    }
+  | { ok: false; code: AiErrorCode; error: string };
+
+export async function taskLearnUserTone(input: {
+  sentSamples: string[];
+  mode?: AiMode;
+  requestId?: string;
+}): Promise<UserPersonaResult> {
+  if (!input.sentSamples || input.sentSamples.length === 0) {
+    return { ok: false, code: "EMPTY", error: "发件箱中暂无足够的历史已发邮件供学习" };
+  }
+  const samplesText = input.sentSamples
+    .slice(0, 10)
+    .map((s, idx) => `--- 邮件样本 ${idx + 1} ---\n${cleanContext(s, 1000)}`)
+    .join("\n\n");
+
+  const result = await chatComplete(
+    [
+      { role: "system", content: systemForLearnUserTone() },
+      { role: "user", content: `这是我最近发送的部分邮件样本，请分析并提取我的写作习惯与风格画像：\n\n${samplesText}` },
+    ],
+    { mode: input.mode, requestId: input.requestId },
+  );
+
+  if (!result.ok) return result;
+
+  try {
+    let raw = result.text.trim();
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) raw = jsonMatch[0];
+    const parsed = JSON.parse(raw) as {
+      personaSummary?: string;
+      toneStyle?: string;
+      greetingHabit?: string;
+      signoffHabit?: string;
+      keyTraits?: string[];
+    };
+    return {
+      ok: true,
+      personaSummary: parsed.personaSummary || "高效专业，表达清晰简练",
+      toneStyle: parsed.toneStyle || "专业高效",
+      greetingHabit: parsed.greetingHabit || "你好",
+      signoffHabit: parsed.signoffHabit || "祝好",
+      keyTraits:
+        Array.isArray(parsed.keyTraits) && parsed.keyTraits.length > 0
+          ? parsed.keyTraits.map(String)
+          : ["表达精准", "重点清晰"],
+      mode: result.mode,
+    };
+  } catch {
+    return {
+      ok: true,
+      personaSummary: result.text.slice(0, 150) || "高效专业，表达清晰简练",
+      toneStyle: "专业高效",
+      greetingHabit: "你好",
+      signoffHabit: "祝好",
+      keyTraits: ["要点清晰", "措辞得体"],
+      mode: result.mode,
+    };
+  }
+}
+
+export async function taskAnalyzeAttachment(input: {
+  filename: string;
+  contentType?: string;
+  textContent?: string;
+  base64Data?: string;
+  mode?: AiMode;
+  requestId?: string;
+}): Promise<AiResult> {
+  const docName = input.filename || "附件文档";
+  const contentSnippet = cleanContext(
+    input.textContent ||
+      `[附件文件名: ${docName}, 类型: ${input.contentType || "未知"}]`,
+    6000,
+  );
+  return chatComplete(
+    [
+      { role: "system", content: systemForAttachmentAnalysis() },
+      { role: "user", content: `请分析附件《${docName}》的内容并提取要点：\n\n${contentSnippet}` },
+    ],
+    { mode: input.mode, requestId: input.requestId },
+  );
+}
+
 
 
 

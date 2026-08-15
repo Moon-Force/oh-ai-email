@@ -33,11 +33,16 @@ import { usePrefsStore } from "./features/settings/prefsStore";
 import AppThemeProvider from "./theme/AppThemeProvider";
 import SyncIcon from "@mui/icons-material/Sync";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import KeyboardIcon from "@mui/icons-material/Keyboard";
 import AgentDrawer from "./features/ai/AgentDrawer";
 import { useAgentStore } from "./features/ai/agentStore";
+import { useKeyboardShortcuts } from "./features/shell/useKeyboardShortcuts";
+import ShortcutsDialog from "./features/shell/ShortcutsDialog";
 
 export default function App() {
   const [mode, setMode] = useState<"light" | "dark">("light");
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const {
     view,
     setView,
@@ -59,6 +64,14 @@ export default function App() {
   const hydratePrefs = usePrefsStore((s) => s.hydrate);
   const syncIntervalMin = usePrefsStore((s) => s.syncIntervalMin);
   const openAgentDrawer = useAgentStore((s) => s.openDrawer);
+
+  useKeyboardShortcuts({
+    onToggleShortcuts: () => setShortcutsOpen((v) => !v),
+    onFocusSearch: () => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    },
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", mode);
@@ -136,9 +149,10 @@ export default function App() {
               </Typography>
               <TextField
                 size="small"
-                placeholder="搜索邮件…"
+                placeholder="搜索邮件… (/)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                inputRef={searchInputRef}
                 sx={{ flex: 1, maxWidth: 480 }}
                 slotProps={{
                   htmlInput: { "aria-label": "搜索邮件" },
@@ -192,6 +206,13 @@ export default function App() {
                 >
                   写新邮件
                 </Button>
+                <IconButton
+                  aria-label="快捷键指南"
+                  title="快捷键指南 (?)"
+                  onClick={() => setShortcutsOpen(true)}
+                >
+                  <KeyboardIcon />
+                </IconButton>
                 <IconButton
                   aria-label={mode === "light" ? "切换深色" : "切换浅色"}
                   onClick={() => setMode(mode === "light" ? "dark" : "light")}
@@ -295,6 +316,7 @@ export default function App() {
             </Paper>
           </Box>
         </Box>
+        <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       </Box>
     </AppThemeProvider>
   );

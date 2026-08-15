@@ -1,8 +1,10 @@
 import {
   aiAbort,
   aiActionItems,
+  aiAnalyzeAttachment,
   aiCompose,
   aiDraftReply,
+  aiLearnUserTone,
   aiQuickReply,
   aiRewrite,
   aiSuggestSplit,
@@ -390,14 +392,42 @@ export async function suggestSplit(
 
 export async function rewriteTone(
   text: string,
-  tone: "shorter" | "formal" | "expand",
+  tone: "shorter" | "formal" | "expand" | "persona",
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+  userPersona?: string,
+): Promise<string> {
+  if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  const persona = userPersona || useAiSettings.getState().userPersona;
+  return runWithAudit(`rewrite:${tone}`, text.length, mode, async () => {
+    return unwrap(
+      await aiRewrite({ text, tone, userPersona: persona, mode, requestId: reqId }),
+    );
+  });
+}
+
+export async function analyzeAttachment(
+  payload: {
+    filename: string;
+    contentType?: string;
+    textContent?: string;
+    base64Data?: string;
+  },
   modeOrOpts?: AiMode | AiRunOptions,
   requestId?: string,
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  return runWithAudit(`rewrite:${tone}`, text.length, mode, async () => {
-    return unwrap(await aiRewrite({ text, tone, mode, requestId: reqId }));
+  const charCount = payload.textContent?.length ?? 100;
+  return runWithAudit(`analyzeAttachment:${payload.filename}`, charCount, mode, async () => {
+    return unwrap(
+      await aiAnalyzeAttachment({
+        ...payload,
+        mode,
+        requestId: reqId,
+      }),
+    );
   });
 }
 

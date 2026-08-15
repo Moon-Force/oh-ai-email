@@ -1,4 +1,4 @@
-export type RewriteTone = "shorter" | "formal" | "expand";
+export type RewriteTone = "shorter" | "formal" | "expand" | "persona";
 
 export type QuickReplyType = "ack" | "agree" | "defer" | "decline" | string;
 
@@ -19,9 +19,12 @@ Format:
 Keep it concise.`;
 }
 
-export function systemForDraftReply(): string {
+export function systemForDraftReply(userPersona?: string): string {
+  const personaInstruction = userPersona?.trim()
+    ? `\nPersonal Style Guide: Strictly emulate the user's personal communication style:\n"${userPersona.trim()}". Adopt their typical greeting, tone, conciseness, and signoff habits.`
+    : "";
   return `${SYSTEM_BASE}
-Task: Write a ready-to-edit reply draft from the recipient's perspective.
+Task: Write a ready-to-edit reply draft from the recipient's perspective.${personaInstruction}
 - Polite, clear, complete sentences.
 - Do not include subject line or headers.
 - Leave placeholders in [brackets] only when the user must fill a detail.`;
@@ -56,13 +59,17 @@ Intent: ${intentDesc}${extra}
 - Match the language of the source email.`;
 }
 
-export function systemForRewrite(tone: RewriteTone): string {
-  const goal =
-    tone === "shorter"
-      ? "Make the text shorter while keeping meaning."
-      : tone === "formal"
-        ? "Rewrite in a more formal, professional tone."
-        : "Expand slightly with clearer structure; do not invent new facts.";
+export function systemForRewrite(tone: RewriteTone, userPersona?: string): string {
+  let goal = "";
+  if (tone === "shorter") {
+    goal = "Make the text shorter while keeping meaning.";
+  } else if (tone === "formal") {
+    goal = "Rewrite in a more formal, professional tone.";
+  } else if (tone === "persona" && userPersona?.trim()) {
+    goal = `Rewrite the text to strictly match the user's personal tone and persona profile:\n"${userPersona.trim()}". Match their greeting, conciseness, phrasing, and signoff habits.`;
+  } else {
+    goal = "Expand slightly with clearer structure; do not invent new facts.";
+  }
   return `${SYSTEM_BASE}
 Task: Rewrite the given email text. ${goal}
 Return only the rewritten body.`;
@@ -141,5 +148,36 @@ Guidelines:
 - Preserve original formatting, bullet points, greetings, and sign-offs.
 - Output ONLY the translated text without any explanation, markdown fences, or conversational filler.`;
 }
+
+export function systemForLearnUserTone(): string {
+  return `You are an expert email writing style and persona analyst.
+Analyze the provided samples of emails previously sent by the user and extract their unique writing persona and habits.
+Respond ONLY with a JSON object matching this schema (no markdown fences, no other text):
+{
+  "personaSummary": string,
+  "toneStyle": string,
+  "greetingHabit": string,
+  "signoffHabit": string,
+  "keyTraits": string[]
+}
+
+Guidelines:
+- "personaSummary": A concise 1-2 sentence overview in the user's primary language describing their communication style (e.g. "语言干练高效，语气诚恳专业，注重结论先行与清晰分点").
+- "toneStyle": Concise 2-6 character label (e.g. "高效专业", "温和亲切", "极简利落").
+- "greetingHabit": Typical greeting used (e.g. "你好", "Hi [姓名]", "各位好").
+- "signoffHabit": Typical signoff used (e.g. "祝好", "Best regards", "顺祝商祺").
+- "keyTraits": 3-4 concise bullet points describing specific phrasing, punctuation, or structure habits.`;
+}
+
+export function systemForAttachmentAnalysis(): string {
+  return `${SYSTEM_BASE}
+Task: Analyze the attached document / file content and extract critical intelligence for the reader.
+Format:
+1) Executive Summary (2-3 sentences overview of the document's core purpose and scope)
+2) Key Highlights & Critical Data (3-6 bullet points of important facts, numbers, dates, terms, or decisions)
+3) Action Items & Follow-ups (any explicit requirements or next steps, or "none")
+Keep it objective, structured, and easy to scan.`;
+}
+
 
 
