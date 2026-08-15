@@ -130,6 +130,14 @@ export async function listRemoteFolders(client: ImapFlow): Promise<RemoteFolder[
   return out;
 }
 
+export type FetchedAttachment = {
+  filename: string;
+  contentType: string;
+  size: number;
+  /** Raw bytes for local cache (omitted from IPC). */
+  content: Buffer;
+};
+
 export type FetchedMessage = {
   uid: number;
   from: string;
@@ -139,7 +147,29 @@ export type FetchedMessage = {
   dateMs: number;
   unread: boolean;
   html?: string;
+  attachments: FetchedAttachment[];
 };
+
+/** Skip tiny pure-inline images without a real name; keep real files. */
+const MAX_STORE_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+function safeAttachmentFilename(name: string | undefined, index: number, contentType: string): string {
+  const raw = (name || "").trim() || `attachment-${index + 1}`;
+  // eslint-disable-next-line no-control-regex
+  const cleaned = raw.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 180);
+  if (cleaned.includes(".")) return cleaned;
+  const ext =
+    contentType.includes("pdf")
+      ? ".pdf"
+      : contentType.includes("png")
+        ? ".png"
+        : contentType.includes("jpeg") || contentType.includes("jpg")
+          ? ".jpg"
+          : contentType.includes("zip")
+            ? ".zip"
+            : "";
+  return cleaned + ext;
+}
 
 function formatDateLabel(d: Date): string {
   const now = new Date();
@@ -173,6 +203,59 @@ function pickAddress(
   };
 }
 
+export function extractAttachmentsFromParsed(parsed: {
+  attachments?: {
+    filename?: string;
+    contentType?: string;
+    contentDisposition?: string | boolean;
+    related?: boolean;
+    content?: Buffer;
+  }[];
+}): FetchedAttachment[] {
+  const attachments: FetchedAttachment[] = [];
+  const parts = parsed.attachments ?? [];
+  parts.forEach((part, index) => {
+    const content = part.content;
+    if (!content || !Buffer.isBuffer(content) || content.length === 0) return;
+    if (content.length > MAX_STORE_ATTACHMENT_BYTES) return;
+    const contentType = part.contentType || "application/octet-stream";
+    const disposition = String(part.contentDisposition || "").toLowerCase();
+    const filename = safeAttachmentFilename(part.filename, index, contentType);
+    const isInline = disposition === "inline" || Boolean(part.related && !part.filename);
+    if (isInline && content.length < 8_192 && !part.filename) return;
+    attachments.push({
+      filename,
+      contentType,
+      size: content.length,
+      content,
+    });
+  });
+  return attachments;
+}
+
+/** Fetch a single message source by UID and parse attachments. */
+export async function fetchMessageAttachmentsByUid(
+  client: ImapFlow,
+  mailboxPath: string,
+  uid: number,
+): Promise<FetchedAttachment[]> {
+  const lock = await client.getMailboxLock(mailboxPath);
+  try {
+    for await (const msg of client.fetch(
+      String(uid),
+      { uid: true, source: true },
+      { uid: true },
+    )) {
+      if (!msg.source) return [];
+      const parsed = await simpleParser(msg.source);
+      return extractAttachmentsFromParsed(parsed);
+    }
+  } finally {
+    lock.release();
+  }
+  return [];
+}
+
 /** Fetch recent messages from a mailbox (UID order, last `limit`). */
 export async function fetchRecentMessages(
   client: ImapFlow,
@@ -203,6 +286,7 @@ export async function fetchRecentMessages(
 
       let html: string | undefined;
       let snippet = "";
+      const attachments: FetchedAttachment[] = [];
       if (msg.source) {
         try {
           const parsed = await simpleParser(msg.source);
@@ -212,6 +296,8 @@ export async function fetchRecentMessages(
               : parsed.textAsHtml || undefined;
           const text = parsed.text || (html ? html.replace(/<[^>]+>/g, " ") : "");
           snippet = text.replace(/\s+/g, " ").trim().slice(0, 160);
+
+          attachments.push(...extractAttachmentsFromParsed(parsed));
         } catch {
           snippet = subject;
         }
@@ -227,6 +313,7 @@ export async function fetchRecentMessages(
         dateMs: date.getTime(),
         unread,
         html,
+        attachments,
       });
     }
   } finally {

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Box,
@@ -16,17 +16,21 @@ import ArchiveIcon from "@mui/icons-material/Archive";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import DownloadIcon from "@mui/icons-material/Download";
 import { useMailStore, ambientFromSender } from "./store";
 import { useToastStore } from "../shell/toastStore";
 import LumenCapsule from "../ai/LumenCapsule";
 import PaneTransition from "../shell/PaneTransition";
+import { mailOpenAttachment, mailSaveAttachment } from "../../lib/ipc";
+import type { MailAttachment } from "./types";
 
 export default function Reader() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const messages = useMailStore((s) => s.messages);
   const selectedId = useMailStore((s) => s.selectedId);
-  const setComposeOpen = useMailStore((s) => s.setComposeOpen);
+  const openCompose = useMailStore((s) => s.openCompose);
   const setMessageSplit = useMailStore((s) => s.setMessageSplit);
   const showToast = useToastStore((s) => s.showToast);
   const msg = messages.find((m) => m.id === selectedId);
@@ -60,6 +64,7 @@ export default function Reader() {
 
   const initial = (msg.fromName || msg.from).charAt(0).toUpperCase();
   const bodyHtml = msg.html ?? `<p>${escapeHtml(msg.snippet)}</p>`;
+  const attachments = msg.attachments ?? [];
 
   return (
     <PaneTransition paneKey={msg.id} variant="reader">
@@ -128,7 +133,15 @@ export default function Reader() {
               size="small"
               variant="outlined"
               startIcon={<ReplyIcon />}
-              onClick={() => setComposeOpen(true)}
+              onClick={() =>
+                openCompose({
+                  to: msg.from,
+                  subject: msg.subject.toLowerCase().startsWith("re:")
+                    ? msg.subject
+                    : `Re: ${msg.subject}`,
+                  body: "",
+                })
+              }
             >
               回复
             </Button>
@@ -138,6 +151,22 @@ export default function Reader() {
           </Stack>
         </Stack>
         <Divider sx={{ flexShrink: 0 }} />
+
+        {attachments.length > 0 && (
+          <Box
+            data-testid="reader-attachments"
+            sx={{ px: 2, py: 1, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+              附件 · {attachments.length} 个
+            </Typography>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+              {attachments.map((a) => (
+                <AttachmentChip key={a.id} attachment={a} />
+              ))}
+            </Stack>
+          </Box>
+        )}
 
         {/* Mail body: fills remaining height */}
         <Box
@@ -193,11 +222,69 @@ export default function Reader() {
           }}
         >
           <Box sx={{ pointerEvents: "auto", maxWidth: "min(100%, 440px)" }}>
-            <LumenCapsule body={`${msg.subject}\n${msg.snippet}\n${stripHtml(msg.html ?? "")}`} />
+            <LumenCapsule
+              subject={msg.subject}
+              from={msg.from}
+              replyTo={msg.from}
+              body={`${msg.snippet}\n${stripHtml(msg.html ?? "")}`}
+            />
           </Box>
         </Box>
       </Box>
     </PaneTransition>
+  );
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
+  const showToast = useToastStore((s) => s.showToast);
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const r = await mailSaveAttachment(attachment.id);
+      if (!r.ok) {
+        if (r.error !== "已取消") showToast(`保存失败：${r.error}`, "error");
+        return;
+      }
+      showToast(`已保存：${r.path}`, "success", 4000);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function open() {
+    setBusy(true);
+    try {
+      const r = await mailOpenAttachment(attachment.id);
+      if (!r.ok) showToast(`打开失败：${r.error}`, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Chip
+      icon={<AttachFileIcon />}
+      label={`${attachment.filename} (${formatBytes(attachment.size)})`}
+      variant="outlined"
+      disabled={busy}
+      onClick={() => void open()}
+      onDelete={() => void save()}
+      deleteIcon={
+        <Tooltip title="另存为…">
+          <DownloadIcon />
+        </Tooltip>
+      }
+      sx={{ maxWidth: "100%" }}
+      title="单击打开，右侧下载另存为"
+    />
   );
 }
 

@@ -24,10 +24,34 @@ Remote: `https://github.com/Moon-Force/oh-ai-email` · default branch `main`.
 | [`docs/PRODUCT.md`](docs/PRODUCT.md) | Product constraints & MVP scope |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layers, protocols, monorepo layout |
 | [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) | Phased task list & acceptance |
+| [`docs/AI_TODO.md`](docs/AI_TODO.md) | **AI 冻结决策 + 分波 TODO**（`feat/ai` 权威清单） |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | MUI UI rules, layout, copy |
 | [`apps/desktop/src/theme/createAppTheme.ts`](apps/desktop/src/theme/createAppTheme.ts) | Theme source of truth |
 
 Implement against **docs + current code**. Historical mockups under `design/mvp/` are **not** the visual source of truth.
+
+## AI（已冻结 — 必读）
+
+权威细节见 [`docs/AI_TODO.md`](docs/AI_TODO.md)。代理改 AI 时**不得**擅自推翻下列决策：
+
+| 决策 | 锁定值 |
+|------|--------|
+| 密钥 | **用户自备** OpenAI 兼容 Key；一期不做官方 ai-proxy 持 Key |
+| Provider | **单一** OpenAI 兼容：`baseURL` + `apiKey` + `model` |
+| 本机 | **Ollama** 与云端同批可用；探测失败友好提示 |
+| 运行层 | **Electron 主进程** AI 路由 + IPC；Key → `safeStorage` |
+| 交互 | **显式点击**触发；**禁止自动发送**；结果 → 可编辑草稿 |
+| 读信 | Lumen Capsule：摘要 / 写回复 / 改语气 |
+| 写信 | 工具栏：根据提示生成 + 润色（更短/正式/扩写） |
+| 上下文 | 主题 + 纯文本正文，截断约 4k–8k；**附件默认不送模型** |
+| 流式 | 一期 **不做**；整段返回 + thinking 态 |
+| 语言 | 跟随来信语言；UI 中文 |
+| 失败 | 阻断并引导设置；**禁止** mock 装成功、禁止静默跨模式回退 |
+| 隐私 | 设置页常驻数据去向 + 首次云端轻确认 |
+| 超时 | 60s，不自动重试 |
+| 分箱 | AI 建议分箱 **非** wave-1；继续规则 + 手动 |
+
+**当前分支习惯**：AI 功能在 `feat/ai` 开发；合入 `main` 前对照 `docs/AI_TODO.md` 验收。
 
 ## Stack (locked)
 

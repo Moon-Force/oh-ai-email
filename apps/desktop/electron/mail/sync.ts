@@ -1,10 +1,16 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
+  attachmentsDir,
+  deleteAttachmentsForMessage,
   deleteMessage,
   getAccount,
+  getAttachment,
   getMessage,
   listFolders,
   persist,
   recomputeFolderUnread,
+  replaceAttachments,
   upsertFolder,
   upsertMessage,
 } from "../db";
@@ -12,14 +18,89 @@ import { loadSecret } from "../store";
 import {
   appendToMailbox,
   buildRawSentMessage,
+  fetchMessageAttachmentsByUid,
   fetchRecentMessages,
   formatDateLabel,
   listRemoteFolders,
   markUidSeen,
   passwordKey,
   withImapAccount,
+  type FetchedAttachment,
 } from "./imap";
-import type { AccountRecord, FolderRecord, MessageRecord, SyncResult } from "./types";
+import type { AccountRecord, AttachmentMeta, FolderRecord, MessageRecord, SyncResult } from "./types";
+
+export function storeFetchedAttachments(messageId: string, fetched: FetchedAttachment[]) {
+  // Wipe old files first, then write new ones — never delete after write.
+  deleteAttachmentsForMessage(messageId);
+  if (fetched.length === 0) {
+    persist();
+    return;
+  }
+  const dir = attachmentsDir(messageId);
+  fs.mkdirSync(dir, { recursive: true });
+  const metas: AttachmentMeta[] = fetched.map((a, i) => {
+    // eslint-disable-next-line no-control-regex
+    const safe = a.filename.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 160) || `file-${i}`;
+    const storagePath = path.join(dir, `${i}_${safe}`);
+    fs.writeFileSync(storagePath, a.content);
+    return {
+      id: `${messageId}:att:${i}`,
+      messageId,
+      filename: a.filename || safe,
+      contentType: a.contentType || "application/octet-stream",
+      size: a.size || a.content.length,
+      storagePath,
+    };
+  });
+  replaceAttachments(messageId, metas);
+  persist();
+}
+
+/** If cached file is gone (older buggy sync), re-fetch that message from IMAP. */
+export async function ensureAttachmentFile(
+  attachmentId: string,
+): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  const att = getAttachment(attachmentId);
+  if (!att) return { ok: false, error: "附件不存在或尚未同步" };
+  if (att.storagePath && fs.existsSync(att.storagePath)) {
+    return { ok: true, path: att.storagePath };
+  }
+
+  const msg = getMessage(att.messageId);
+  if (!msg) return { ok: false, error: "找不到对应邮件" };
+  if (msg.uid <= 0) return { ok: false, error: "本地草稿没有服务器附件，无法补拉" };
+
+  const account = getAccount(msg.accountId);
+  if (!account) return { ok: false, error: "账号不存在" };
+  const password = loadSecret(passwordKey(account.id));
+  if (!password) return { ok: false, error: "未找到保存的密码/授权码" };
+
+  const folders = listFolders(account.id);
+  const folder = folders.find((f) => f.id === msg.folderId);
+  if (!folder?.remotePath) return { ok: false, error: "找不到邮件所在文件夹" };
+
+  try {
+    const fetched = await withImapAccount(account, password, async (client) => {
+      return fetchMessageAttachmentsByUid(client, folder.remotePath, msg.uid);
+    });
+    if (fetched.length === 0) {
+      return { ok: false, error: "服务器上未解析到附件" };
+    }
+    storeFetchedAttachments(msg.id, fetched);
+    const list = getMessage(msg.id)?.attachments ?? [];
+    const match =
+      list.find((a) => a.id === attachmentId) ||
+      list.find((a) => a.filename === att.filename) ||
+      list[0];
+    if (!match?.storagePath || !fs.existsSync(match.storagePath)) {
+      return { ok: false, error: "补拉后仍未找到附件文件" };
+    }
+    return { ok: true, path: match.storagePath };
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: `补拉附件失败：${err}` };
+  }
+}
 
 function classifySplit(from: string, subject: string): "important" | "other" {
   const domain = from.split("@")[1]?.toLowerCase() ?? "";
@@ -121,6 +202,11 @@ export async function syncAccount(accountId: string, limitPerFolder = 40): Promi
               html: m.html,
             };
             upsertMessage(rec);
+            try {
+              storeFetchedAttachments(mid, m.attachments ?? []);
+            } catch (attErr) {
+              console.warn(`[sync] attachments ${mid}`, attErr);
+            }
             messageCount += 1;
           }
           recomputeFolderUnread(accountId, id);

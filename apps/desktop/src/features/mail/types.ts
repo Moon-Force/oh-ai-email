@@ -9,6 +9,13 @@ export type MailFolder = {
   remotePath?: string;
 };
 
+export type MailAttachment = {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+};
+
 export type MailMessage = {
   id: string;
   accountId: string;
@@ -25,6 +32,7 @@ export type MailMessage = {
   unread: boolean;
   split: "important" | "other";
   html?: string;
+  attachments?: MailAttachment[];
 };
 
 export type ShellView = "mail" | "settings" | "add-account";

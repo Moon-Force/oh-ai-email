@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AppBar,
   Box,
@@ -28,6 +28,8 @@ import AppToast from "./features/shell/AppToast";
 import ErrorBoundary from "./features/shell/ErrorBoundary";
 import { useMailStore } from "./features/mail/store";
 import { useAccountsStore } from "./features/accounts/store";
+import { useAiSettings } from "./features/ai/settingsStore";
+import { usePrefsStore } from "./features/settings/prefsStore";
 import AppThemeProvider from "./theme/AppThemeProvider";
 import SyncIcon from "@mui/icons-material/Sync";
 
@@ -50,6 +52,9 @@ export default function App() {
   } = useMailStore();
   const accounts = useAccountsStore((s) => s.accounts);
   const activeAccountId = useAccountsStore((s) => s.activeAccountId);
+  const hydrateAi = useAiSettings((s) => s.hydrate);
+  const hydratePrefs = usePrefsStore((s) => s.hydrate);
+  const syncIntervalMin = usePrefsStore((s) => s.syncIntervalMin);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", mode);
@@ -57,7 +62,25 @@ export default function App() {
 
   useEffect(() => {
     void hydrate();
-  }, [hydrate]);
+    void hydrateAi();
+    void hydratePrefs();
+  }, [hydrate, hydrateAi, hydratePrefs]);
+
+  const syncingRef = useRef(syncing);
+  syncingRef.current = syncing;
+
+  useEffect(() => {
+    if (syncIntervalMin <= 0) return;
+    if (accounts.length === 0) return;
+    const ms = syncIntervalMin * 60_000;
+    const tick = () => {
+      if (syncingRef.current) return;
+      if (useAccountsStore.getState().accounts.length === 0) return;
+      void syncNow(useAccountsStore.getState().activeAccountId ?? undefined);
+    };
+    const id = window.setInterval(tick, ms);
+    return () => window.clearInterval(id);
+  }, [syncIntervalMin, accounts.length, syncNow]);
 
   const folderTitle =
     activeFolderId === "inbox"

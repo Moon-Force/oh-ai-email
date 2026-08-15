@@ -1,34 +1,107 @@
-export function cleanContext(text: string, maxLen = 4000): string {
-  const withoutQuote = text.replace(/^>.*$/gm, "").trim();
+import {
+  aiCompose,
+  aiDraftReply,
+  aiRewrite,
+  aiSummarize,
+  hasDesktopApi,
+  type AiTaskResult,
+} from "../../lib/ipc";
+import { useAiSettings, type AiMode } from "./settingsStore";
+
+export type { AiMode };
+
+export function cleanContext(text: string, maxLen = 6000): string {
+  const withoutQuote = text
+    .replace(/^>.*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   return withoutQuote.slice(0, maxLen);
 }
 
-export type AiMode = "cloud" | "local";
-
-export async function summarize(text: string, mode: AiMode = "cloud"): Promise<string> {
-  const cleaned = cleanContext(text);
-  if (!cleaned) return mode === "local" ? "【本机摘要】（正文为空）" : "【摘要】（正文为空）";
-  if (mode === "local")
-    return `【本机摘要】${cleaned.slice(0, 120)}${cleaned.length > 120 ? "…" : ""}`;
-  return `【摘要】要点：${cleaned.slice(0, 120)}${cleaned.length > 120 ? "…" : ""}`;
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-export async function draftReply(text: string, mode: AiMode = "cloud"): Promise<string> {
-  const cleaned = cleanContext(text, 80);
-  const prefix = mode === "local" ? "【本机草稿】" : "";
-  return `${prefix}你好，\n\n关于「${cleaned || "来信"}」，我的回复如下：\n\n（请在此补充细节）\n\n祝好`;
+export class AiRequestError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+    this.name = "AiRequestError";
+  }
+}
+
+function unwrap(result: AiTaskResult): string {
+  if (result.ok) return result.text;
+  throw new AiRequestError(result.code, result.error);
+}
+
+function currentMode(override?: AiMode): AiMode {
+  return override ?? useAiSettings.getState().mode;
+}
+
+/** Browser/unit-test fallback only when not in Electron — clearly labeled, not silent fake success. */
+function browserBlocked(): never {
+  throw new AiRequestError(
+    "CONFIG",
+    "仅桌面端可调用 AI。请在 Electron 中运行，并到设置 → AI 配置密钥或 Ollama。",
+  );
+}
+
+export async function summarize(
+  input: { subject?: string; from?: string; body: string } | string,
+  mode?: AiMode,
+): Promise<string> {
+  if (!hasDesktopApi()) browserBlocked();
+  const payload =
+    typeof input === "string"
+      ? { body: input, mode: currentMode(mode) }
+      : { ...input, mode: currentMode(mode) };
+  return unwrap(await aiSummarize(payload));
+}
+
+export async function draftReply(
+  input: { subject?: string; from?: string; body: string } | string,
+  mode?: AiMode,
+): Promise<string> {
+  if (!hasDesktopApi()) browserBlocked();
+  const payload =
+    typeof input === "string"
+      ? { body: input, mode: currentMode(mode) }
+      : { ...input, mode: currentMode(mode) };
+  return unwrap(await aiDraftReply(payload));
 }
 
 export async function rewriteTone(
   text: string,
-  tone: "shorter" | "formal" | "expand"
+  tone: "shorter" | "formal" | "expand",
+  mode?: AiMode,
 ): Promise<string> {
-  const cleaned = cleanContext(text, 2000);
-  if (tone === "shorter") {
-    return cleaned.split(/\n+/).filter(Boolean).slice(0, 3).join("\n");
-  }
-  if (tone === "formal") {
-    return `敬启者：\n\n${cleaned}\n\n此致\n敬礼`;
-  }
-  return `${cleaned}\n\n补充说明：如有需要我可以进一步展开相关细节。`;
+  if (!hasDesktopApi()) browserBlocked();
+  return unwrap(await aiRewrite({ text, tone, mode: currentMode(mode) }));
+}
+
+export async function composeFromPrompt(
+  prompt: string,
+  existingBody?: string,
+  mode?: AiMode,
+): Promise<string> {
+  if (!hasDesktopApi()) browserBlocked();
+  return unwrap(
+    await aiCompose({ prompt, existingBody, mode: currentMode(mode) }),
+  );
+}
+
+export function ensureCloudPrivacyAck(): boolean {
+  return useAiSettings.getState().cloudPrivacyAck;
+}
+
+export async function ackCloudPrivacy(): Promise<void> {
+  useAiSettings.getState().setCloudPrivacyAck(true);
+  await useAiSettings.getState().save();
 }

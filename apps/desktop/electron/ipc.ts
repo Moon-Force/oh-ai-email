@@ -1,7 +1,9 @@
-import { ipcMain } from "electron";
+import { BrowserWindow, dialog, ipcMain, shell } from "electron";
+import fs from "node:fs";
 import {
   deleteAccount,
   getAccount,
+  getAttachment,
   getMessage,
   initDb,
   listAccounts,
@@ -13,9 +15,35 @@ import {
   setMessageUnread,
   upsertAccount,
 } from "./db";
+import type { MessageRecord } from "./mail/types";
+
+function toMessageDto(m: MessageRecord) {
+  return {
+    id: m.id,
+    accountId: m.accountId,
+    folderId: m.folderId,
+    uid: m.uid,
+    from: m.from,
+    fromName: m.fromName,
+    subject: m.subject,
+    snippet: m.snippet,
+    dateMs: m.dateMs,
+    dateLabel: m.dateLabel,
+    unread: m.unread,
+    split: m.split,
+    html: m.html,
+    attachments: (m.attachments ?? []).map((a) => ({
+      id: a.id,
+      filename: a.filename,
+      contentType: a.contentType,
+      size: a.size,
+    })),
+  };
+}
 import { passwordKey, testImapConnection } from "./mail/imap";
 import { sendMailViaSmtp } from "./mail/smtp";
 import {
+  ensureAttachmentFile,
   markMessageReadRemote,
   recordDraft,
   recordSentAfterSend,
@@ -24,6 +52,17 @@ import {
 } from "./mail/sync";
 import type { AccountRecord, TlsMode } from "./mail/types";
 import { deleteSecret, loadSecret, saveSecret } from "./store";
+import { loadAppPrefs, saveAppPrefs, type AppPrefs } from "./prefs";
+import { probeCloud, probeOllama } from "./ai/complete";
+import {
+  publicAiSettings,
+  saveAiSettings,
+  setCloudApiKey,
+  type AiMode,
+  type AiSettingsRecord,
+} from "./ai/settings";
+import { taskCompose, taskDraftReply, taskRewrite, taskSummarize } from "./ai/tasks";
+import type { RewriteTone } from "./ai/prompts";
 
 export type AddAccountPayload = {
   email: string;
@@ -42,6 +81,9 @@ export async function registerIpc(): Promise<void> {
   await initDb();
 
   ipcMain.handle("ping", () => "pong");
+
+  ipcMain.handle("prefs:get", () => loadAppPrefs());
+  ipcMain.handle("prefs:save", (_e, partial: Partial<AppPrefs>) => saveAppPrefs(partial));
 
   ipcMain.handle("secret:save", (_e, key: string, value: string) => saveSecret(key, value));
   ipcMain.handle("secret:load", (_e, key: string) => loadSecret(key));
@@ -117,18 +159,21 @@ export async function registerIpc(): Promise<void> {
         accounts,
         activeAccountId: null as string | null,
         folders: [] as ReturnType<typeof listFolders>,
-        messages: [] as ReturnType<typeof listAllMessages>,
+        messages: [] as ReturnType<typeof toMessageDto>[],
       };
     }
     return {
       accounts,
       activeAccountId: activeId,
       folders: sortFoldersForUi(listFolders(activeId)),
-      messages: listAllMessages(activeId),
+      messages: listAllMessages(activeId).map(toMessageDto),
     };
   });
 
-  ipcMain.handle("mail:get", (_e, id: string) => getMessage(id));
+  ipcMain.handle("mail:get", (_e, id: string) => {
+    const m = getMessage(id);
+    return m ? toMessageDto(m) : null;
+  });
 
   ipcMain.handle("mail:markRead", async (_e, id: string) => {
     setMessageUnread(id, false);
@@ -139,7 +184,8 @@ export async function registerIpc(): Promise<void> {
       // fire-and-forget remote flag
       void markMessageReadRemote(id);
     }
-    return getMessage(id);
+    const next = getMessage(id);
+    return next ? toMessageDto(next) : null;
   });
 
   ipcMain.handle("mail:setSplit", (_e, id: string, split: "important" | "other") => {
@@ -147,8 +193,46 @@ export async function registerIpc(): Promise<void> {
       return null;
     }
     setMessageSplit(id, split);
-    return getMessage(id);
+    const next = getMessage(id);
+    return next ? toMessageDto(next) : null;
   });
+
+  ipcMain.handle(
+    "mail:saveAttachment",
+    async (_e, attachmentId: string): Promise<{ ok: true; path: string } | { ok: false; error: string }> => {
+      const ready = await ensureAttachmentFile(attachmentId);
+      if (!ready.ok) return ready;
+
+      const att = getAttachment(attachmentId);
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+      const result = await dialog.showSaveDialog(win ?? undefined, {
+        title: "保存附件",
+        defaultPath: att?.filename ?? "attachment",
+        properties: ["createDirectory", "showOverwriteConfirmation"],
+      });
+      if (result.canceled || !result.filePath) {
+        return { ok: false, error: "已取消" };
+      }
+      try {
+        fs.copyFileSync(ready.path, result.filePath);
+        return { ok: true, path: result.filePath };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { ok: false, error: msg };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "mail:openAttachment",
+    async (_e, attachmentId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const ready = await ensureAttachmentFile(attachmentId);
+      if (!ready.ok) return ready;
+      const err = await shell.openPath(ready.path);
+      if (err) return { ok: false, error: err };
+      return { ok: true };
+    },
+  );
 
   ipcMain.handle(
     "mail:send",
@@ -285,5 +369,54 @@ export async function registerIpc(): Promise<void> {
         return { ok: false as const, error: msg };
       }
     },
+  );
+
+  // ── AI ──────────────────────────────────────────────────────────
+  ipcMain.handle("ai:getSettings", () => publicAiSettings());
+
+  ipcMain.handle(
+    "ai:saveSettings",
+    (
+      _e,
+      payload: Partial<AiSettingsRecord> & { apiKey?: string },
+    ) => {
+      const { apiKey, ...rest } = payload;
+      if (apiKey !== undefined) setCloudApiKey(apiKey);
+      const saved = saveAiSettings(rest);
+      return { ...saved, hasCloudApiKey: publicAiSettings().hasCloudApiKey };
+    },
+  );
+
+  ipcMain.handle("ai:probeOllama", () => probeOllama());
+  ipcMain.handle("ai:probeCloud", () => probeCloud());
+
+  ipcMain.handle(
+    "ai:summarize",
+    async (
+      _e,
+      payload: { subject?: string; from?: string; body: string; mode?: AiMode },
+    ) => taskSummarize(payload),
+  );
+
+  ipcMain.handle(
+    "ai:draftReply",
+    async (
+      _e,
+      payload: { subject?: string; from?: string; body: string; mode?: AiMode },
+    ) => taskDraftReply(payload),
+  );
+
+  ipcMain.handle(
+    "ai:rewrite",
+    async (_e, payload: { text: string; tone: RewriteTone; mode?: AiMode }) =>
+      taskRewrite(payload),
+  );
+
+  ipcMain.handle(
+    "ai:compose",
+    async (
+      _e,
+      payload: { prompt: string; existingBody?: string; mode?: AiMode },
+    ) => taskCompose(payload),
   );
 }

@@ -2,6 +2,7 @@
   "name": "oh-ai-email",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "Open-source AI email client — Electron desktop (Spark-like)",
   "packageManager": "pnpm@10.31.0",
   "engines": {

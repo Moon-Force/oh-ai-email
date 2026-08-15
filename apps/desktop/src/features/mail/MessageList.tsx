@@ -7,6 +7,7 @@ import {
   Typography,
   Chip,
 } from "@mui/material";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { useMailStore } from "./store";
 import { searchMessages } from "./search";
 import EmptyState from "../shell/EmptyState";
@@ -130,6 +131,12 @@ export default function MessageList() {
                       >
                         {m.subject}
                       </Typography>
+                      {(m.attachments?.length ?? 0) > 0 && (
+                        <AttachFileIcon
+                          sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }}
+                          titleAccess={`${m.attachments!.length} 个附件`}
+                        />
+                      )}
                       {split === "all" && (
                         <Chip
                           size="small"

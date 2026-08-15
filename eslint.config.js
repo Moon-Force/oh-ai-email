@@ -23,6 +23,8 @@ export default tseslint.config(
       "target/**",
       "apps/desktop/dist/**",
       "apps/desktop/dist-electron/**",
+      "apps/desktop/.vite/**",
+      "apps/desktop/release/**",
       "coverage/**",
       "pnpm-lock.yaml",
     ],

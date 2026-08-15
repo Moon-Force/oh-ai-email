@@ -39,6 +39,19 @@ export type MessageRecord = {
   unread: boolean;
   split: "important" | "other";
   html?: string;
+  /** Populated when listing for UI (not a messages column). */
+  attachments?: AttachmentMeta[];
+};
+
+/** Attachment metadata (content lives on disk under userData). */
+export type AttachmentMeta = {
+  id: string;
+  messageId: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  /** Absolute path to cached file (main process only; strip for UI if needed). */
+  storagePath: string;
 };
 
 export type ImapConnectInput = {

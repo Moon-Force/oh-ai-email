@@ -25,6 +25,13 @@ export type FolderDto = {
   unread: number;
 };
 
+export type AttachmentDto = {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+};
+
 export type MessageDto = {
   id: string;
   accountId: string;
@@ -39,6 +46,7 @@ export type MessageDto = {
   unread: boolean;
   split: "important" | "other";
   html?: string;
+  attachments?: AttachmentDto[];
 };
 
 export type AddAccountPayload = {
@@ -76,6 +84,9 @@ export type SyncResultDto = {
 
 const api = {
   ping: (): Promise<string> => ipcRenderer.invoke("ping"),
+  prefsGet: (): Promise<{ syncIntervalMin: number }> => ipcRenderer.invoke("prefs:get"),
+  prefsSave: (partial: { syncIntervalMin?: number }): Promise<{ syncIntervalMin: number }> =>
+    ipcRenderer.invoke("prefs:save", partial),
   secretSave: (k: string, v: string): Promise<boolean> => ipcRenderer.invoke("secret:save", k, v),
   secretLoad: (k: string): Promise<string | null> => ipcRenderer.invoke("secret:load", k),
   secretDelete: (k: string): Promise<boolean> => ipcRenderer.invoke("secret:delete", k),
@@ -93,6 +104,14 @@ const api = {
     id: string,
     split: "important" | "other",
   ): Promise<MessageDto | null> => ipcRenderer.invoke("mail:setSplit", id, split),
+  mailSaveAttachment: (
+    attachmentId: string,
+  ): Promise<{ ok: true; path: string } | { ok: false; error: string }> =>
+    ipcRenderer.invoke("mail:saveAttachment", attachmentId),
+  mailOpenAttachment: (
+    attachmentId: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }> =>
+    ipcRenderer.invoke("mail:openAttachment", attachmentId),
   mailSend: (payload: {
     accountId?: string;
     to: string;
@@ -133,7 +152,77 @@ const api = {
       }
     | { ok: false; error: string }
   > => ipcRenderer.invoke("mail:saveDraft", payload),
+
+  aiGetSettings: (): Promise<{
+    mode: "cloud" | "local";
+    baseUrl: string;
+    model: string;
+    ollamaHost: string;
+    ollamaModel: string;
+    cloudPrivacyAck: boolean;
+    preferLocalWhenAvailable: boolean;
+    hasCloudApiKey: boolean;
+  }> => ipcRenderer.invoke("ai:getSettings"),
+
+  aiSaveSettings: (
+    payload: {
+      mode?: "cloud" | "local";
+      baseUrl?: string;
+      model?: string;
+      ollamaHost?: string;
+      ollamaModel?: string;
+      cloudPrivacyAck?: boolean;
+      preferLocalWhenAvailable?: boolean;
+      apiKey?: string;
+    },
+  ): Promise<{
+    mode: "cloud" | "local";
+    baseUrl: string;
+    model: string;
+    ollamaHost: string;
+    ollamaModel: string;
+    cloudPrivacyAck: boolean;
+    preferLocalWhenAvailable: boolean;
+    hasCloudApiKey: boolean;
+  }> => ipcRenderer.invoke("ai:saveSettings", payload),
+
+  aiProbeOllama: (): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> =>
+    ipcRenderer.invoke("ai:probeOllama"),
+
+  aiProbeCloud: (): Promise<
+    { ok: true } | { ok: false; error: string; code?: string }
+  > => ipcRenderer.invoke("ai:probeCloud"),
+
+  aiSummarize: (payload: {
+    subject?: string;
+    from?: string;
+    body: string;
+    mode?: "cloud" | "local";
+  }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:summarize", payload),
+
+  aiDraftReply: (payload: {
+    subject?: string;
+    from?: string;
+    body: string;
+    mode?: "cloud" | "local";
+  }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:draftReply", payload),
+
+  aiRewrite: (payload: {
+    text: string;
+    tone: "shorter" | "formal" | "expand";
+    mode?: "cloud" | "local";
+  }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:rewrite", payload),
+
+  aiCompose: (payload: {
+    prompt: string;
+    existingBody?: string;
+    mode?: "cloud" | "local";
+  }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:compose", payload),
 };
+
+type AiTaskResult =
+  | { ok: true; text: string; mode: "cloud" | "local" }
+  | { ok: false; code: string; error: string };
 
 contextBridge.exposeInMainWorld("api", api);
 

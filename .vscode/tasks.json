@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "启动桌面端",
+      "type": "shell",
+      "command": "pnpm --filter desktop dev",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "FORCE_COLOR": "1"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "(Local:|ready in|start electron|VITE)"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false,
+        "clear": false
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "类型检查",
+      "type": "shell",
+      "command": "pnpm --filter desktop typecheck",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "单元测试",
+      "type": "shell",
+      "command": "pnpm --filter desktop exec vitest run",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ]
+}

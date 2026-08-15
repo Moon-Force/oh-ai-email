@@ -8,6 +8,7 @@
 | -------------------------------------------- | ------------------------------------------------- |
 | [PRODUCT.md](./PRODUCT.md)                   | 产品定位、约束、对标与一期范围                    |
 | [ARCHITECTURE.md](./ARCHITECTURE.md)         | 技术栈、分层架构、数据与 AI 流                    |
+| [AI_TODO.md](./AI_TODO.md)                   | **AI 冻结决策 + Wave TODO**（`feat/ai` 权威清单） |
 | [IMPLEMENTATION.md](./IMPLEMENTATION.md)     | **实施名单**：分阶段任务、验收标准、顺序          |
 | [DESIGN.md](./DESIGN.md)                     | **UI 规范**：MUI Material UI + 布局/文案/无障碍   |
 | [../apps/desktop/src/theme/](../apps/desktop/src/theme/) | MUI 主题源码（`createAppTheme`）            |

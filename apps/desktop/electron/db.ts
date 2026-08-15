@@ -2,7 +2,7 @@ import { app } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import type { AccountRecord, FolderRecord, MessageRecord } from "./mail/types";
+import type { AccountRecord, AttachmentMeta, FolderRecord, MessageRecord } from "./mail/types";
 
 const require = createRequire(import.meta.url);
 
@@ -99,6 +99,18 @@ function migrate() {
     );
   `);
   d.run(`CREATE INDEX IF NOT EXISTS idx_messages_folder ON messages(account_id, folder_id, date_ms DESC);`);
+  d.run(`
+    CREATE TABLE IF NOT EXISTS attachments (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      size INTEGER NOT NULL DEFAULT 0,
+      storage_path TEXT NOT NULL,
+      sort_index INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+  d.run(`CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments(message_id);`);
 }
 
 function getDb(): SqlJsDatabase {
@@ -168,10 +180,84 @@ export function upsertAccount(a: AccountRecord) {
 
 export function deleteAccount(id: string) {
   const d = getDb();
+  // Drop attachment files for this account's messages
+  const stmt = d.prepare(`SELECT id FROM messages WHERE account_id = ?`);
+  stmt.bind([id]);
+  for (const row of rowsFrom(stmt)) {
+    deleteAttachmentsForMessage(String(row.id));
+  }
   d.run(`DELETE FROM messages WHERE account_id = ?`, [id]);
   d.run(`DELETE FROM folders WHERE account_id = ?`, [id]);
   d.run(`DELETE FROM accounts WHERE id = ?`, [id]);
   persist();
+}
+
+export function attachmentsDir(messageId: string): string {
+  return path.join(app.getPath("userData"), "mail-attachments", messageId.replace(/[^\w.-]+/g, "_"));
+}
+
+export function listAttachments(messageId: string): AttachmentMeta[] {
+  const d = getDb();
+  const stmt = d.prepare(
+    `SELECT * FROM attachments WHERE message_id = ? ORDER BY sort_index ASC, filename ASC`,
+  );
+  stmt.bind([messageId]);
+  return rowsFrom(stmt).map(mapAttachment);
+}
+
+export function getAttachment(id: string): AttachmentMeta | null {
+  const d = getDb();
+  const stmt = d.prepare(`SELECT * FROM attachments WHERE id = ?`);
+  stmt.bind([id]);
+  const rows = rowsFrom(stmt);
+  return rows[0] ? mapAttachment(rows[0]) : null;
+}
+
+export function deleteAttachmentsForMessage(messageId: string) {
+  const existing = listAttachments(messageId);
+  for (const a of existing) {
+    try {
+      if (a.storagePath && fs.existsSync(a.storagePath)) fs.unlinkSync(a.storagePath);
+    } catch {
+      /* ignore */
+    }
+  }
+  const dir = attachmentsDir(messageId);
+  try {
+    if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+  } catch {
+    /* ignore */
+  }
+  const d = getDb();
+  d.run(`DELETE FROM attachments WHERE message_id = ?`, [messageId]);
+}
+
+/** Replace DB rows only — caller must already have files on disk. */
+export function replaceAttachments(messageId: string, items: AttachmentMeta[]) {
+  const d = getDb();
+  d.run(`DELETE FROM attachments WHERE message_id = ?`, [messageId]);
+  items.forEach((a, i) => {
+    d.run(
+      `INSERT INTO attachments (id, message_id, filename, content_type, size, storage_path, sort_index)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [a.id, messageId, a.filename, a.contentType, a.size, a.storagePath, i],
+    );
+  });
+}
+
+export function withAttachments(m: MessageRecord): MessageRecord {
+  return { ...m, attachments: listAttachments(m.id) };
+}
+
+function mapAttachment(r: Record<string, unknown>): AttachmentMeta {
+  return {
+    id: String(r.id),
+    messageId: String(r.message_id),
+    filename: String(r.filename),
+    contentType: String(r.content_type || "application/octet-stream"),
+    size: Number(r.size) || 0,
+    storagePath: String(r.storage_path || ""),
+  };
 }
 
 export function listFolders(accountId: string): FolderRecord[] {
@@ -210,7 +296,7 @@ export function listAllMessages(accountId: string): MessageRecord[] {
     `SELECT * FROM messages WHERE account_id = ? ORDER BY date_ms DESC LIMIT 500`,
   );
   stmt.bind([accountId]);
-  return rowsFrom(stmt).map(mapMessage);
+  return rowsFrom(stmt).map((r) => withAttachments(mapMessage(r)));
 }
 
 export function getMessage(id: string): MessageRecord | null {
@@ -218,7 +304,7 @@ export function getMessage(id: string): MessageRecord | null {
   const stmt = d.prepare(`SELECT * FROM messages WHERE id = ?`);
   stmt.bind([id]);
   const rows = rowsFrom(stmt);
-  return rows[0] ? mapMessage(rows[0]) : null;
+  return rows[0] ? withAttachments(mapMessage(rows[0])) : null;
 }
 
 export function upsertMessage(m: MessageRecord) {
@@ -275,6 +361,7 @@ export function setMessageHtml(id: string, html: string) {
 }
 
 export function deleteMessage(id: string) {
+  deleteAttachmentsForMessage(id);
   const d = getDb();
   d.run(`DELETE FROM messages WHERE id = ?`, [id]);
   persist();

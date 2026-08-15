@@ -6,6 +6,12 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Menu,
+  MenuItem,
   Skeleton,
   Stack,
   TextField,
@@ -17,11 +23,14 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CloseIcon from "@mui/icons-material/Close";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { mailSend, mailSaveDraft, hasDesktopApi } from "../../lib/ipc";
 import { useAccountsStore } from "../accounts/store";
 import { useMailStore } from "../mail/store";
 import type { MailMessage } from "../mail/types";
 import { useToastStore } from "../shell/toastStore";
+import { AiRequestError, composeFromPrompt, rewriteTone } from "../ai/router";
+import { useAiSettings } from "../ai/settingsStore";
 import RichTextEditor from "./RichTextEditor";
 import {
   fileToAttachment,
@@ -59,15 +68,27 @@ export default function Composer({
   initialSubject = "",
   initialBody = "",
 }: Props) {
-  const [to, setTo] = useState(initialTo);
+  const composeSeed = useMailStore((s) => s.composeSeed);
+  const setComposeSeed = useMailStore((s) => s.setComposeSeed);
+  const seedTo = composeSeed?.to ?? initialTo;
+  const seedSubject = composeSeed?.subject ?? initialSubject;
+  const seedBody = composeSeed?.body ?? initialBody;
+
+  const [to, setTo] = useState(seedTo);
   const [cc, setCc] = useState("");
-  const [subject, setSubject] = useState(initialSubject);
-  const [html, setHtml] = useState(() => (initialBody ? plainToHtml(initialBody) : ""));
-  const [plain, setPlain] = useState(initialBody);
+  const [subject, setSubject] = useState(seedSubject);
+  const [html, setHtml] = useState(() => (seedBody ? plainToHtml(seedBody) : ""));
+  const [plain, setPlain] = useState(seedBody);
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptText, setPromptText] = useState("");
+  const [toneMenuEl, setToneMenuEl] = useState<null | HTMLElement>(null);
+  /** Bump to remount TipTap after external AI body replace. */
+  const [editorEpoch, setEditorEpoch] = useState(0);
   /** Mount TipTap after compose enter animation (transform parent blanks ProseMirror). */
   const [editorReady, setEditorReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +102,11 @@ export default function Composer({
     return () => window.clearTimeout(t);
   }, []);
 
+  // Consume seed once so reopening compose doesn't stick forever
+  useEffect(() => {
+    if (composeSeed) setComposeSeed(null);
+  }, [composeSeed, setComposeSeed]);
+
   const activeAccountId = useAccountsStore((s) => s.activeAccountId);
   const accounts = useAccountsStore((s) => s.accounts);
   const fromEmail = accounts.find((a) => a.id === activeAccountId)?.email ?? accounts[0]?.email;
@@ -90,6 +116,63 @@ export default function Composer({
   const setView = useMailStore((s) => s.setView);
   const setComposeOpen = useMailStore((s) => s.setComposeOpen);
   const showToast = useToastStore((s) => s.showToast);
+  const mode = useAiSettings((s) => s.mode);
+  const hasCloudApiKey = useAiSettings((s) => s.hasCloudApiKey);
+
+  function applyAiBody(text: string) {
+    setPlain(text);
+    setHtml(plainToHtml(text));
+    setEditorEpoch((n) => n + 1);
+  }
+
+  async function runComposePrompt() {
+    const p = promptText.trim();
+    if (!p) {
+      showToast("请输入写作提示", "error");
+      return;
+    }
+    if (mode === "cloud" && !hasCloudApiKey) {
+      showToast("未配置云端 API Key，请到设置 → AI", "error");
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const out = await composeFromPrompt(p, plain, mode);
+      applyAiBody(out);
+      setPromptOpen(false);
+      setPromptText("");
+      showToast("已生成正文，请检查后发送", "success", 3000);
+    } catch (e) {
+      const msg = e instanceof AiRequestError ? e.message : String(e);
+      showToast(msg, "error", 6000);
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function runPolish(tone: "shorter" | "formal" | "expand") {
+    setToneMenuEl(null);
+    const src = plain.trim() || stripHtmlQuick(html);
+    if (!src) {
+      showToast("请先写一点正文再润色", "error");
+      return;
+    }
+    if (mode === "cloud" && !hasCloudApiKey) {
+      showToast("未配置云端 API Key，请到设置 → AI", "error");
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const out = await rewriteTone(src, tone, mode);
+      applyAiBody(out);
+      showToast("已润色", "success", 2000);
+    } catch (e) {
+      const msg = e instanceof AiRequestError ? e.message : String(e);
+      showToast(msg, "error", 6000);
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   function goToDraft(localMessageId: string) {
     setView("mail");
@@ -310,6 +393,30 @@ export default function Composer({
             ) : null}
           </Typography>
           <Button
+            startIcon={<AutoAwesomeIcon />}
+            onClick={() => setPromptOpen(true)}
+            disabled={sending || aiBusy}
+            aria-label="AI 根据提示生成"
+          >
+            AI 帮写
+          </Button>
+          <Button
+            onClick={(e) => setToneMenuEl(e.currentTarget)}
+            disabled={sending || aiBusy}
+            aria-label="AI 润色"
+          >
+            {aiBusy ? "AI…" : "润色"}
+          </Button>
+          <Menu
+            anchorEl={toneMenuEl}
+            open={Boolean(toneMenuEl)}
+            onClose={() => setToneMenuEl(null)}
+          >
+            <MenuItem onClick={() => void runPolish("shorter")}>更短一点</MenuItem>
+            <MenuItem onClick={() => void runPolish("formal")}>更正式</MenuItem>
+            <MenuItem onClick={() => void runPolish("expand")}>扩写</MenuItem>
+          </Menu>
+          <Button
             startIcon={<AttachFileIcon />}
             onClick={() => fileInputRef.current?.click()}
             disabled={sending}
@@ -380,8 +487,9 @@ export default function Composer({
           </Typography>
           {editorReady ? (
             <RichTextEditor
+              key={editorEpoch}
               valueHtml={html}
-              disabled={sending}
+              disabled={sending || aiBusy}
               onChange={(nextHtml, nextPlain) => {
                 setHtml(nextHtml);
                 setPlain(nextPlain);
@@ -453,7 +561,41 @@ export default function Composer({
             {attachments.length ? `（含 ${attachments.length} 个附件）` : ""}…
           </Alert>
         )}
+        {aiBusy && (
+          <Alert severity="info" icon={<CircularProgress size={18} />}>
+            AI 生成中（{mode === "local" ? "本机" : "云端"}）…
+          </Alert>
+        )}
       </Stack>
+
+      <Dialog open={promptOpen} onClose={() => !aiBusy && setPromptOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>根据提示生成正文</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={3}
+            margin="dense"
+            label="提示"
+            placeholder="例如：婉拒下周会议，建议改到下个月，语气礼貌"
+            value={promptText}
+            onChange={(e) => setPromptText(e.target.value)}
+            disabled={aiBusy}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+            将写入正文供你编辑；不会自动发送。模式：{mode === "local" ? "本机 Ollama" : "云端"}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPromptOpen(false)} disabled={aiBusy}>
+            取消
+          </Button>
+          <Button variant="contained" onClick={() => void runComposePrompt()} disabled={aiBusy}>
+            {aiBusy ? "生成中…" : "生成"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -16,6 +16,8 @@ type State = {
   searchQuery: string;
   view: ShellView;
   composeOpen: boolean;
+  /** Prefill when opening composer (reply / AI insert). Cleared after Composer mounts. */
+  composeSeed: { to?: string; subject?: string; body?: string } | null;
   connectionError: string | null;
   syncing: boolean;
   lastSyncAt: number | null;
@@ -30,6 +32,8 @@ type State = {
   setSearchQuery: (q: string) => void;
   setView: (v: ShellView) => void;
   setComposeOpen: (open: boolean) => void;
+  setComposeSeed: (seed: { to?: string; subject?: string; body?: string } | null) => void;
+  openCompose: (seed?: { to?: string; subject?: string; body?: string } | null) => void;
   setConnectionError: (err: string | null) => void;
   applySnapshot: (folders: FolderDto[], messages: MessageDto[]) => void;
   hydrate: (accountId?: string) => Promise<void>;
@@ -80,6 +84,12 @@ function mapMessage(m: MessageDto, folders: MailFolder[]): MailMessage {
     unread: m.unread,
     split: m.split,
     html: m.html,
+    attachments: m.attachments?.map((a) => ({
+      id: a.id,
+      filename: a.filename,
+      contentType: a.contentType,
+      size: a.size,
+    })),
   };
 }
 
@@ -102,6 +112,7 @@ export const useMailStore = create<State>((set, get) => ({
   searchQuery: "",
   view: "mail",
   composeOpen: false,
+  composeSeed: null,
   connectionError: null,
   syncing: false,
   lastSyncAt: null,
@@ -129,7 +140,14 @@ export const useMailStore = create<State>((set, get) => ({
   setSplit: (split) => set({ split }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setView: (view) => set({ view }),
-  setComposeOpen: (composeOpen) => set({ composeOpen }),
+  setComposeOpen: (composeOpen) => set({ composeOpen, ...(composeOpen ? {} : { composeSeed: null }) }),
+  setComposeSeed: (composeSeed) => set({ composeSeed }),
+  openCompose: (seed) =>
+    set({
+      composeOpen: true,
+      composeSeed: seed ?? null,
+      view: "mail",
+    }),
   setConnectionError: (connectionError) => set({ connectionError }),
   applySnapshot: (folderDtos, messageDtos) => {
     const remoteFolders = folderDtos.map(mapFolder);

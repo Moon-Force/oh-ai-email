@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "启动桌面端",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm --filter desktop dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "启动桌面端（根脚本）",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm dev",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
