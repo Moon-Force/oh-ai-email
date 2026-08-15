@@ -69,13 +69,37 @@ Implement against **docs + current code**. Historical mockups under `design/mvp/
 Target layout:
 
 ```text
-apps/desktop/          # Electron + React + MUI
-crates/mail-core/      # IMAP SMTP parse sync domain
-crates/mail-store/     # SQLite
-crates/ai-router/      # cloud + local
-services/ai-proxy/     # optional key-holding proxy
-docs/
+oh-ai-email/
+├── apps/
+│   └── desktop/               # Electron + React + TypeScript + MUI 桌面端主应用
+│       ├── electron/          # 主进程代码 (IPC 通信、安全存储 safeStorage、AI 服务)
+│       │   └── ai/            # AI 核心 (Providers 适配器、Prompt 工程、Agent 引擎与工具沙箱)
+│       │       └── agent/     # 智能体引擎 (engine, tools, types, 调度器)
+│       └── src/               # 渲染进程前端 UI
+│           ├── features/      # 按业务域自包含模块 (UI 组件 + Store + 单测)
+│           │   ├── accounts/  # 账户管理与认证
+│           │   ├── ai/        # AI 胶囊 (LumenCapsule)、Agent 抽屉 (AgentDrawer)、路由与审计
+│           │   ├── composer/  # 写信编辑器、附件、语音听写
+│           │   ├── mail/      # 邮件列表、邮件详情、搜索
+│           │   ├── settings/  # 设置中心 (AI Provider 预设、拉取模型、余额查询)
+│           │   ├── voice/     # Web Speech STT 语音识别与 TTS 朗读
+│           │   └── shell/     # 主界面框架与侧边栏
+│           ├── theme/         # MUI 主题源 (createAppTheme.ts, AppThemeProvider.tsx)
+│           └── lib/           # IPC 客户端安全封装 (ipc.ts) 与公用工具
+├── crates/                    # Rust 底层引擎 (阶段拆分后独立)
+│   ├── mail-core/             # IMAP/SMTP 协议流式解析与同步引擎
+│   ├── mail-store/            # SQLite 本地加密持久化
+│   └── ai-router/             # 本地/云端 AI 路由与加速
+├── docs/                      # 权威设计、架构与 TODO 规范文档
+└── design/                    # 历史设计原型与静态资源 (非视觉标准)
 ```
+
+### 目录与文件收敛铁律（禁止散乱文件）
+
+1. **模块自包含**：新增功能必须收敛至对应 `src/features/<domain>/` 目录内，配套的单元测试（`*.test.ts(x)`）就近放置在该目录下，禁止在根目录或非相关目录堆砌零散文件。
+2. **严禁散乱文件**：严禁在根目录、`apps/desktop/` 等层级丢弃临时的 `.js/.ts/.md` 脚本、中间结果或未命名文件。
+3. **临时调试隔离**：调试或一次性测试脚本一律放在临时沙箱中运行，测试完成**必须立即清理**，禁止提交进 git 仓库。
+4. **文档集中收敛**：全局架构、任务清单与规范必须存放在 `docs/` 目录下，禁止随手在代码根目录建立散乱的 markdown 文档。
 
 Phase 1 may keep Rust inside the desktop bridge until stable; still respect layer boundaries.
 
