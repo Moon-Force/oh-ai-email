@@ -517,7 +517,7 @@ export default function LumenCapsule({
   if (state === "idle") {
     return (
       <>
-        <Stack direction="column" spacing={0.75} sx={{ alignItems: "flex-end" }}>
+        <Stack direction="column" spacing={0.75} sx={{ alignItems: "flex-end", maxWidth: "100%" }}>
           <Paper
             elevation={4}
             data-testid="lumen-capsule"
@@ -530,6 +530,10 @@ export default function LumenCapsule({
               borderRadius: 999,
               flexWrap: "nowrap",
               whiteSpace: "nowrap",
+              maxWidth: "100%",
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              "&::-webkit-scrollbar": { display: "none" },
               bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.95)" : "rgba(255, 255, 255, 0.95)"),
               backdropFilter: "blur(16px)",
               border: (t) => (t.palette.mode === "dark" ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)"),
@@ -760,14 +764,22 @@ export default function LumenCapsule({
             />
 
             {error && (
-              <Button size="small" color="error" onClick={() => setView("settings")} sx={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                去设置
-              </Button>
-            )}
-            {error && (
-              <Typography variant="caption" color="error" sx={{ maxWidth: 160, whiteSpace: "nowrap", flexShrink: 0 }} noWrap title={error}>
-                {error}
-              </Typography>
+              <Chip
+                size="small"
+                color="error"
+                label={error.includes("未配置云端") ? "未配置云端 Key · 去设置" : `${error.slice(0, 10)}… · 去设置`}
+                onClick={() => setView("settings")}
+                sx={{
+                  height: 22,
+                  borderRadius: 999,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  flexShrink: 0,
+                  cursor: "pointer",
+                  "& .MuiChip-label": { px: 0.75 },
+                }}
+                title={error}
+              />
             )}
           </Paper>
 
