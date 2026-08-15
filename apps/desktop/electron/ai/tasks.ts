@@ -8,6 +8,7 @@ import {
   systemForQuickReply,
   systemForRewrite,
   systemForSummarize,
+  systemForThreadSummary,
   type QuickReplyType,
   type RewriteTone,
 } from "./prompts";
@@ -20,6 +21,21 @@ export type ActionItemsResult =
       tags: string[];
       actionItems: string[];
       deadline?: string;
+      mode: AiMode;
+    }
+  | { ok: false; code: AiErrorCode; error: string };
+
+export type ThreadSummaryTimelineItem = {
+  sender: string;
+  date?: string;
+  point: string;
+};
+
+export type ThreadSummaryResult =
+  | {
+      ok: true;
+      summary: string;
+      timeline: ThreadSummaryTimelineItem[];
       mode: AiMode;
     }
   | { ok: false; code: AiErrorCode; error: string };
@@ -182,3 +198,82 @@ export async function taskCompose(input: {
     { mode: input.mode, requestId: input.requestId },
   );
 }
+
+export async function taskThreadSummary(input: {
+  subject?: string;
+  messages: { sender: string; date?: string; body: string }[];
+  mode?: AiMode;
+  requestId?: string;
+}): Promise<ThreadSummaryResult> {
+  if (!input.messages || input.messages.length === 0) {
+    return { ok: false, code: "EMPTY", error: "没有可分析的邮件线索" };
+  }
+
+  const formattedMessages = input.messages
+    .map((m, idx) => {
+      const sender = m.sender || "未知发件人";
+      const date = m.date ? ` (${m.date})` : "";
+      const body = cleanContext(m.body, 3000);
+      return `[Message #${idx + 1}] From: ${sender}${date}\n${body}`;
+    })
+    .join("\n\n---\n\n");
+
+  const promptUser = `${input.subject ? `Thread Subject: ${input.subject}\n\n` : ""}${formattedMessages}`;
+
+  const result = await chatComplete(
+    [
+      { role: "system", content: systemForThreadSummary() },
+      { role: "user", content: promptUser },
+    ],
+    { mode: input.mode, requestId: input.requestId },
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  try {
+    let raw = result.text.trim();
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      raw = jsonMatch[0];
+    }
+    const parsed = JSON.parse(raw) as {
+      summary?: unknown;
+      timeline?: unknown;
+    };
+    const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
+    const timeline: ThreadSummaryTimelineItem[] = Array.isArray(parsed.timeline)
+      ? parsed.timeline
+          .map((item: Record<string, unknown>) => ({
+            sender: typeof item?.sender === "string" ? item.sender : "未知发件人",
+            date:
+              typeof item?.date === "string" && item.date.trim() ? item.date.trim() : undefined,
+            point: typeof item?.point === "string" ? item.point.trim() : String(item || "").trim(),
+          }))
+          .filter((item) => Boolean(item.point))
+      : [];
+
+    return {
+      ok: true,
+      summary: summary || result.text,
+      timeline,
+      mode: result.mode,
+    };
+  } catch {
+    return {
+      ok: true,
+      summary: result.text,
+      timeline: input.messages.map((m) => ({
+        sender: m.sender,
+        date: m.date,
+        point: cleanContext(m.body, 120),
+      })),
+      mode: result.mode,
+    };
+  }
+}
+

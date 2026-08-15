@@ -89,3 +89,29 @@ Guidelines:
 - "actionItems": A list of clear, concise tasks/actions the recipient needs to do. If none, return [].
 - "deadline": If a specific deadline, meeting time, or expiration date/time is mentioned, extract it as a concise string (e.g. "周五下午5点" or "2026-08-20 18:00"). If no deadline, use null.`;
 }
+
+export function systemForThreadSummary(): string {
+  return `You are an email assistant that analyzes multi-message email threads (chronological conversation history).
+Analyze the conversation and produce:
+1) An overall concise summary of the entire thread context, progression, and current status/outcome.
+2) A chronological timeline breaking down the key discussion point / contribution for each message or participant.
+
+Respond ONLY with a JSON object matching this schema (no markdown fences, no other text):
+{
+  "summary": "Overall summary of the thread...",
+  "timeline": [
+    {
+      "sender": "Sender name or email",
+      "date": "Date/time string if available or empty string",
+      "point": "Key statement, decision, question, or update contributed in this message"
+    }
+  ]
+}
+
+Guidelines:
+- Follow the primary language of the conversation thread (e.g. Chinese if emails are Chinese, English if English).
+- Keep each timeline point clear, factual, and concise (1-2 sentences).
+- Preserve the chronological sequence.
+- Do not invent facts, meetings, or commitments not present in the thread.`;
+}
+

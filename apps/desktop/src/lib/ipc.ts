@@ -121,6 +121,7 @@ type Api = {
   aiActionItems: (payload: AiMailPayload) => Promise<AiActionItemsResult>;
   aiRewrite: (payload: AiRewritePayload) => Promise<AiTaskResult>;
   aiCompose: (payload: AiComposePayload) => Promise<AiTaskResult>;
+  aiThreadSummary: (payload: AiThreadSummaryPayload) => Promise<AiThreadSummaryResult>;
 };
 
 export type AiModeDto = "cloud" | "local";
@@ -153,6 +154,34 @@ export type AiActionItemsResult =
       mode: AiModeDto;
     }
   | { ok: false; code: string; error: string };
+
+export type AiThreadMessageDto = {
+  sender: string;
+  date?: string;
+  body: string;
+};
+
+export type AiThreadSummaryItemDto = {
+  sender: string;
+  date?: string;
+  point: string;
+};
+
+export type AiThreadSummaryResult =
+  | {
+      ok: true;
+      summary: string;
+      timeline: AiThreadSummaryItemDto[];
+      mode: AiModeDto;
+    }
+  | { ok: false; code: string; error: string };
+
+export type AiThreadSummaryPayload = {
+  subject?: string;
+  messages: AiThreadMessageDto[];
+  mode?: AiModeDto;
+  requestId?: string;
+};
 
 export type AiMailPayload = {
   subject?: string;
@@ -430,3 +459,12 @@ export async function aiCompose(payload: AiComposePayload): Promise<AiTaskResult
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
   return api.aiCompose(payload);
 }
+
+export async function aiThreadSummary(
+  payload: AiThreadSummaryPayload,
+): Promise<AiThreadSummaryResult> {
+  const api = getApi();
+  if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
+  return api.aiThreadSummary(payload);
+}
+

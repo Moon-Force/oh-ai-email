@@ -242,6 +242,13 @@ const api = {
     mode?: "cloud" | "local";
     requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:compose", payload),
+
+  aiThreadSummary: (payload: {
+    subject?: string;
+    messages: { sender: string; date?: string; body: string }[];
+    mode?: "cloud" | "local";
+    requestId?: string;
+  }): Promise<AiThreadSummaryResult> => ipcRenderer.invoke("ai:threadSummary", payload),
 };
 
 type AiTaskResult =
@@ -258,6 +265,15 @@ type AiActionItemsResult =
     }
   | { ok: false; code: string; error: string };
 
+type AiThreadSummaryResult =
+  | {
+      ok: true;
+      summary: string;
+      timeline: { sender: string; date?: string; point: string }[];
+      mode: "cloud" | "local";
+    }
+  | { ok: false; code: string; error: string };
+
 contextBridge.exposeInMainWorld("api", api);
 
 declare global {
@@ -265,3 +281,4 @@ declare global {
     api: typeof api;
   }
 }
+

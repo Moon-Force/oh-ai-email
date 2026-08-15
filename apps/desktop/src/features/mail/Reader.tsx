@@ -66,6 +66,18 @@ export default function Reader() {
   const bodyHtml = msg.html ?? `<p>${escapeHtml(msg.snippet)}</p>`;
   const attachments = msg.attachments ?? [];
 
+  const normalizedSubj = normalizeSubject(msg.subject);
+  const threadMessages = normalizedSubj
+    ? messages
+        .filter((m) => normalizeSubject(m.subject) === normalizedSubj)
+        .sort((a, b) => a.dateMs - b.dateMs)
+        .map((m) => ({
+          sender: m.fromName || m.from,
+          date: m.date,
+          body: `${m.snippet}\n${stripHtml(m.html ?? "")}`.trim(),
+        }))
+    : undefined;
+
   return (
     <PaneTransition paneKey={msg.id} variant="reader">
       <Box
@@ -150,6 +162,7 @@ export default function Reader() {
             </Button>
           </Stack>
         </Stack>
+
         <Divider sx={{ flexShrink: 0 }} />
 
         {attachments.length > 0 && (
@@ -187,6 +200,7 @@ export default function Reader() {
               flex: 1,
               minHeight: 0,
               p: 0,
+              borderRadius: 2,
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
@@ -227,6 +241,7 @@ export default function Reader() {
               from={msg.from}
               replyTo={msg.from}
               body={`${msg.snippet}\n${stripHtml(msg.html ?? "")}`}
+              threadMessages={threadMessages}
               onInsertDraft={(draftText, replySubject, replyTo) => {
                 openCompose({
                   to: replyTo,
@@ -293,6 +308,11 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
       title="单击打开，右侧下载另存为"
     />
   );
+}
+
+function normalizeSubject(s?: string): string {
+  if (!s) return "";
+  return s.replace(/^(\s*(re|fwd|fw|回复|转发)\s*[:：]\s*)+/i, "").trim().toLowerCase();
 }
 
 function stripHtml(html: string): string {

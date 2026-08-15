@@ -19,6 +19,15 @@ vi.mock("./router", async () => {
       deadline: "周五下午5点",
       mode: "cloud" as const,
     })),
+    summarizeThread: vi.fn(async () => ({
+      summary: "本次邮件线索关于项目上线排期进行了讨论并达成共识。",
+      timeline: [
+        { sender: "张三", date: "08-10 10:00", point: "发起关于上线排期的讨论" },
+        { sender: "李四", date: "08-10 14:30", point: "建议推迟两天并增加测试环节" },
+        { sender: "王五", date: "08-11 09:00", point: "确认最终排期为8月15日" },
+      ],
+      mode: "cloud" as const,
+    })),
     rewriteTone: vi.fn(async (t: string) => `改写：${t}`),
     ensureCloudPrivacyAck: () => true,
     ackCloudPrivacy: vi.fn(async () => undefined),
@@ -191,4 +200,63 @@ test("handles ABORTED error gracefully without displaying error message", async 
   expect(screen.getByTestId("lumen-capsule")).toHaveAttribute("data-state", "idle");
   expect(screen.queryByText(/Request aborted/)).not.toBeInTheDocument();
 });
+
+test("shows 线程摘要 button when multiple threadMessages exist and renders timeline on click", async () => {
+  const user = userEvent.setup();
+  const threadMessages = [
+    { sender: "张三", date: "08-10 10:00", body: "发起关于上线排期的讨论" },
+    { sender: "李四", date: "08-10 14:30", body: "建议推迟两天并增加测试环节" },
+    { sender: "王五", date: "08-11 09:00", body: "确认最终排期为8月15日" },
+  ];
+
+  render(
+    wrap(
+      <LumenCapsule
+        subject="上线排期讨论"
+        body="确认最终排期为8月15日"
+        threadMessages={threadMessages}
+      />,
+    ),
+  );
+
+  const threadBtn = screen.getByTestId("thread-summary-button");
+  expect(threadBtn).toBeInTheDocument();
+  expect(threadBtn).toHaveTextContent("线程摘要");
+
+  await user.click(threadBtn);
+
+  expect(router.summarizeThread).toHaveBeenCalledWith(
+    threadMessages,
+    "上线排期讨论",
+    expect.anything(),
+  );
+
+  expect(await screen.findByText("线索时间线摘要")).toBeInTheDocument();
+  expect(screen.getByTestId("thread-overall-summary")).toBeInTheDocument();
+  expect(screen.getByText(/本次邮件线索关于项目上线排期进行了讨论/)).toBeInTheDocument();
+
+  expect(screen.getByTestId("thread-timeline-list")).toBeInTheDocument();
+  expect(screen.getAllByTestId("timeline-item")).toHaveLength(3);
+  expect(screen.getByText("张三")).toBeInTheDocument();
+  expect(screen.getByText("08-10 10:00")).toBeInTheDocument();
+  expect(screen.getByText("发起关于上线排期的讨论")).toBeInTheDocument();
+  expect(screen.getByText("李四")).toBeInTheDocument();
+  expect(screen.getByText("王五")).toBeInTheDocument();
+  expect(screen.getByText("复制摘要")).toBeInTheDocument();
+});
+
+test("does not show 线程摘要 button when only single message in thread", () => {
+  render(
+    wrap(
+      <LumenCapsule
+        subject="单邮件"
+        body="单邮件正文"
+        threadMessages={[{ sender: "张三", body: "单邮件正文" }]}
+      />,
+    ),
+  );
+
+  expect(screen.queryByTestId("thread-summary-button")).not.toBeInTheDocument();
+});
+
 

@@ -26,14 +26,16 @@ import {
   quickReplyDraft,
   rewriteTone,
   summarize,
+  summarizeThread,
   type ActionItemsData,
+  type ThreadSummaryData,
 } from "./router";
 import { useAiSettings } from "./settingsStore";
 import { useMailStore } from "../mail/store";
 import { useToastStore } from "../shell/toastStore";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
-type ResultKind = "summary" | "draft" | "actionItems";
+type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary";
 
 export const QUICK_REPLY_OPTIONS = [
   { key: "ack", label: "收到谢谢" },
@@ -46,12 +48,21 @@ type Props = {
   subject?: string;
   from?: string;
   body: string;
+  /** Chronological messages in thread if available */
+  threadMessages?: { sender: string; date?: string; body: string }[];
   /** Reply target when inserting draft */
   replyTo?: string;
   onInsertDraft?: (draftText: string, replySubject: string, replyTo: string) => void;
 };
 
-export default function LumenCapsule({ subject, from, body, replyTo, onInsertDraft }: Props) {
+export default function LumenCapsule({
+  subject,
+  from,
+  body,
+  threadMessages,
+  replyTo,
+  onInsertDraft,
+}: Props) {
   const mode = useAiSettings((s) => s.mode);
   const hasCloudApiKey = useAiSettings((s) => s.hasCloudApiKey);
   const openCompose = useMailStore((s) => s.openCompose);
@@ -61,12 +72,13 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
   const [state, setState] = useState<CapsuleState>("idle");
   const [text, setText] = useState("");
   const [actionItemsData, setActionItemsData] = useState<ActionItemsData | null>(null);
+  const [threadSummaryData, setThreadSummaryData] = useState<ThreadSummaryData | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [kind, setKind] = useState<ResultKind>("summary");
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
-    "summary" | "draft" | "actionItems" | { type: "quick"; replyType: string } | null
+    "summary" | "draft" | "actionItems" | "threadSummary" | { type: "quick"; replyType: string } | null
   >(null);
   const activeReqIdRef = useRef<string | null>(null);
 
@@ -81,7 +93,7 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
     if (id) {
       await cancelRequest(id);
     }
-    if (text || actionItemsData) {
+    if (text || actionItemsData || threadSummaryData) {
       setState("expanded");
     } else {
       setState("idle");
@@ -210,6 +222,51 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
     }
   }
 
+  async function runThreadSummary() {
+    const msgs =
+      threadMessages && threadMessages.length > 0
+        ? threadMessages
+        : [{ sender: from || "未知发件人", date: undefined, body }];
+
+    if (mode === "cloud" && !hasCloudApiKey) {
+      guideSettings("未配置云端 API Key，请到设置 → AI 中填写");
+      return;
+    }
+    if (mode === "cloud" && !ensureCloudPrivacyAck()) {
+      setPendingAction("threadSummary");
+      setPrivacyOpen(true);
+      return;
+    }
+    const reqId = createAiRequestId();
+    activeReqIdRef.current = reqId;
+    setPendingAction(null);
+    setError(null);
+    setState("thinking");
+    setKind("threadSummary");
+    try {
+      const res = await summarizeThread(msgs, subject, { mode, requestId: reqId });
+      if (activeReqIdRef.current !== reqId) return;
+      setThreadSummaryData(res);
+      setState("expanded");
+    } catch (e) {
+      if (activeReqIdRef.current !== reqId) {
+        return;
+      }
+      if (e instanceof AiRequestError && e.code === "ABORTED") {
+        setState(text || actionItemsData || threadSummaryData ? "expanded" : "idle");
+        return;
+      }
+      const msg = e instanceof AiRequestError ? e.message : "线索摘要失败，请稍后重试";
+      setError(msg);
+      setState("idle");
+      showToast(msg, "error", 6000);
+    } finally {
+      if (activeReqIdRef.current === reqId) {
+        activeReqIdRef.current = null;
+      }
+    }
+  }
+
   async function runQuickReply(replyType: string) {
     if (mode === "cloud" && !hasCloudApiKey) {
       guideSettings("未配置云端 API Key，请到设置 → AI 中填写");
@@ -254,7 +311,7 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData ? "expanded" : "idle");
+        setState(text || actionItemsData || threadSummaryData ? "expanded" : "idle");
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "快捷回复失败，请稍后重试";
@@ -284,7 +341,7 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData ? "expanded" : "idle");
+        setState(text || actionItemsData || threadSummaryData ? "expanded" : "idle");
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "改写失败，请稍后重试";
@@ -321,6 +378,7 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
     setState("idle");
     setText("");
     setActionItemsData(null);
+    setThreadSummaryData(null);
     setCheckedItems({});
     setError(null);
   }
@@ -331,6 +389,7 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
     if (pendingAction === "summary") void runSummary();
     else if (pendingAction === "draft") void runDraft();
     else if (pendingAction === "actionItems") void runActionItems();
+    else if (pendingAction === "threadSummary") void runThreadSummary();
     else if (pendingAction && typeof pendingAction === "object" && pendingAction.type === "quick") {
       void runQuickReply(pendingAction.replyType);
     }
@@ -363,6 +422,17 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
             <Button size="small" onClick={() => void runSummary()} sx={{ minWidth: 0, px: 1 }}>
               总结
             </Button>
+            {Boolean(threadMessages && threadMessages.length > 1) && (
+              <Button
+                size="small"
+                color="inherit"
+                onClick={() => void runThreadSummary()}
+                sx={{ minWidth: 0, px: 1 }}
+                data-testid="thread-summary-button"
+              >
+                线程摘要
+              </Button>
+            )}
             <Button size="small" color="inherit" onClick={() => void runDraft()} sx={{ minWidth: 0, px: 1 }}>
               写回复
             </Button>
@@ -471,7 +541,7 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
           p: 1.5,
           width: { xs: "100%", sm: 380 },
           maxWidth: "100%",
-          maxHeight: "min(42vh, 340px)",
+          maxHeight: "min(46vh, 380px)",
           borderRadius: 2.5,
           bgcolor: "background.paper",
           display: "flex",
@@ -483,7 +553,13 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
           <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexShrink: 0 }}>
             <AutoAwesomeIcon color="primary" fontSize="small" />
             <Typography variant="subtitle2" color="primary">
-              {kind === "summary" ? "摘要" : kind === "draft" ? "草稿回复" : "行动项与意图"}
+              {kind === "summary"
+                ? "摘要"
+                : kind === "draft"
+                  ? "草稿回复"
+                  : kind === "actionItems"
+                    ? "行动项与意图"
+                    : "线索时间线摘要"}
             </Typography>
             <Chip
               size="small"
@@ -494,7 +570,81 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
             />
           </Stack>
 
-          {kind === "actionItems" ? (
+          {kind === "threadSummary" ? (
+            <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}>
+              {threadSummaryData?.summary && (
+                <Paper
+                  variant="outlined"
+                  data-testid="thread-overall-summary"
+                  sx={{
+                    p: 1,
+                    borderRadius: 1.5,
+                    bgcolor: (t) =>
+                      t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontWeight: 600, display: "block", mb: 0.25 }}
+                  >
+                    总体概述
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", fontSize: "0.85rem" }}>
+                    {threadSummaryData.summary}
+                  </Typography>
+                </Paper>
+              )}
+
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600, display: "block", mb: 0.75 }}
+                >
+                  时间线脉络
+                </Typography>
+                {!threadSummaryData?.timeline || threadSummaryData.timeline.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    暂无详细时间线记录
+                  </Typography>
+                ) : (
+                  <Stack spacing={1} data-testid="thread-timeline-list" sx={{ position: "relative", pl: 0.5 }}>
+                    {threadSummaryData.timeline.map((item, idx) => (
+                      <Box
+                        key={idx}
+                        data-testid="timeline-item"
+                        sx={{
+                          position: "relative",
+                          pl: 1.25,
+                          borderLeft: "2px solid",
+                          borderColor: "primary.main",
+                        }}
+                      >
+                        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 0.25 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary" }}>
+                            {item.sender}
+                          </Typography>
+                          {item.date && (
+                            <Chip
+                              size="small"
+                              label={item.date}
+                              variant="outlined"
+                              sx={{ height: 18, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+                            />
+                          )}
+                        </Stack>
+                        <Typography variant="body2" sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+                          {item.point}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+            </Stack>
+          ) : kind === "actionItems" ? (
             <Stack spacing={1} sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}>
               {actionItemsData?.tags && actionItemsData.tags.length > 0 && (
                 <Stack
@@ -584,7 +734,7 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
             </Typography>
           )}
           <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5, flexShrink: 0 }}>
-            {kind !== "actionItems" && (
+            {kind !== "actionItems" && kind !== "threadSummary" && (
               <>
                 <Button size="small" variant="outlined" onClick={() => void runTone("shorter")}>
                   更短一点
@@ -596,6 +746,22 @@ export default function LumenCapsule({ subject, from, body, replyTo, onInsertDra
                   扩写
                 </Button>
               </>
+            )}
+            {kind === "threadSummary" && threadSummaryData && (
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => {
+                  const timelineText = threadSummaryData.timeline
+                    .map((t) => `- [${t.date ? `${t.date} ` : ""}${t.sender}]: ${t.point}`)
+                    .join("\n");
+                  const copyContent = `【线索摘要】\n${threadSummaryData.summary}\n\n【时间线】\n${timelineText}`;
+                  void navigator.clipboard?.writeText(copyContent);
+                  showToast("已复制线索时间线摘要", "info", 2000);
+                }}
+              >
+                复制摘要
+              </Button>
             )}
             {kind === "actionItems" && actionItemsData && (
               <Button

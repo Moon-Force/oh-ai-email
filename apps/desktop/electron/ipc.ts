@@ -69,6 +69,7 @@ import {
   taskQuickReply,
   taskRewrite,
   taskSummarize,
+  taskThreadSummary,
 } from "./ai/tasks";
 import type { RewriteTone } from "./ai/prompts";
 
@@ -483,4 +484,18 @@ export async function registerIpc(): Promise<void> {
       },
     ) => taskCompose(payload),
   );
+
+  ipcMain.handle(
+    "ai:threadSummary",
+    async (
+      _e,
+      payload: {
+        subject?: string;
+        messages: { sender: string; date?: string; body: string }[];
+        mode?: AiMode;
+        requestId?: string;
+      },
+    ) => taskThreadSummary(payload),
+  );
 }
+

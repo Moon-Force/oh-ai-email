@@ -8,6 +8,7 @@ import {
   quickReplyDraft,
   rewriteTone,
   summarize,
+  summarizeThread,
   AiRequestError,
 } from "./router";
 
@@ -32,6 +33,15 @@ vi.mock("../../lib/ipc", () => ({
     deadline: "周五下午5点",
     mode: "cloud" as const,
   })),
+  aiThreadSummary: vi.fn(async () => ({
+    ok: true as const,
+    summary: "讨论了 Q3 发布计划并达成一致。",
+    timeline: [
+      { sender: "Alice", date: "2026-08-10", point: "提出初始方案" },
+      { sender: "Bob", date: "2026-08-11", point: "确认预算并同意推进" },
+    ],
+    mode: "cloud" as const,
+  })),
   aiRewrite: vi.fn(async () => ({
     ok: true as const,
     text: "敬启者：\n\nthanks\n\n此致",
@@ -48,6 +58,7 @@ beforeEach(() => {
   vi.mocked(ipc.aiDraftReply).mockClear();
   vi.mocked(ipc.aiQuickReply).mockClear();
   vi.mocked(ipc.aiActionItems).mockClear();
+  vi.mocked(ipc.aiThreadSummary).mockClear();
   vi.mocked(ipc.aiRewrite).mockClear();
 });
 
@@ -120,6 +131,32 @@ describe("extractActionItems", () => {
     await extractActionItems({ body: "test" }, { requestId: "req_act_1" });
     expect(ipc.aiActionItems).toHaveBeenCalledWith(
       expect.objectContaining({ requestId: "req_act_1" }),
+    );
+  });
+});
+
+describe("summarizeThread", () => {
+  it("extracts thread timeline and overall summary", async () => {
+    const data = await summarizeThread(
+      [
+        { sender: "Alice", date: "2026-08-10", body: "Initial proposal" },
+        { sender: "Bob", date: "2026-08-11", body: "Agreed" },
+      ],
+      "Q3 Plan",
+    );
+    expect(data.summary).toContain("讨论了 Q3 发布计划");
+    expect(data.timeline).toHaveLength(2);
+    expect(data.timeline[0].sender).toBe("Alice");
+    expect(data.timeline[1].point).toBe("确认预算并同意推进");
+    expect(ipc.aiThreadSummary).toHaveBeenCalled();
+  });
+
+  it("passes requestId when provided", async () => {
+    await summarizeThread([{ sender: "A", body: "test" }], "Subject", {
+      requestId: "req_thread_1",
+    });
+    expect(ipc.aiThreadSummary).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "req_thread_1" }),
     );
   });
 });

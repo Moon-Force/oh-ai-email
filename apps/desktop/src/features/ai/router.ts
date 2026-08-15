@@ -6,6 +6,7 @@ import {
   aiQuickReply,
   aiRewrite,
   aiSummarize,
+  aiThreadSummary,
   hasDesktopApi,
   type AiTaskResult,
 } from "../../lib/ipc";
@@ -24,6 +25,19 @@ export type ActionItemsData = {
   deadline?: string;
   mode: AiMode;
 };
+
+export type ThreadTimelineItem = {
+  sender: string;
+  date?: string;
+  point: string;
+};
+
+export type ThreadSummaryData = {
+  summary: string;
+  timeline: ThreadTimelineItem[];
+  mode: AiMode;
+};
+
 
 export function createAiRequestId(): string {
   return `airq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -160,6 +174,30 @@ export async function extractActionItems(
       tags: res.tags,
       actionItems: res.actionItems,
       deadline: res.deadline,
+      mode: res.mode,
+    };
+  }
+  throw new AiRequestError(res.code, res.error);
+}
+
+export async function summarizeThread(
+  messages: { sender: string; date?: string; body: string }[],
+  subject?: string,
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string,
+): Promise<ThreadSummaryData> {
+  if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  const res = await aiThreadSummary({
+    messages,
+    subject,
+    mode,
+    requestId: reqId,
+  });
+  if (res.ok) {
+    return {
+      summary: res.summary,
+      timeline: res.timeline,
       mode: res.mode,
     };
   }
