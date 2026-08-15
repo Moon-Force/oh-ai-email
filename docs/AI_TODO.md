@@ -140,15 +140,15 @@
   - 调用 `deepseek-reasoner` 时，主进程解析响应流与完整 JSON 中的 `choices[0].delta.reasoning_content`（或 `choices[0].message.reasoning_content`）。
   - 在前端 `LumenCapsule` 与 `AgentDrawer` 中以可折叠的 **「深度思考中... / 思考过程 (Thought Chain)」** 独立卡片呈现，与正式输出文本分离。
 - **验收标准**：
-  - [ ] 切换至 DeepSeek 预设并填入 Key 后，连通性测试通过。
-  - [ ] 选择 `deepseek-reasoner` 时，思考过程与最终回复分别渲染，思考流折叠不影响最终草稿一键插入。
+  - [x] 切换至 DeepSeek 预设并填入 Key 后，连通性测试通过。
+  - [x] 选择 `deepseek-reasoner` 时，思考过程与最终回复分别渲染，思考流折叠不影响最终草稿一键插入。
 
 #### W3-12：小米 MiMo 预设与通道 (Xiaomi MiMo Integration)
 - **预设配置**：内置 Endpoint `https://api.xiaomimimo.com/v1`，模型支持 `mimo-v2.5`、`mimo-v2.5-pro` 及语音模型 `mimo-v2.5-tts`。
 - **适配要求**：完全兼容 OpenAI 格式 Chat Completions 协议，支持高速摘要与高性价比草稿生成。
 - **验收标准**：
-  - [ ] 设置页一键选择「小米 MiMo」预设，自动填入 BaseURL。
-  - [ ] 使用 MiMo Key 能稳定完成单邮件摘要与 Composer 润色。
+  - [x] 设置页一键选择「小米 MiMo」预设，自动填入 BaseURL。
+  - [x] 使用 MiMo Key 能稳定完成单邮件摘要与 Composer 润色。
 
 #### W3-13：远程与本地模型列表动态拉取 (Dynamic Model Discovery)
 - **功能描述**：在设置页提供「刷新模型列表」按钮，避免用户手动手输模型字符串。
@@ -156,16 +156,16 @@
   - 云端通用通道（OpenAI / DeepSeek / MiMo / Custom）：主进程发起 `GET ${baseUrl}/models`（带 `Authorization: Bearer <Key>`），解析 `data[].id` 过滤可用模型。
   - 本地 Ollama 通道：主进程发起 `GET ${ollamaHost}/api/tags`，解析 `models[].name`。
 - **验收标准**：
-  - [ ] 填入有效 Key 后点击刷新，下拉框自动列出远端支持的模型列表。
-  - [ ] Ollama 运行中点击刷新，自动列出本地已 pull 的模型列表。
-  - [ ] 拉取失败时给出轻量 Toast 提示，不阻断手动输入。
+  - [x] 填入有效 Key 后点击刷新，下拉框自动列出远端支持的模型列表。
+  - [x] Ollama 运行中点击刷新，自动列出本地已 pull 的模型列表。
+  - [x] 拉取失败时给出轻量 Toast 提示，不阻断手动输入。
 
 #### W3-14：账户余额与额度实时查询 (Account Balance Query)
 - **功能描述**：对支持余额查询的 Provider（如 DeepSeek），在设置面板常驻显示账户可用额度与货币类型。
 - **协议实现**：主进程发起 `GET https://api.deepseek.com/user/balance`，解析 `is_available` 与 `balance_infos`（包含 `currency`、`total_balance`、`granted_balance`、`topped_up_balance`）。
 - **验收标准**：
-  - [ ] DeepSeek 模式下，设置页面显示「账户余额：¥XX.XX（赠送额度：¥XX.XX）」。
-  - [ ] 余额欠费（`is_available: false`）时，设置页高亮红色告警，提示用户充值。
+  - [x] DeepSeek 模式下，设置页面显示「账户余额：¥XX.XX（赠送额度：¥XX.XX）」。
+  - [x] 余额欠费（`is_available: false`）时，设置页高亮红色告警，提示用户充值。
 
 #### W3-15：语音口述听写 (STT) 与邮件朗读 (TTS)
 - **语音输入 (STT - Speech-to-Text)**：
@@ -176,8 +176,8 @@
   - 支持双引擎降级：优先调用已配置的 MiMo TTS（`mimo-v2.5-tts`），若未配置或离线则平滑切至浏览器原生 `window.speechSynthesis`。
   - 提供播放、暂停、进度条与语速（0.8x - 1.5x）调节组件。
 - **验收标准**：
-  - [ ] 麦克风权限正常时，点击麦克风可将口述语音实时输入至 Composer。
-  - [ ] 读信时点击朗读，可平稳播报中文/英文摘要，并在切换邮件时自动停止上一条播报。
+  - [x] 麦克风权限正常时，点击麦克风可将口述语音实时输入至 Composer。
+  - [x] 读信时点击朗读，可平稳播报中文/英文摘要，并在切换邮件时自动停止上一条播报。
 
 ---
 
