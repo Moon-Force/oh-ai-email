@@ -18,6 +18,8 @@ export type AiSettingsRecord = {
   /** User acknowledged cloud privacy once */
   cloudPrivacyAck: boolean;
   preferLocalWhenAvailable: boolean;
+  /** Redact emails, phones and ID numbers before sending to cloud */
+  redactSensitiveData: boolean;
 };
 
 const CLOUD_KEY = "ai:cloudApiKey";
@@ -30,6 +32,7 @@ const DEFAULTS: AiSettingsRecord = {
   ollamaModel: "llama3.2",
   cloudPrivacyAck: false,
   preferLocalWhenAvailable: false,
+  redactSensitiveData: false,
 };
 
 function settingsPath(): string {
@@ -51,6 +54,7 @@ export function loadAiSettings(): AiSettingsRecord {
       ollamaModel: String(raw.ollamaModel || DEFAULTS.ollamaModel),
       cloudPrivacyAck: Boolean(raw.cloudPrivacyAck),
       preferLocalWhenAvailable: Boolean(raw.preferLocalWhenAvailable),
+      redactSensitiveData: Boolean(raw.redactSensitiveData),
     };
   } catch {
     return { ...DEFAULTS };

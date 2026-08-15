@@ -141,6 +141,7 @@ export type AiSettingsDto = {
   ollamaModel: string;
   cloudPrivacyAck: boolean;
   preferLocalWhenAvailable: boolean;
+  redactSensitiveData: boolean;
   hasCloudApiKey: boolean;
 };
 
@@ -416,6 +417,7 @@ export async function aiGetSettings(): Promise<AiSettingsDto> {
       ollamaModel: "llama3.2",
       cloudPrivacyAck: false,
       preferLocalWhenAvailable: false,
+      redactSensitiveData: false,
       hasCloudApiKey: false,
     };
   }
@@ -433,6 +435,7 @@ export async function aiSaveSettings(payload: AiSaveSettingsPayload): Promise<Ai
       ollamaModel: payload.ollamaModel ?? "llama3.2",
       cloudPrivacyAck: payload.cloudPrivacyAck ?? false,
       preferLocalWhenAvailable: payload.preferLocalWhenAvailable ?? false,
+      redactSensitiveData: payload.redactSensitiveData ?? false,
       hasCloudApiKey: Boolean(payload.apiKey?.trim()),
     };
   }

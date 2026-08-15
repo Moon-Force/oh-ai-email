@@ -18,7 +18,7 @@ const sample: MailMessage[] = [
     unread: true,
     split: "important",
     html: "<p>pricing page discussion</p>",
-    attachmentMetas: [{ id: "att1", filename: "deck.pdf", size: 1024, mimeType: "application/pdf" }],
+    attachments: [{ id: "att1", filename: "deck.pdf", size: 1024, contentType: "application/pdf" }],
   },
   {
     id: "2",

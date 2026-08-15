@@ -1,4 +1,5 @@
 import { getCloudApiKey, loadAiSettings, type AiMode } from "./settings";
+import { redactSensitiveData, restoreRedactedData } from "./clean";
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -69,14 +70,33 @@ export async function chatComplete(
         error: "未配置云端 API Key，请到设置 → AI 中填写 OpenAI 兼容密钥",
       };
     }
-    return await callOpenAiCompatible(
-      messages,
+
+    let outgoingMessages = messages;
+    let combinedReplacements: Record<string, string> = {};
+    if (settings.redactSensitiveData) {
+      outgoingMessages = messages.map((m) => {
+        const { text, replacements } = redactSensitiveData(m.content);
+        Object.assign(combinedReplacements, replacements);
+        return { role: m.role, content: text };
+      });
+    }
+
+    const res = await callOpenAiCompatible(
+      outgoingMessages,
       settings.baseUrl,
       key,
       settings.model,
       combinedSignal,
       controller.signal,
     );
+
+    if (res.ok && settings.redactSensitiveData && Object.keys(combinedReplacements).length > 0) {
+      return {
+        ...res,
+        text: restoreRedactedData(res.text, combinedReplacements),
+      };
+    }
+    return res;
   } catch (e) {
     if (controller.signal.aborted) {
       return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };

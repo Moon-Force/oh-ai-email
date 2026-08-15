@@ -25,6 +25,8 @@ export type MailMessage = {
   uid: number;
   from: string;
   fromName: string;
+  to?: string;
+  replyTo?: string;
   subject: string;
   snippet: string;
   date: string;

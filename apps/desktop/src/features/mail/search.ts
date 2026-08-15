@@ -70,7 +70,7 @@ export function searchMessages(messages: MailMessage[], query: string): MailMess
       if (Boolean(m.unread) !== parsed.isUnread) continue;
     }
     if (parsed.hasAttachment !== undefined) {
-      const hasAtt = Boolean((m.attachmentMetas && m.attachmentMetas.length > 0) || (m.snippet && m.snippet.includes("📎")));
+      const hasAtt = Boolean((m.attachments && m.attachments.length > 0) || (m.snippet && m.snippet.includes("📎")));
       if (hasAtt !== parsed.hasAttachment) continue;
     }
     if (parsed.split !== undefined) {

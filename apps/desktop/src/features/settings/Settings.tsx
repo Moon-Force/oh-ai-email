@@ -47,6 +47,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     setOllamaModel,
     preferLocalWhenAvailable,
     setPreferLocal,
+    redactSensitiveData,
+    setRedactSensitiveData,
     apiKeyDraft,
     setApiKeyDraft,
     hasCloudApiKey,
@@ -287,12 +289,22 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={cloudPrivacyAck}
+                      checked={Boolean(cloudPrivacyAck)}
                       onChange={(e) => setCloudPrivacyAck(e.target.checked)}
                       slotProps={{ input: { "aria-label": "已了解云端隐私" } }}
                     />
                   }
                   label="我了解云端模式会将邮件正文发往所配置的服务"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(redactSensitiveData)}
+                      onChange={(e) => setRedactSensitiveData(e.target.checked)}
+                      slotProps={{ input: { "aria-label": "敏感数据自动脱敏" } }}
+                    />
+                  }
+                  label="发送云端前自动脱敏（邮箱、手机号、卡号替换为安全占位符）"
                 />
               </>
             )}
@@ -329,7 +341,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
             <FormControlLabel
               control={
                 <Switch
-                  checked={preferLocalWhenAvailable}
+                  checked={Boolean(preferLocalWhenAvailable)}
                   onChange={(e) => setPreferLocal(e.target.checked)}
                   slotProps={{ input: { "aria-label": "可用时优先本机" } }}
                 />

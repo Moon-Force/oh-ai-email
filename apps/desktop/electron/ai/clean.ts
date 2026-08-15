@@ -37,3 +37,49 @@ export function buildMailContext(opts: {
   parts.push("", cleaned || "(empty body)");
   return parts.join("\n");
 }
+
+export type RedactResult = {
+  text: string;
+  replacements: Record<string, string>;
+};
+
+/** Redact emails, phone numbers, and card/ID numbers with safe placeholders. */
+export function redactSensitiveData(input: string): RedactResult {
+  const replacements: Record<string, string> = {};
+  let counter = 1;
+
+  let out = input;
+
+  // 1. Email addresses
+  out = out.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, (match) => {
+    const placeholder = `[EMAIL_${counter++}]`;
+    replacements[placeholder] = match;
+    return placeholder;
+  });
+
+  // 2. Phone numbers (11 digits or +86 format)
+  out = out.replace(/(?:\+?86[- ]?)?1[3-9]\d{9}\b/g, (match) => {
+    const placeholder = `[PHONE_${counter++}]`;
+    replacements[placeholder] = match;
+    return placeholder;
+  });
+
+  // 3. 15-19 digit card / ID numbers
+  out = out.replace(/\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{3,7}\b/g, (match) => {
+    const placeholder = `[NUM_${counter++}]`;
+    replacements[placeholder] = match;
+    return placeholder;
+  });
+
+  return { text: out, replacements };
+}
+
+/** Restore original data from placeholders if present in model output. */
+export function restoreRedactedData(text: string, replacements: Record<string, string>): string {
+  let restored = text;
+  for (const [placeholder, original] of Object.entries(replacements)) {
+    restored = restored.split(placeholder).join(original);
+  }
+  return restored;
+}
+

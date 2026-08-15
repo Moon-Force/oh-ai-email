@@ -16,6 +16,7 @@ type AiSettingsState = {
   ollamaModel: string;
   cloudPrivacyAck: boolean;
   preferLocalWhenAvailable: boolean;
+  redactSensitiveData: boolean;
   hasCloudApiKey: boolean;
   /** Local draft of api key (never reloaded from disk as plaintext). */
   apiKeyDraft: string;
@@ -26,6 +27,7 @@ type AiSettingsState = {
   setOllamaHost: (v: string) => void;
   setOllamaModel: (v: string) => void;
   setPreferLocal: (v: boolean) => void;
+  setRedactSensitiveData: (v: boolean) => void;
   setApiKeyDraft: (v: string) => void;
   setCloudPrivacyAck: (v: boolean) => void;
   applyDto: (dto: AiSettingsDto) => void;
@@ -41,6 +43,7 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   ollamaModel: "llama3.2",
   cloudPrivacyAck: false,
   preferLocalWhenAvailable: false,
+  redactSensitiveData: false,
   hasCloudApiKey: false,
   apiKeyDraft: "",
   hydrated: false,
@@ -50,6 +53,7 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   setOllamaHost: (ollamaHost) => set({ ollamaHost }),
   setOllamaModel: (ollamaModel) => set({ ollamaModel }),
   setPreferLocal: (preferLocalWhenAvailable) => set({ preferLocalWhenAvailable }),
+  setRedactSensitiveData: (redactSensitiveData) => set({ redactSensitiveData }),
   setApiKeyDraft: (apiKeyDraft) => set({ apiKeyDraft }),
   setCloudPrivacyAck: (cloudPrivacyAck) => set({ cloudPrivacyAck }),
   applyDto: (dto) =>
@@ -61,6 +65,7 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       ollamaModel: dto.ollamaModel,
       cloudPrivacyAck: dto.cloudPrivacyAck,
       preferLocalWhenAvailable: dto.preferLocalWhenAvailable,
+      redactSensitiveData: dto.redactSensitiveData,
       hasCloudApiKey: dto.hasCloudApiKey,
       hydrated: true,
     }),
@@ -78,6 +83,7 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       ollamaModel: s.ollamaModel,
       cloudPrivacyAck: s.cloudPrivacyAck,
       preferLocalWhenAvailable: s.preferLocalWhenAvailable,
+      redactSensitiveData: s.redactSensitiveData,
     };
     if (s.apiKeyDraft.trim()) {
       payload.apiKey = s.apiKeyDraft.trim();
