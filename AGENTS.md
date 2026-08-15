@@ -51,8 +51,10 @@ Implement against **docs + current code**. Historical mockups under `design/mvp/
 | 隐私 | 设置页常驻数据去向 + 首次云端轻确认 |
 | 超时 | 60s，不自动重试 |
 | 分箱 | AI 建议分箱 **非** wave-1；继续规则 + 手动 |
+| **实验性** | **禁止未成熟想法进主版本**（如联系人动态记忆层/自动画像扫描等仅留存灵感池；若开发原型必须默认全局禁用或在 `exp/*` 分支隔离） |
 
 **当前分支习惯**：AI 功能在 `feat/ai` 开发；合入 `main` 前对照 `docs/AI_TODO.md` 验收。
+**实验性想法准则**：未经验证、高幻觉风险或涉重度后台分析的探索性功能（如联系人记忆/画像）严禁直接并入主发布版本。
 
 ## Stack (locked)
 
@@ -132,3 +134,4 @@ Do not start mobile/HarmonyOS work until phase-1 desktop MVP is usable unless th
 - Electron rewrite
 - Replacing MUI without an explicit decision change
 - Re-adopting Liquid Glass as the product design system
+- 未成熟的后台联系人动态画像 / 记忆层（严格保持在灵感池备忘，不进主版本）
