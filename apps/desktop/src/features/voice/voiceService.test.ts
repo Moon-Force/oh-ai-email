@@ -14,7 +14,8 @@ describe("Voice Service (STT & TTS)", () => {
 
   describe("Speech Recognition (STT)", () => {
     it("returns false if recognition is not supported in environment", () => {
-      const original = (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+      const original = (window as unknown as { webkitSpeechRecognition?: unknown })
+        .webkitSpeechRecognition;
       // @ts-expect-error test override
       delete window.webkitSpeechRecognition;
       // @ts-expect-error test override
@@ -27,7 +28,8 @@ describe("Voice Service (STT & TTS)", () => {
       expect(errorFn).toHaveBeenCalledWith(expect.stringContaining("不支持语音识别"));
       expect(typeof cancel).toBe("function");
 
-      (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition = original;
+      (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition =
+        original;
     });
 
     it("creates recognition instance and handles results", () => {
@@ -92,7 +94,6 @@ describe("Voice Service (STT & TTS)", () => {
       stopSpeaking();
       expect(mockSynthesis.cancel).toHaveBeenCalledTimes(2);
     });
-
 
     it("handles empty text gracefully", () => {
       const mockSynthesis = {

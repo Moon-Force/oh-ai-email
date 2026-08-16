@@ -2,18 +2,18 @@
 
 ## 1. 技术栈总览
 
-| 层       | 选型                                        | 职责                                                                             |
-| -------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
-| 桌面壳   | **Electron**                                | 窗口、系统集成、打包 Win/macOS/Linux                                             |
-| 层       | 选型                                        | 职责                                                                             |
-| -------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
-| 桌面壳   | **Electron**                                | 窗口、系统集成、打包 Win/macOS/Linux                                             |
-| UI       | **React + TypeScript + MUI**                | 列表、读信、写信、设置、AI 面板；视觉见 [DESIGN.md](./DESIGN.md)（Material UI） |
-| 主进程核心 | **Node.js / TypeScript (Electron)**         | IMAP/SMTP 协议管理、同步编排、安全存储 safeStorage、AI 路由与 Agent 引擎          |
-| 本地库   | **SQLite**（敏感字段加密 / safeStorage 加密）| 邮件元数据、正文缓存、账号配置                                                   |
-| 云端 AI  | 多厂商预设与 OpenAI 兼容代理通道             | DeepSeek (`deepseek-chat`, `deepseek-reasoner`), 小米 MiMo, 自定义兼容端点        |
-| 本地 AI  | **Ollama** HTTP API                         | 用户可选（`127.0.0.1:11434`），邮件内容不经云                                    |
-| 语音交互 | **Web Speech API + MiMo TTS**               | 语音听写 (STT) + 邮件/摘要朗读 (TTS)                                             |
+| 层         | 选型                                          | 职责                                                                             |
+| ---------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| 桌面壳     | **Electron**                                  | 窗口、系统集成、打包 Win/macOS/Linux                                             |
+| 层         | 选型                                          | 职责                                                                             |
+| --------   | -------------------------------------------   | -------------------------------------------------------------------------------- |
+| 桌面壳     | **Electron**                                  | 窗口、系统集成、打包 Win/macOS/Linux                                             |
+| UI         | **React + TypeScript + MUI**                  | 列表、读信、写信、设置、AI 面板；视觉见 [DESIGN.md](./DESIGN.md)（Material UI）  |
+| 主进程核心 | **Node.js / TypeScript (Electron)**           | IMAP/SMTP 协议管理、同步编排、安全存储 safeStorage、AI 路由与 Agent 引擎         |
+| 本地库     | **SQLite**（敏感字段加密 / safeStorage 加密） | 邮件元数据、正文缓存、账号配置                                                   |
+| 云端 AI    | 多厂商预设与 OpenAI 兼容代理通道              | DeepSeek (`deepseek-chat`, `deepseek-reasoner`), 小米 MiMo, 自定义兼容端点       |
+| 本地 AI    | **Ollama** HTTP API                           | 用户可选（`127.0.0.1:11434`），邮件内容不经云                                    |
+| 语音交互   | **Web Speech API + MiMo TTS**                 | 语音听写 (STT) + 邮件/摘要朗读 (TTS)                                             |
 
 ## 2. 逻辑分层
 
@@ -198,6 +198,7 @@ UI 触发（Capsule 摘要 / 润色 / 快速回复 / 意图识别）
 ### 5.4 深度思考流与 Reasoning Token 处理 (DeepSeek R1)
 
 针对带思考链（Chain-of-Thought）的推理模型（如 `deepseek-reasoner` / Ollama `deepseek-r1`）：
+
 - **流式解析**：主进程监听 SSE 数据流，提取 `choices[0].delta.reasoning_content`（思考 Token）与 `choices[0].delta.content`（正文 Token）。
 - **双通道广播**：通过 IPC 事件分别向前端投递 `reasoning` 与 `content` 增量。
 - **UI 独立呈现**：前端 `LumenCapsule` 与 `AgentDrawer` 中以可折叠面板单独展示「思考过程」，与最终生成文本/草稿保持物理分离，确保草稿插入 Composer 时仅写入清洁正文。

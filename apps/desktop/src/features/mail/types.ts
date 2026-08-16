@@ -1,5 +1,4 @@
-/** UI folder roles (mapped from IMAP special-use / path heuristics). */
-export type MailFolderId = "inbox" | "sent" | "drafts" | "archive" | "trash";
+export type MailFolderId = "inbox" | "sent" | "drafts" | "archive" | "trash" | "snoozed";
 
 export type MailFolder = {
   id: string;
@@ -34,6 +33,9 @@ export type MailMessage = {
   unread: boolean;
   split: "important" | "other";
   html?: string;
+  snoozedUntil?: number | null;
+  isPinned?: boolean;
+  isMuted?: boolean;
   attachments?: MailAttachment[];
 };
 

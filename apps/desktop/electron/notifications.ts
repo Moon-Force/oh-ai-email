@@ -11,7 +11,7 @@ export interface MailNotificationPayload {
 
 export function showMailNotification(
   payload: MailNotificationPayload,
-  mainWindow?: BrowserWindow | null,
+  mainWindow?: BrowserWindow | null
 ) {
   if (!Notification.isSupported()) return;
 

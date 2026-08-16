@@ -28,7 +28,7 @@ export class IdleAccountWorker {
 
   constructor(
     public readonly accountId: string,
-    private getMainWindow: () => BrowserWindow | null,
+    private getMainWindow: () => BrowserWindow | null
   ) {}
 
   public getStatus(): IdleWorkerState {
@@ -134,7 +134,7 @@ export class IdleAccountWorker {
         async (data: { seq: number }) => {
           this.lastEventAt = Date.now();
           await this.handlePushEvent(account, "expunge", data?.seq);
-        },
+        }
       );
 
       (client as unknown as { on: (event: string, cb: Function) => void }).on("flags", async () => {
@@ -143,15 +143,28 @@ export class IdleAccountWorker {
       });
 
       await client.connect();
+      if (!this.running) {
+        try {
+          await client.logout();
+        } catch {
+          try {
+            client.close();
+          } catch {
+            // ignore
+          }
+        }
+        return;
+      }
 
       // Lock/select INBOX
       const lock = await client.getMailboxLock("INBOX");
       try {
+        if (!this.running) return;
         this.status = "idle";
         this.reconnectAttempts = 0;
         console.info(`[idle:${account.email}] Entered IMAP IDLE on INBOX`);
 
-        // Setup keepalive NOOP every 14 minutes (RFC recommends < 29 min)
+        // Setup keepalive NOOP every 90 seconds to prevent NAT router TCP half-open drop
         this.keepaliveTimer = setInterval(async () => {
           if (this.client && this.running && this.status === "idle") {
             try {
@@ -161,7 +174,7 @@ export class IdleAccountWorker {
               this.scheduleReconnect("保活心跳失败");
             }
           }
-        }, 14 * 60 * 1000);
+        }, 90 * 1000);
 
         // Keep IDLE loop running until stopped
         await client.idle();
@@ -169,6 +182,7 @@ export class IdleAccountWorker {
         lock.release();
       }
     } catch (err) {
+      if (!this.running) return;
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[idle:${account.email}] Failed to connect/idle: ${msg}`);
       this.scheduleReconnect(msg);
@@ -191,9 +205,13 @@ export class IdleAccountWorker {
     }
 
     this.reconnectAttempts += 1;
-    // Exponential backoff: 5s, 10s, 20s, max 60s
-    const delay = Math.min(5000 * Math.pow(2, Math.min(this.reconnectAttempts - 1, 4)), 60000);
-    console.info(`[idle:${this.accountId}] Reconnecting in ${(delay / 1000).toFixed(0)}s (attempt ${this.reconnectAttempts})...`);
+    // Fast ladder backoff: 3s, 6s, 12s, 24s, max 30s
+    const backoffLadder = [3000, 6000, 12000, 24000, 30000];
+    const delay =
+      backoffLadder[Math.min(this.reconnectAttempts - 1, backoffLadder.length - 1)] ?? 30000;
+    console.info(
+      `[idle:${this.accountId}] Reconnecting in ${(delay / 1000).toFixed(0)}s (attempt ${this.reconnectAttempts})...`
+    );
 
     this.reconnectTimer = setTimeout(() => {
       void this.connectAndIdle();
@@ -201,24 +219,35 @@ export class IdleAccountWorker {
   }
 
   private async handlePushEvent(account: AccountRecord, eventType: string, countOrSeq?: number) {
-    try {
-      // Incremental sync of the latest messages
-      const syncResult = await syncAccount(account.id, 15);
-      console.info(`[idle:${account.email}] Incremental sync on push completed, synced ${syncResult.messages} messages`);
+    const doSync = async (attempt = 1): Promise<void> => {
+      try {
+        // Incremental sync of the latest messages
+        const syncResult = await syncAccount(account.id, 20);
+        console.info(
+          `[idle:${account.email}] Incremental sync on push completed, synced ${syncResult.messages} messages`
+        );
 
-      // Notify renderer window for instant UI refresh
-      const win = this.getMainWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send("mail:pushed", {
-          accountId: account.id,
-          eventType,
-          count: countOrSeq,
-          messagesSynced: syncResult.messages,
-        });
+        // Notify renderer window for instant UI refresh
+        const win = this.getMainWindow();
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("mail:pushed", {
+            accountId: account.id,
+            eventType,
+            count: countOrSeq,
+            messagesSynced: syncResult.messages,
+          });
+        }
+      } catch (err) {
+        if (attempt < 2) {
+          // Retry once after 600ms in case concurrent session was temporarily locked
+          setTimeout(() => void doSync(attempt + 1), 600);
+        } else {
+          console.warn(`[idle:${account.email}] Error handling push sync`, err);
+        }
       }
-    } catch (err) {
-      console.warn(`[idle:${account.email}] Error handling push sync`, err);
-    }
+    };
+
+    await doSync();
   }
 }
 

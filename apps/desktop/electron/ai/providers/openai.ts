@@ -45,9 +45,7 @@ function withTimeout(ms: number): AbortSignal {
 /**
  * Fetches the list of available models from Ollama (local) or OpenAI/DeepSeek/MiMo (cloud).
  */
-export async function fetchRemoteModels(
-  settings: AiSettingsRecord,
-): Promise<RemoteModelsResult> {
+export async function fetchRemoteModels(settings: AiSettingsRecord): Promise<RemoteModelsResult> {
   if (settings.mode === "local") {
     const base = settings.ollamaHost.replace(/\/+$/, "");
     try {
@@ -131,7 +129,7 @@ export async function fetchRemoteModels(
  * Queries account balance info (DeepSeek / standard cloud balance endpoints).
  */
 export async function fetchAccountBalance(
-  settings: AiSettingsRecord,
+  settings: AiSettingsRecord
 ): Promise<AccountBalanceResult> {
   const key = getCloudApiKey();
   if (!key) {
@@ -225,7 +223,7 @@ export async function fetchAccountBalance(
 export async function synthesizeSpeechMiMo(
   text: string,
   voice = "alloy",
-  settings?: AiSettingsRecord,
+  settings?: AiSettingsRecord
 ): Promise<SpeechSynthesisResult> {
   const key = getCloudApiKey();
   if (!key) {
@@ -234,7 +232,7 @@ export async function synthesizeSpeechMiMo(
 
   const base = (settings?.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
   const url = `${base}/audio/speech`;
-  const model = (settings?.model && settings.model.includes("mimo")) ? "mimo-tts" : "tts-1";
+  const model = settings?.model && settings.model.includes("mimo") ? "mimo-tts" : "tts-1";
 
   try {
     const res = await fetch(url, {

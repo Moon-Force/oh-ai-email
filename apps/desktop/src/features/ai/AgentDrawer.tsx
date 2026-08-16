@@ -39,10 +39,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import { useAgentStore } from "./agentStore";
-import type {
-  AgentProposalItem,
-  AgentType,
-} from "../../lib/ipc";
+import type { AgentProposalItem, AgentType } from "../../lib/ipc";
 
 const AGENT_OPTIONS: { type: AgentType; label: string; description: string }[] = [
   {
@@ -100,13 +97,12 @@ export default function AgentDrawer() {
   const [showLog, setShowLog] = useState(true);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const isRunning =
-    status === "planning" || status === "executing_tools";
+  const isRunning = status === "planning" || status === "executing_tools";
 
-  const allSelected =
-    Boolean(proposal && proposal.items.length > 0 && proposal.items.every((i) => i.selected));
-  const someSelected =
-    Boolean(proposal && proposal.items.some((i) => i.selected) && !allSelected);
+  const allSelected = Boolean(
+    proposal && proposal.items.length > 0 && proposal.items.every((i) => i.selected)
+  );
+  const someSelected = Boolean(proposal && proposal.items.some((i) => i.selected) && !allSelected);
 
   const handleStart = () => {
     setSuccessToast(null);
@@ -195,7 +191,11 @@ export default function AgentDrawer() {
         <Stack spacing={2.5}>
           {/* Quick Agent Shortcuts */}
           <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "action.hover" }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 1, display: "block" }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 600, mb: 1, display: "block" }}
+            >
               快捷智能助手
             </Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 0.75 }}>
@@ -283,7 +283,9 @@ export default function AgentDrawer() {
             <Button
               fullWidth
               variant="contained"
-              startIcon={isRunning ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />}
+              startIcon={
+                isRunning ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />
+              }
               disabled={isRunning}
               onClick={handleStart}
             >
@@ -294,12 +296,23 @@ export default function AgentDrawer() {
           {/* Stepper Progress */}
           {(isRunning || status === "review_pending" || status === "completed") && (
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 1.5, display: "block" }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontWeight: 600, mb: 1.5, display: "block" }}
+              >
                 执行流程进度
               </Typography>
               <Stepper activeStep={Math.max(0, currentStepIndex - 1)} alternativeLabel>
                 {STEPS.map((label, idx) => (
-                  <Step key={label} completed={currentStepIndex > idx + 1 || status === "completed" || status === "review_pending"}>
+                  <Step
+                    key={label}
+                    completed={
+                      currentStepIndex > idx + 1 ||
+                      status === "completed" ||
+                      status === "review_pending"
+                    }
+                  >
                     <StepLabel>{label}</StepLabel>
                   </Step>
                 ))}
@@ -324,7 +337,11 @@ export default function AgentDrawer() {
 
           {/* Success Message */}
           {successToast && (
-            <Alert severity="success" icon={<CheckCircleIcon fontSize="inherit" />} onClose={() => setSuccessToast(null)}>
+            <Alert
+              severity="success"
+              icon={<CheckCircleIcon fontSize="inherit" />}
+              onClose={() => setSuccessToast(null)}
+            >
               {successToast}
             </Alert>
           )}
@@ -355,7 +372,11 @@ export default function AgentDrawer() {
                   </Typography>
                 </Stack>
                 <IconButton size="small">
-                  {showLog ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                  {showLog ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
                 </IconButton>
               </Box>
               <Collapse in={showLog}>
@@ -407,9 +428,7 @@ export default function AgentDrawer() {
                     />
                   }
                   label={
-                    <Typography variant="caption">
-                      {allSelected ? "取消全选" : "全选"}
-                    </Typography>
+                    <Typography variant="caption">{allSelected ? "取消全选" : "全选"}</Typography>
                   }
                 />
               </Box>
@@ -474,13 +493,7 @@ export default function AgentDrawer() {
                 确认采纳所选项
               </Button>
             </Stack>
-            <Button
-              variant="text"
-              fullWidth
-              size="small"
-              color="inherit"
-              onClick={dismiss}
-            >
+            <Button variant="text" fullWidth size="small" color="inherit" onClick={dismiss}>
               放弃 / 清空
             </Button>
           </Stack>
@@ -601,7 +614,11 @@ function ProposalItemCard({
                   {item.subject}
                 </Typography>
               </Stack>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.5 }}
+              >
                 收件人：{item.targetTo}
               </Typography>
               <Box

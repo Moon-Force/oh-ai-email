@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  fetchAccountBalance,
-  fetchRemoteModels,
-  synthesizeSpeechMiMo,
-} from "./openai";
+import { fetchAccountBalance, fetchRemoteModels, synthesizeSpeechMiMo } from "./openai";
 import type { AiSettingsRecord } from "../settings";
 
 vi.mock("../settings", () => ({

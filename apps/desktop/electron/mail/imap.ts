@@ -21,16 +21,20 @@ export function createClient(input: ImapConnectInput): ImapFlow {
       rejectUnauthorized: true,
       minVersion: "TLSv1.2",
     },
-    connectionTimeout: 20_000,
-    greetingTimeout: 20_000,
-    socketTimeout: 60_000,
+    connectionTimeout: 12_000,
+    greetingTimeout: 12_000,
+    socketTimeout: 30_000,
   });
 }
 
 function humanizeImapError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   const lower = msg.toLowerCase();
-  if (lower.includes("authentication") || lower.includes("invalid credentials") || lower.includes("auth")) {
+  if (
+    lower.includes("authentication") ||
+    lower.includes("invalid credentials") ||
+    lower.includes("auth")
+  ) {
     return "认证失败：请检查邮箱地址与授权码（多数服务商不支持登录密码）";
   }
   if (lower.includes("timeout") || lower.includes("timed out")) {
@@ -77,7 +81,14 @@ export function classifyFolderRole(pathName: string): FolderRole {
   if (p.includes("sent") || p.includes("已发送")) return "sent";
   if (p.includes("draft") || p.includes("草稿")) return "drafts";
   if (p.includes("archive") || p.includes("归档") || p.includes("all mail")) return "archive";
-  if (p.includes("trash") || p.includes("deleted") || p.includes("已删除") || p.includes("junk") || p.includes("spam") || p.includes("垃圾")) {
+  if (
+    p.includes("trash") ||
+    p.includes("deleted") ||
+    p.includes("已删除") ||
+    p.includes("junk") ||
+    p.includes("spam") ||
+    p.includes("垃圾")
+  ) {
     return "trash";
   }
   return "other";
@@ -86,7 +97,7 @@ export function classifyFolderRole(pathName: string): FolderRole {
 export async function withImapAccount<T>(
   account: AccountRecord,
   password: string,
-  fn: (client: ImapFlow) => Promise<T>,
+  fn: (client: ImapFlow) => Promise<T>
 ): Promise<T> {
   const client = createClient({
     email: account.email,
@@ -153,21 +164,24 @@ export type FetchedMessage = {
 /** Skip tiny pure-inline images without a real name; keep real files. */
 const MAX_STORE_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
-function safeAttachmentFilename(name: string | undefined, index: number, contentType: string): string {
+function safeAttachmentFilename(
+  name: string | undefined,
+  index: number,
+  contentType: string
+): string {
   const raw = (name || "").trim() || `attachment-${index + 1}`;
   // eslint-disable-next-line no-control-regex
   const cleaned = raw.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 180);
   if (cleaned.includes(".")) return cleaned;
-  const ext =
-    contentType.includes("pdf")
-      ? ".pdf"
-      : contentType.includes("png")
-        ? ".png"
-        : contentType.includes("jpeg") || contentType.includes("jpg")
-          ? ".jpg"
-          : contentType.includes("zip")
-            ? ".zip"
-            : "";
+  const ext = contentType.includes("pdf")
+    ? ".pdf"
+    : contentType.includes("png")
+      ? ".png"
+      : contentType.includes("jpeg") || contentType.includes("jpg")
+        ? ".jpg"
+        : contentType.includes("zip")
+          ? ".zip"
+          : "";
   return cleaned + ext;
 }
 
@@ -190,9 +204,7 @@ function formatDateLabel(d: Date): string {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-function pickAddress(
-  list: { address?: string | null; name?: string | null }[] | undefined,
-): {
+function pickAddress(list: { address?: string | null; name?: string | null }[] | undefined): {
   from: string;
   fromName: string;
 } {
@@ -237,15 +249,11 @@ export function extractAttachmentsFromParsed(parsed: {
 export async function fetchMessageAttachmentsByUid(
   client: ImapFlow,
   mailboxPath: string,
-  uid: number,
+  uid: number
 ): Promise<FetchedAttachment[]> {
   const lock = await client.getMailboxLock(mailboxPath);
   try {
-    for await (const msg of client.fetch(
-      String(uid),
-      { uid: true, source: true },
-      { uid: true },
-    )) {
+    for await (const msg of client.fetch(String(uid), { uid: true, source: true }, { uid: true })) {
       if (!msg.source) return [];
       const parsed = await simpleParser(msg.source);
       return extractAttachmentsFromParsed(parsed);
@@ -260,7 +268,7 @@ export async function fetchMessageAttachmentsByUid(
 export async function fetchRecentMessages(
   client: ImapFlow,
   mailboxPath: string,
-  limit = 50,
+  limit = 50
 ): Promise<FetchedMessage[]> {
   const lock = await client.getMailboxLock(mailboxPath);
   const results: FetchedMessage[] = [];
@@ -279,7 +287,9 @@ export async function fetchRecentMessages(
       source: true,
     })) {
       const env = msg.envelope;
-      const { from, fromName } = pickAddress(env?.from as { address?: string; name?: string }[] | undefined);
+      const { from, fromName } = pickAddress(
+        env?.from as { address?: string; name?: string }[] | undefined
+      );
       const subject = env?.subject || "(无主题)";
       const date = env?.date ? new Date(env.date) : new Date();
       const unread = !(msg.flags?.has("\\Seen") ?? false);
@@ -290,10 +300,7 @@ export async function fetchRecentMessages(
       if (msg.source) {
         try {
           const parsed = await simpleParser(msg.source);
-          html =
-            typeof parsed.html === "string"
-              ? parsed.html
-              : parsed.textAsHtml || undefined;
+          html = typeof parsed.html === "string" ? parsed.html : parsed.textAsHtml || undefined;
           const text = parsed.text || (html ? html.replace(/<[^>]+>/g, " ") : "");
           snippet = text.replace(/\s+/g, " ").trim().slice(0, 160);
 
@@ -327,7 +334,7 @@ export async function fetchRecentMessages(
 export async function markUidSeen(
   client: ImapFlow,
   mailboxPath: string,
-  uid: number,
+  uid: number
 ): Promise<void> {
   const lock = await client.getMailboxLock(mailboxPath);
   try {
@@ -377,7 +384,7 @@ export async function appendToMailbox(
   client: ImapFlow,
   mailboxPath: string,
   raw: string,
-  flags: string[] = ["\\Seen"],
+  flags: string[] = ["\\Seen"]
 ): Promise<void> {
   await client.append(mailboxPath, Buffer.from(raw, "utf8"), flags, new Date());
 }

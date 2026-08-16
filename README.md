@@ -6,6 +6,8 @@
 
 开源 **AI 邮箱客户端**——连上你现有的邮箱，用更聪明的方式整理收件箱、读信、回信。
 
+🌐 **产品官网与在线演示**：[https://moon-force.github.io/oh-ai-email/](https://moon-force.github.io/oh-ai-email/)
+
 对标 [Spark](https://sparkmailapp.com/) 一类现代邮箱：好上手、重整理与 AI 写作，而不是极客式全快捷键流。
 
 > 只做**客户端**，不托管邮箱、不自建邮件服务器。Gmail / Outlook / 163 / QQ 等支持 IMAP 的邮箱均可接入（具体能力随版本推进）。
@@ -104,12 +106,12 @@ cargo test --workspace
 
 ## 文档
 
-| 文档                                             | 内容                   |
-| ------------------------------------------------ | ---------------------- |
-| [docs/PRODUCT.md](docs/PRODUCT.md)               | 产品定位与范围         |
-| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | 实施名单与验收         |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | 架构（偏开发）         |
-| [docs/DESIGN.md](docs/DESIGN.md)                 | UI / MUI 规范          |
+| 文档                                             | 内容                     |
+| ------------------------------------------------ | ------------------------ |
+| [docs/PRODUCT.md](docs/PRODUCT.md)               | 产品定位与范围           |
+| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | 实施名单与验收           |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | 架构（偏开发）           |
+| [docs/DESIGN.md](docs/DESIGN.md)                 | UI / MUI 规范            |
 | [design/](design/)                               | 历史示意稿（非实现准绳） |
 
 ---

@@ -46,6 +46,9 @@ export type MessageDto = {
   unread: boolean;
   split: "important" | "other";
   html?: string;
+  snoozedUntil?: number | null;
+  isPinned?: boolean;
+  isMuted?: boolean;
   attachments?: AttachmentDto[];
 };
 
@@ -65,7 +68,11 @@ export type AddAccountPayload = {
 export type TestResult = { ok: true; greeting?: string } | { ok: false; error: string };
 
 export type AddResult =
-  | { ok: true; account: AccountDto; sync: { accountId: string; folders: number; messages: number; error?: string } }
+  | {
+      ok: true;
+      account: AccountDto;
+      sync: { accountId: string; folders: number; messages: number; error?: string };
+    }
   | { ok: false; error: string };
 
 export type MailSnapshot = {
@@ -92,24 +99,44 @@ const api = {
   secretDelete: (k: string): Promise<boolean> => ipcRenderer.invoke("secret:delete", k),
 
   accountList: (): Promise<AccountDto[]> => ipcRenderer.invoke("account:list"),
-  accountTest: (payload: AddAccountPayload): Promise<TestResult> => ipcRenderer.invoke("account:test", payload),
-  accountAdd: (payload: AddAccountPayload): Promise<AddResult> => ipcRenderer.invoke("account:add", payload),
+  accountTest: (payload: AddAccountPayload): Promise<TestResult> =>
+    ipcRenderer.invoke("account:test", payload),
+  accountAdd: (payload: AddAccountPayload): Promise<AddResult> =>
+    ipcRenderer.invoke("account:add", payload),
   accountRemove: (id: string): Promise<boolean> => ipcRenderer.invoke("account:remove", id),
 
-  mailSync: (accountId?: string): Promise<SyncResultDto[]> => ipcRenderer.invoke("mail:sync", accountId),
-  mailSnapshot: (accountId?: string): Promise<MailSnapshot> => ipcRenderer.invoke("mail:snapshot", accountId),
+  mailSync: (accountId?: string): Promise<SyncResultDto[]> =>
+    ipcRenderer.invoke("mail:sync", accountId),
+  mailSnapshot: (accountId?: string): Promise<MailSnapshot> =>
+    ipcRenderer.invoke("mail:snapshot", accountId),
   mailGet: (id: string): Promise<MessageDto | null> => ipcRenderer.invoke("mail:get", id),
   mailMarkRead: (id: string): Promise<MessageDto | null> => ipcRenderer.invoke("mail:markRead", id),
-  mailSetSplit: (
-    id: string,
-    split: "important" | "other",
-  ): Promise<MessageDto | null> => ipcRenderer.invoke("mail:setSplit", id, split),
+  mailSetSplit: (id: string, split: "important" | "other"): Promise<MessageDto | null> =>
+    ipcRenderer.invoke("mail:setSplit", id, split),
+  mailSnooze: (id: string, untilMs: number | null): Promise<MessageDto | null> =>
+    ipcRenderer.invoke("mail:snooze", id, untilMs),
+  mailPin: (id: string, isPinned: boolean): Promise<MessageDto | null> =>
+    ipcRenderer.invoke("mail:pin", id, isPinned),
+  mailMute: (id: string, isMuted: boolean): Promise<MessageDto | null> =>
+    ipcRenderer.invoke("mail:mute", id, isMuted),
+  prefsGetAutolaunch: (): Promise<boolean> => ipcRenderer.invoke("prefs:autolaunch:get"),
+  prefsSetAutolaunch: (enabled: boolean): Promise<boolean> =>
+    ipcRenderer.invoke("prefs:autolaunch:set", enabled),
+  updaterCheck: (): Promise<{
+    updateAvailable: boolean;
+    currentVersion: string;
+    latestVersion: string;
+    releaseName?: string;
+    releaseNotes?: string;
+    releaseUrl?: string;
+    publishedAt?: string;
+  }> => ipcRenderer.invoke("updater:check"),
   mailSaveAttachment: (
-    attachmentId: string,
+    attachmentId: string
   ): Promise<{ ok: true; path: string } | { ok: false; error: string }> =>
     ipcRenderer.invoke("mail:saveAttachment", attachmentId),
   mailOpenAttachment: (
-    attachmentId: string,
+    attachmentId: string
   ): Promise<{ ok: true } | { ok: false; error: string }> =>
     ipcRenderer.invoke("mail:openAttachment", attachmentId),
   mailSend: (payload: {
@@ -164,18 +191,16 @@ const api = {
     hasCloudApiKey: boolean;
   }> => ipcRenderer.invoke("ai:getSettings"),
 
-  aiSaveSettings: (
-    payload: {
-      mode?: "cloud" | "local";
-      baseUrl?: string;
-      model?: string;
-      ollamaHost?: string;
-      ollamaModel?: string;
-      cloudPrivacyAck?: boolean;
-      preferLocalWhenAvailable?: boolean;
-      apiKey?: string;
-    },
-  ): Promise<{
+  aiSaveSettings: (payload: {
+    mode?: "cloud" | "local";
+    baseUrl?: string;
+    model?: string;
+    ollamaHost?: string;
+    ollamaModel?: string;
+    cloudPrivacyAck?: boolean;
+    preferLocalWhenAvailable?: boolean;
+    apiKey?: string;
+  }): Promise<{
     mode: "cloud" | "local";
     baseUrl: string;
     model: string;
@@ -189,15 +214,13 @@ const api = {
   aiProbeOllama: (): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> =>
     ipcRenderer.invoke("ai:probeOllama"),
 
-  aiProbeCloud: (): Promise<
-    { ok: true } | { ok: false; error: string; code?: string }
-  > => ipcRenderer.invoke("ai:probeCloud"),
+  aiProbeCloud: (): Promise<{ ok: true } | { ok: false; error: string; code?: string }> =>
+    ipcRenderer.invoke("ai:probeCloud"),
 
   aiListModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
     ipcRenderer.invoke("ai:listModels"),
 
-  aiQueryBalance: (): Promise<AiBalanceResult> =>
-    ipcRenderer.invoke("ai:queryBalance"),
+  aiQueryBalance: (): Promise<AiBalanceResult> => ipcRenderer.invoke("ai:queryBalance"),
 
   aiSynthesizeSpeech: (payload: {
     text: string;
@@ -299,7 +322,7 @@ const api = {
 
   onMailEvent: (
     channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
-    callback: (data: unknown) => void,
+    callback: (data: unknown) => void
   ): (() => void) => {
     const listener = (_e: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on(channel, listener);
@@ -310,11 +333,11 @@ const api = {
 
   agentRun: (
     params: AgentRunParams,
-    onEvent?: (evt: AgentStreamEvent) => void,
+    onEvent?: (evt: AgentStreamEvent) => void
   ): Promise<AgentProposalData> => {
     const listener = (
       _e: Electron.IpcRendererEvent,
-      data: AgentStreamEvent & { requestId?: string },
+      data: AgentStreamEvent & { requestId?: string }
     ) => {
       if (!params.requestId || data.requestId === params.requestId) {
         onEvent?.(data);
@@ -326,25 +349,14 @@ const api = {
     });
   },
 
-  agentAbort: (requestId: string): Promise<boolean> =>
-    ipcRenderer.invoke("agent:abort", requestId),
+  agentAbort: (requestId: string): Promise<boolean> => ipcRenderer.invoke("agent:abort", requestId),
 };
 
 export type AgentType =
-  | "daily_briefing"
-  | "meeting_extractor"
-  | "batch_triage"
-  | "followup_sequence"
-  | "custom";
+  "daily_briefing" | "meeting_extractor" | "batch_triage" | "followup_sequence" | "custom";
 
 export type AgentStatus =
-  | "idle"
-  | "planning"
-  | "executing_tools"
-  | "review_pending"
-  | "completed"
-  | "cancelled"
-  | "error";
+  "idle" | "planning" | "executing_tools" | "review_pending" | "completed" | "cancelled" | "error";
 
 export type AgentStepEvent = {
   type: "step";
@@ -390,9 +402,7 @@ export type AgentProposalSplitItem = {
 };
 
 export type AgentProposalItem =
-  | AgentProposalCalendarItem
-  | AgentProposalDraftItem
-  | AgentProposalSplitItem;
+  AgentProposalCalendarItem | AgentProposalDraftItem | AgentProposalSplitItem;
 
 export type AgentProposalData = {
   title: string;
@@ -427,8 +437,7 @@ export type AiBalanceInfo = {
 };
 
 export type AiBalanceResult =
-  | { ok: true; isAvailable: boolean; balanceInfos: AiBalanceInfo[] }
-  | { ok: false; error: string };
+  { ok: true; isAvailable: boolean; balanceInfos: AiBalanceInfo[] } | { ok: false; error: string };
 
 type AiActionItemsResult =
   | {
@@ -478,5 +487,3 @@ declare global {
     api: typeof api;
   }
 }
-
-

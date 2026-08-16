@@ -148,7 +148,10 @@ export default function RichTextEditor({
   const [failed, setFailed] = useState(false);
   const [tick, setTick] = useState(0);
   const [plainFallback, setPlainFallback] = useState(() =>
-    valueHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    valueHtml
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
   );
 
   const editor = useEditor({
@@ -293,8 +296,7 @@ export default function RichTextEditor({
 
   const currentColor = (editor.getAttributes("textStyle").color as string | undefined) || "";
   const currentHighlight = (editor.getAttributes("highlight").color as string | undefined) || "";
-  const currentFont =
-    (editor.getAttributes("textStyle").fontFamily as string | undefined) || "";
+  const currentFont = (editor.getAttributes("textStyle").fontFamily as string | undefined) || "";
 
   return (
     <Box
@@ -359,7 +361,7 @@ export default function RichTextEditor({
                 run(() =>
                   v
                     ? editor.chain().focus().setFontFamily(v).run()
-                    : editor.chain().focus().unsetFontFamily().run(),
+                    : editor.chain().focus().unsetFontFamily().run()
                 );
               }}
               sx={{
@@ -480,7 +482,7 @@ export default function RichTextEditor({
                 run(() =>
                   v
                     ? editor.chain().focus().setColor(v).run()
-                    : editor.chain().focus().unsetColor().run(),
+                    : editor.chain().focus().unsetColor().run()
                 );
               }}
               sx={{
@@ -544,7 +546,7 @@ export default function RichTextEditor({
                 run(() =>
                   v
                     ? editor.chain().focus().toggleHighlight({ color: v }).run()
-                    : editor.chain().focus().unsetHighlight().run(),
+                    : editor.chain().focus().unsetHighlight().run()
                 );
               }}
               sx={{
@@ -716,11 +718,7 @@ export default function RichTextEditor({
           title="清除格式"
           aria-label="清除格式"
           disabled={disabled}
-          onClick={() =>
-            run(() =>
-              editor.chain().focus().unsetAllMarks().clearNodes().run(),
-            )
-          }
+          onClick={() => run(() => editor.chain().focus().unsetAllMarks().clearNodes().run())}
         >
           <FormatClearIcon fontSize="small" />
         </ToolBtn>
@@ -761,9 +759,16 @@ export default function RichTextEditor({
           },
           "& .composer-prose p": { margin: "0.45em 0" },
           "& .composer-prose h1": { fontSize: "1.5rem", fontWeight: 700, margin: "0.6em 0 0.35em" },
-          "& .composer-prose h2": { fontSize: "1.25rem", fontWeight: 650, margin: "0.55em 0 0.3em" },
+          "& .composer-prose h2": {
+            fontSize: "1.25rem",
+            fontWeight: 650,
+            margin: "0.55em 0 0.3em",
+          },
           "& .composer-prose h3": { fontSize: "1.1rem", fontWeight: 600, margin: "0.5em 0 0.25em" },
-          "& .composer-prose ul, & .composer-prose ol": { paddingLeft: "1.5rem", margin: "0.4em 0" },
+          "& .composer-prose ul, & .composer-prose ol": {
+            paddingLeft: "1.5rem",
+            margin: "0.4em 0",
+          },
           "& .composer-prose blockquote": {
             borderLeft: "3px solid",
             borderColor: "divider",

@@ -85,4 +85,3 @@ app.on("activate", () => {
 });
 
 if (process.platform === "win32") app.setAppUserModelId("com.oh-ai-email.desktop");
-

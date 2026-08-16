@@ -16,13 +16,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
 import { KEYBOARD_SHORTCUTS } from "./useKeyboardShortcuts";
 
-export default function ShortcutsDialog({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+export default function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const categories = Array.from(new Set(KEYBOARD_SHORTCUTS.map((s) => s.category)));
 
   return (
@@ -41,7 +35,9 @@ export default function ShortcutsDialog({
       }}
       data-testid="shortcuts-dialog"
     >
-      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+      <DialogTitle
+        sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}
+      >
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <KeyboardIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>

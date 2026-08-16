@@ -47,7 +47,7 @@ export async function fileToAttachment(file: File): Promise<LocalAttachment> {
 
 export function validateAttachmentBatch(
   existing: { size: number }[],
-  incoming: { size: number; name?: string }[],
+  incoming: { size: number; name?: string }[]
 ): string | null {
   for (const f of incoming) {
     if (f.size > MAX_FILE_BYTES) {

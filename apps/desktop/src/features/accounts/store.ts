@@ -41,7 +41,7 @@ export const useAccountsStore = create<State>((set, get) => ({
       activeAccountId:
         activeId !== undefined
           ? activeId
-          : accounts.find((a) => a.id === get().activeAccountId)?.id ?? accounts[0]?.id ?? null,
+          : (accounts.find((a) => a.id === get().activeAccountId)?.id ?? accounts[0]?.id ?? null),
     }),
   setActiveAccountId: (id) => set({ activeAccountId: id }),
   addAccount: (a) =>
@@ -55,7 +55,7 @@ export const useAccountsStore = create<State>((set, get) => ({
       const accounts = s.accounts.filter((x) => x.id !== id);
       return {
         accounts,
-        activeAccountId: s.activeAccountId === id ? accounts[0]?.id ?? null : s.activeAccountId,
+        activeAccountId: s.activeAccountId === id ? (accounts[0]?.id ?? null) : s.activeAccountId,
       };
     });
   },

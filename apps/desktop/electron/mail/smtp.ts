@@ -100,7 +100,7 @@ export async function sendMailViaSmtp(input: SendMailInput): Promise<SendMailRes
       input.html?.trim() ||
       (input.body
         ? `<div style="font-family:Segoe UI,system-ui,sans-serif;font-size:14px;line-height:1.55;white-space:pre-wrap">${escapeHtml(
-            input.body,
+            input.body
           )}</div>`
         : undefined);
 
@@ -141,7 +141,7 @@ function escapeHtml(s: string): string {
 /** Lightweight SMTP auth probe (verify credentials without sending). */
 export async function testSmtpConnection(
   account: Pick<AccountRecord, "email" | "smtpHost" | "smtpPort" | "smtpTls">,
-  password: string,
+  password: string
 ): Promise<SendMailResult> {
   const transport = buildTransport(account as AccountRecord, password);
   try {

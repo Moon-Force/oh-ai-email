@@ -60,10 +60,7 @@ export type ExtractCommitmentsResult = {
   commitments: CommitmentItem[];
 };
 
-export function extractCommitments(
-  subject = "",
-  body = "",
-): ExtractCommitmentsResult {
+export function extractCommitments(subject = "", body = ""): ExtractCommitmentsResult {
   const fullText = `${subject}\n${body}`.trim();
   if (!fullText) {
     return { commitments: [] };
@@ -79,7 +76,6 @@ export function extractCommitments(
 
   const deadlineRegex =
     /(?:(?:(?:本周|下周|周|星期)[一二三四五六日天](?:前|下午\d*点?|上午\d*点?|晚上|中午)?)|(?:\d{1,2}月\d{1,2}[号日](?:前)?)|(?:\d{4}-\d{2}-\d{2})|明天(?:前|下午\d*点?|上午\d*点?|晚上|中午)?|后天|今晚|下周|月底|周五前|截止[：:]?\s*[^，。]+|by\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next week|\d{1,2}(?:st|nd|rd|th)?\s+[a-zA-Z]+|\d{4}-\d{2}-\d{2}))/i;
-
 
   const iPromisedPatterns = [
     /我(?:会|将|稍后|承诺|打算|负责|去办|来安排|会在)/i,
@@ -104,7 +100,9 @@ export function extractCommitments(
     if (isIPromised || isTheyPromised) {
       const deadlineMatch = s.match(deadlineRegex);
       const deadline = deadlineMatch ? deadlineMatch[0].trim() : undefined;
-      const direction: "i_promised" | "they_promised" = isIPromised ? "i_promised" : "they_promised";
+      const direction: "i_promised" | "they_promised" = isIPromised
+        ? "i_promised"
+        : "they_promised";
       const key = `${direction}_${s}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -123,7 +121,6 @@ export function extractCommitments(
 export function createAiRequestId(): string {
   return `airq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
-
 
 export async function cancelRequest(requestId: string): Promise<boolean> {
   if (!hasDesktopApi()) return true;
@@ -167,7 +164,7 @@ function currentMode(override?: AiMode): AiMode {
 
 function parseOptions(
   modeOrOpts?: AiMode | AiRunOptions,
-  extraRequestId?: string,
+  extraRequestId?: string
 ): { mode: AiMode; requestId?: string } {
   if (typeof modeOrOpts === "object" && modeOrOpts !== null) {
     return {
@@ -185,7 +182,7 @@ function parseOptions(
 function browserBlocked(): never {
   throw new AiRequestError(
     "CONFIG",
-    "仅桌面端可调用 AI。请在 Electron 中运行，并到设置 → AI 配置密钥或 Ollama。",
+    "仅桌面端可调用 AI。请在 Electron 中运行，并到设置 → AI 配置密钥或 Ollama。"
   );
 }
 
@@ -193,7 +190,7 @@ async function runWithAudit<T>(
   task: string,
   charCount: number,
   mode: AiMode,
-  fn: () => Promise<T>,
+  fn: () => Promise<T>
 ): Promise<T> {
   const start = Date.now();
   try {
@@ -228,7 +225,7 @@ export type AiTextResponse = {
 export async function summarizeDetailed(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<AiTextResponse> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
@@ -236,7 +233,10 @@ export async function summarizeDetailed(
     typeof input === "string"
       ? { body: input, mode, requestId: reqId }
       : { ...input, mode, requestId: reqId };
-  const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
+  const charCount =
+    typeof input === "string"
+      ? input.length
+      : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
   return runWithAudit("summarize", charCount, mode, async () => {
     const res = await aiSummarize(payload);
     if (res.ok) {
@@ -249,7 +249,7 @@ export async function summarizeDetailed(
 export async function summarize(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<string> {
   const res = await summarizeDetailed(input, modeOrOpts, requestId);
   return res.text;
@@ -258,7 +258,7 @@ export async function summarize(
 export async function draftReplyDetailed(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<AiTextResponse> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
@@ -266,7 +266,10 @@ export async function draftReplyDetailed(
     typeof input === "string"
       ? { body: input, mode, requestId: reqId }
       : { ...input, mode, requestId: reqId };
-  const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
+  const charCount =
+    typeof input === "string"
+      ? input.length
+      : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
   return runWithAudit("draftReply", charCount, mode, async () => {
     const res = await aiDraftReply(payload);
     if (res.ok) {
@@ -279,12 +282,11 @@ export async function draftReplyDetailed(
 export async function draftReply(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<string> {
   const res = await draftReplyDetailed(input, modeOrOpts, requestId);
   return res.text;
 }
-
 
 export async function quickReplyDraft(
   input: {
@@ -295,18 +297,19 @@ export async function quickReplyDraft(
     customNote?: string;
   },
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  const charCount = (input.body?.length ?? 0) + (input.subject?.length ?? 0) + (input.customNote?.length ?? 0);
+  const charCount =
+    (input.body?.length ?? 0) + (input.subject?.length ?? 0) + (input.customNote?.length ?? 0);
   return runWithAudit(`quickReply:${input.replyType}`, charCount, mode, async () => {
     return unwrap(
       await aiQuickReply({
         ...input,
         mode,
         requestId: reqId,
-      }),
+      })
     );
   });
 }
@@ -314,7 +317,7 @@ export async function quickReplyDraft(
 export async function extractActionItems(
   input: { subject?: string; from?: string; body: string } | string,
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<ActionItemsData> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
@@ -322,7 +325,10 @@ export async function extractActionItems(
     typeof input === "string"
       ? { body: input, mode, requestId: reqId }
       : { ...input, mode, requestId: reqId };
-  const charCount = typeof input === "string" ? input.length : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
+  const charCount =
+    typeof input === "string"
+      ? input.length
+      : (input.body?.length ?? 0) + (input.subject?.length ?? 0);
   return runWithAudit("actionItems", charCount, mode, async () => {
     const res = await aiActionItems(payload);
     if (res.ok) {
@@ -341,11 +347,12 @@ export async function summarizeThread(
   messages: { sender: string; date?: string; body: string }[],
   subject?: string,
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<ThreadSummaryData> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  const charCount = messages.reduce((acc, m) => acc + (m.body?.length ?? 0), 0) + (subject?.length ?? 0);
+  const charCount =
+    messages.reduce((acc, m) => acc + (m.body?.length ?? 0), 0) + (subject?.length ?? 0);
   return runWithAudit("threadSummary", charCount, mode, async () => {
     const res = await aiThreadSummary({
       messages,
@@ -367,7 +374,7 @@ export async function summarizeThread(
 export async function suggestSplit(
   mail: { subject?: string; sender?: string; from?: string; body: string },
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<SuggestSplitData> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
@@ -395,15 +402,13 @@ export async function rewriteTone(
   tone: "shorter" | "formal" | "expand" | "persona",
   modeOrOpts?: AiMode | AiRunOptions,
   requestId?: string,
-  userPersona?: string,
+  userPersona?: string
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
   const persona = userPersona || useAiSettings.getState().userPersona;
   return runWithAudit(`rewrite:${tone}`, text.length, mode, async () => {
-    return unwrap(
-      await aiRewrite({ text, tone, userPersona: persona, mode, requestId: reqId }),
-    );
+    return unwrap(await aiRewrite({ text, tone, userPersona: persona, mode, requestId: reqId }));
   });
 }
 
@@ -415,7 +420,7 @@ export async function analyzeAttachment(
     base64Data?: string;
   },
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
@@ -426,7 +431,7 @@ export async function analyzeAttachment(
         ...payload,
         mode,
         requestId: reqId,
-      }),
+      })
     );
   });
 }
@@ -435,15 +440,13 @@ export async function composeFromPrompt(
   prompt: string,
   existingBody?: string,
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
   const charCount = prompt.length + (existingBody?.length ?? 0);
   return runWithAudit("compose", charCount, mode, async () => {
-    return unwrap(
-      await aiCompose({ prompt, existingBody, mode, requestId: reqId }),
-    );
+    return unwrap(await aiCompose({ prompt, existingBody, mode, requestId: reqId }));
   });
 }
 
@@ -451,7 +454,7 @@ export async function translateText(
   text: string,
   targetLang: "zh" | "en" = "zh",
   modeOrOpts?: AiMode | AiRunOptions,
-  requestId?: string,
+  requestId?: string
 ): Promise<string> {
   if (!hasDesktopApi()) browserBlocked();
   const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);

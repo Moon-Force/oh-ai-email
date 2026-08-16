@@ -121,7 +121,7 @@ describe("IdleAccountWorker and IdleManager (IMAP IDLE Push)", () => {
     // Simulate server pushing an 'exists' event (new email arrived!)
     await listeners["exists"]({ count: 50 });
 
-    expect(mockSyncAccount).toHaveBeenCalledWith("acc-1", 15);
+    expect(mockSyncAccount).toHaveBeenCalledWith("acc-1", 20);
     expect(mockSend).toHaveBeenCalledWith("mail:pushed", {
       accountId: "acc-1",
       eventType: "exists",

@@ -29,9 +29,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
     useMailStore.setState({
       activeFolderId: "inbox",
       split: "important",
-      folders: [
-        { id: "f-1", role: "inbox", name: "收件箱", unread: 1 },
-      ],
+      folders: [{ id: "f-1", role: "inbox", name: "收件箱", unread: 1 }],
       messages: [
         {
           id: "msg-1",
@@ -44,7 +42,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
           subject: "First Email",
           snippet: "Snippet 1",
           date: "10:00",
-          dateMs: 1000,
+          dateMs: 2000,
           unread: true,
           split: "important",
           attachments: [],
@@ -60,7 +58,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
           subject: "Second Email",
           snippet: "Snippet 2",
           date: "11:00",
-          dateMs: 2000,
+          dateMs: 1000,
           unread: false,
           split: "important",
           attachments: [],
@@ -79,7 +77,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
     render(
       <AppThemeProvider mode="light">
         <TestShortcutComponent />
-      </AppThemeProvider>,
+      </AppThemeProvider>
     );
 
     // Press 'j' -> moves to msg-2
@@ -95,7 +93,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
     render(
       <AppThemeProvider mode="light">
         <TestShortcutComponent />
-      </AppThemeProvider>,
+      </AppThemeProvider>
     );
 
     // Press 'r' -> opens compose with prefilled reply
@@ -125,7 +123,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
           onFocusSearch={onFocusSearch}
           onToggleShortcuts={onToggleShortcuts}
         />
-      </AppThemeProvider>,
+      </AppThemeProvider>
     );
 
     fireEvent.keyDown(window, { key: "/" });
@@ -139,7 +137,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
     render(
       <AppThemeProvider mode="light">
         <TestShortcutComponent />
-      </AppThemeProvider>,
+      </AppThemeProvider>
     );
 
     const input = screen.getByTestId("test-input");
@@ -157,7 +155,7 @@ describe("useKeyboardShortcuts and ShortcutsDialog", () => {
     render(
       <AppThemeProvider mode="light">
         <ShortcutsDialog open={true} onClose={onClose} />
-      </AppThemeProvider>,
+      </AppThemeProvider>
     );
 
     expect(screen.getByText("键盘快捷键指南")).toBeInTheDocument();

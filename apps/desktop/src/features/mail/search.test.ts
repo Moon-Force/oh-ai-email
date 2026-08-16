@@ -106,4 +106,3 @@ describe("highlightMatch", () => {
     expect(highlightMatch("abc", "")).toBe("abc");
   });
 });
-

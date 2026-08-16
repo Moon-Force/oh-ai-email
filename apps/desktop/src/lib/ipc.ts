@@ -46,6 +46,9 @@ export type MessageDto = {
   unread: boolean;
   split: "important" | "other";
   html?: string;
+  snoozedUntil?: number | null;
+  isPinned?: boolean;
+  isMuted?: boolean;
   attachments?: AttachmentDto[];
 };
 
@@ -103,10 +106,10 @@ type Api = {
   mailMarkRead: (id: string) => Promise<MessageDto | null>;
   mailSetSplit: (id: string, split: "important" | "other") => Promise<MessageDto | null>;
   mailSaveAttachment: (
-    attachmentId: string,
+    attachmentId: string
   ) => Promise<{ ok: true; path: string } | { ok: false; error: string }>;
   mailOpenAttachment: (
-    attachmentId: string,
+    attachmentId: string
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
   mailSend: (payload: SendMailPayload) => Promise<SendMailResult>;
   mailSaveDraft: (payload: SaveDraftPayload) => Promise<SaveDraftResult>;
@@ -145,7 +148,7 @@ type Api = {
   mailIdleStatus?: () => Promise<IdleWorkerStateDto[]>;
   onMailEvent?: (
     channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
-    callback: (data: unknown) => void,
+    callback: (data: unknown) => void
   ) => () => void;
   aiListModels: () => Promise<AiListModelsResult>;
   aiQueryBalance: () => Promise<AiBalanceResult>;
@@ -155,9 +158,15 @@ type Api = {
   }) => Promise<AiSynthesizeSpeechResult>;
   agentRun: (
     params: AgentRunParams,
-    onEvent?: (evt: AgentStreamEvent) => void,
+    onEvent?: (evt: AgentStreamEvent) => void
   ) => Promise<AgentProposalData>;
   agentAbort: (requestId: string) => Promise<boolean>;
+  mailSnooze: (id: string, until: number | null) => Promise<MessageDto | null>;
+  mailPin: (id: string, isPinned: boolean) => Promise<MessageDto | null>;
+  mailMute: (id: string, isMuted: boolean) => Promise<MessageDto | null>;
+  prefsGetAutolaunch: () => Promise<boolean>;
+  prefsSetAutolaunch: (enabled: boolean) => Promise<boolean>;
+  updaterCheck: () => Promise<UpdateCheckResultDto>;
 };
 
 export type AiModeDto = "cloud" | "local";
@@ -174,9 +183,9 @@ export type AiSettingsDto = {
   hasCloudApiKey: boolean;
 };
 
-export type AiSaveSettingsPayload = Partial<
-  Omit<AiSettingsDto, "hasCloudApiKey">
-> & { apiKey?: string };
+export type AiSaveSettingsPayload = Partial<Omit<AiSettingsDto, "hasCloudApiKey">> & {
+  apiKey?: string;
+};
 
 export type AiTaskResult =
   | { ok: true; text: string; reasoningContent?: string; mode: AiModeDto }
@@ -190,16 +199,12 @@ export type AiBalanceInfo = {
 };
 
 export type AiBalanceResult =
-  | { ok: true; isAvailable: boolean; balanceInfos: AiBalanceInfo[] }
-  | { ok: false; error: string };
+  { ok: true; isAvailable: boolean; balanceInfos: AiBalanceInfo[] } | { ok: false; error: string };
 
-export type AiListModelsResult =
-  | { ok: true; models: string[] }
-  | { ok: false; error: string };
+export type AiListModelsResult = { ok: true; models: string[] } | { ok: false; error: string };
 
 export type AiSynthesizeSpeechResult =
-  | { ok: true; audioData: string }
-  | { ok: false; error: string };
+  { ok: true; audioData: string } | { ok: false; error: string };
 
 export type AiActionItemsResult =
   | {
@@ -258,7 +263,6 @@ export type AiSuggestSplitPayload = {
   requestId?: string;
 };
 
-
 export type AiMailPayload = {
   subject?: string;
   from?: string;
@@ -305,13 +309,9 @@ export type AiComposePayload = {
   requestId?: string;
 };
 
-export type AiProbeOllamaResult =
-  | { ok: true; models: string[] }
-  | { ok: false; error: string };
+export type AiProbeOllamaResult = { ok: true; models: string[] } | { ok: false; error: string };
 
-export type AiProbeCloudResult =
-  | { ok: true }
-  | { ok: false; error: string; code?: string };
+export type AiProbeCloudResult = { ok: true } | { ok: false; error: string; code?: string };
 
 export type SendMailAttachment = {
   filename: string;
@@ -424,13 +424,56 @@ export async function mailMarkRead(id: string): Promise<MessageDto | null> {
 
 export async function mailSetSplit(
   id: string,
-  split: "important" | "other",
+  split: "important" | "other"
 ): Promise<MessageDto | null> {
   return getApi()?.mailSetSplit(id, split) ?? null;
 }
 
+export async function mailSnooze(id: string, untilMs: number | null): Promise<MessageDto | null> {
+  return getApi()?.mailSnooze(id, untilMs) ?? null;
+}
+
+export async function mailPin(id: string, isPinned: boolean): Promise<MessageDto | null> {
+  return getApi()?.mailPin(id, isPinned) ?? null;
+}
+
+export async function mailMute(id: string, isMuted: boolean): Promise<MessageDto | null> {
+  return getApi()?.mailMute(id, isMuted) ?? null;
+}
+
+export async function prefsGetAutolaunch(): Promise<boolean> {
+  return getApi()?.prefsGetAutolaunch?.() ?? false;
+}
+
+export async function prefsSetAutolaunch(enabled: boolean): Promise<boolean> {
+  return getApi()?.prefsSetAutolaunch?.(enabled) ?? false;
+}
+
+export type UpdateCheckResultDto = {
+  updateAvailable: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  releaseName?: string;
+  releaseNotes?: string;
+  releaseUrl?: string;
+  publishedAt?: string;
+};
+
+export async function updaterCheck(): Promise<UpdateCheckResultDto> {
+  const api = getApi();
+  if (!api?.updaterCheck) {
+    return {
+      updateAvailable: false,
+      currentVersion: "0.1.0",
+      latestVersion: "0.1.0",
+      releaseNotes: "当前为测试/开发环境",
+    };
+  }
+  return api.updaterCheck();
+}
+
 export async function mailSaveAttachment(
-  attachmentId: string,
+  attachmentId: string
 ): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
   const api = getApi();
   if (!api) return { ok: false, error: "仅桌面端可下载附件" };
@@ -438,7 +481,7 @@ export async function mailSaveAttachment(
 }
 
 export async function mailOpenAttachment(
-  attachmentId: string,
+  attachmentId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const api = getApi();
   if (!api) return { ok: false, error: "仅桌面端可打开附件" };
@@ -465,8 +508,7 @@ export async function mailSaveDraft(payload: SaveDraftPayload): Promise<SaveDraf
   return api.mailSaveDraft(payload);
 }
 
-const AI_BROWSER_ERR =
-  "仅桌面端可调用 AI。请在 Electron 中运行，并到设置 → AI 配置密钥或 Ollama。";
+const AI_BROWSER_ERR = "仅桌面端可调用 AI。请在 Electron 中运行，并到设置 → AI 配置密钥或 Ollama。";
 
 export async function aiGetSettings(): Promise<AiSettingsDto> {
   const api = getApi();
@@ -519,7 +561,10 @@ export async function aiAbort(requestId: string): Promise<boolean> {
 export async function aiListModels(): Promise<AiListModelsResult> {
   const api = getApi();
   if (!api?.aiListModels) {
-    return { ok: true, models: ["deepseek-chat", "deepseek-reasoner", "mimo-v2.5", "gpt-4o-mini", "llama3.2"] };
+    return {
+      ok: true,
+      models: ["deepseek-chat", "deepseek-reasoner", "mimo-v2.5", "gpt-4o-mini", "llama3.2"],
+    };
   }
   return api.aiListModels();
 }
@@ -591,7 +636,7 @@ export async function aiCompose(payload: AiComposePayload): Promise<AiTaskResult
 }
 
 export async function aiThreadSummary(
-  payload: AiThreadSummaryPayload,
+  payload: AiThreadSummaryPayload
 ): Promise<AiThreadSummaryResult> {
   const api = getApi();
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
@@ -599,7 +644,7 @@ export async function aiThreadSummary(
 }
 
 export async function aiSuggestSplit(
-  payload: AiSuggestSplitPayload,
+  payload: AiSuggestSplitPayload
 ): Promise<AiSuggestSplitResult> {
   const api = getApi();
   if (!api) return { ok: false, code: "CONFIG", error: AI_BROWSER_ERR };
@@ -672,8 +717,8 @@ export async function mailIdleStatus(): Promise<IdleWorkerStateDto[]> {
 
 export function onMailEvent(
   channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
-  callback: (data: unknown) => void,
-): (() => void) {
+  callback: (data: unknown) => void
+): () => void {
   const api = getApi();
   if (!api?.onMailEvent) return () => {};
   return api.onMailEvent(channel, callback);
@@ -682,20 +727,10 @@ export function onMailEvent(
 // ── Agent Stream & Workflow Foundation ──────────────────────────
 
 export type AgentType =
-  | "daily_briefing"
-  | "meeting_extractor"
-  | "batch_triage"
-  | "followup_sequence"
-  | "custom";
+  "daily_briefing" | "meeting_extractor" | "batch_triage" | "followup_sequence" | "custom";
 
 export type AgentStatus =
-  | "idle"
-  | "planning"
-  | "executing_tools"
-  | "review_pending"
-  | "completed"
-  | "cancelled"
-  | "error";
+  "idle" | "planning" | "executing_tools" | "review_pending" | "completed" | "cancelled" | "error";
 
 export type AgentStepEvent = {
   type: "step";
@@ -741,9 +776,7 @@ export type AgentProposalSplitItem = {
 };
 
 export type AgentProposalItem =
-  | AgentProposalCalendarItem
-  | AgentProposalDraftItem
-  | AgentProposalSplitItem;
+  AgentProposalCalendarItem | AgentProposalDraftItem | AgentProposalSplitItem;
 
 export type AgentProposalData = {
   title: string;
@@ -768,7 +801,7 @@ export type AgentRunParams = {
 
 export async function agentRun(
   params: AgentRunParams,
-  onEvent?: (evt: AgentStreamEvent) => void,
+  onEvent?: (evt: AgentStreamEvent) => void
 ): Promise<AgentProposalData> {
   const api = getApi();
   if (!api?.agentRun) {
@@ -796,8 +829,12 @@ export async function agentRun(
         {
           id: "demo_draft_1",
           kind: "draft_reply",
-          targetTo: typeof params.context?.from === "string" ? params.context.from : "contact@example.com",
-          subject: typeof params.context?.subject === "string" ? `Re: ${params.context.subject}` : "关于跟进事项的回复",
+          targetTo:
+            typeof params.context?.from === "string" ? params.context.from : "contact@example.com",
+          subject:
+            typeof params.context?.subject === "string"
+              ? `Re: ${params.context.subject}`
+              : "关于跟进事项的回复",
           body: "您好，\n\n已收到相关信息并已审阅，我们将尽快按计划推进。\n\n顺祝商祺！",
           selected: true,
         },
@@ -821,6 +858,3 @@ export async function agentAbort(requestId: string): Promise<boolean> {
   if (!api?.agentAbort) return true;
   return api.agentAbort(requestId);
 }
-
-
-

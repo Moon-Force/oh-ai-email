@@ -10,14 +10,29 @@ export type ShortcutAction = {
 };
 
 export const KEYBOARD_SHORTCUTS: ShortcutAction[] = [
-  { key: "J / ↓", label: "下一封邮件", description: "在邮件列表中向下选择下一封邮件", category: "导航" },
-  { key: "K / ↑", label: "上一封邮件", description: "在邮件列表中向上选择上一封邮件", category: "导航" },
+  {
+    key: "J / ↓",
+    label: "下一封邮件",
+    description: "在邮件列表中向下选择下一封邮件",
+    category: "导航",
+  },
+  {
+    key: "K / ↑",
+    label: "上一封邮件",
+    description: "在邮件列表中向上选择上一封邮件",
+    category: "导航",
+  },
   { key: "R", label: "回复邮件", description: "针对当前选中的邮件调起回复撰写", category: "动作" },
   { key: "C", label: "新建邮件", description: "打开写信窗口撰写新邮件", category: "动作" },
   { key: "/", label: "聚焦搜索", description: "快速聚焦到顶栏搜索框", category: "导航" },
   { key: "A", label: "智能体助手", description: "展开或收起 AI 智能体抽屉", category: "动作" },
   { key: "?", label: "快捷键指南", description: "打开或关闭快捷键说明面板", category: "系统" },
-  { key: "Esc", label: "关闭 / 清除", description: "清空搜索框、关闭写信或退出弹窗", category: "系统" },
+  {
+    key: "Esc",
+    label: "关闭 / 清除",
+    description: "清空搜索框、关闭写信或退出弹窗",
+    category: "系统",
+  },
 ];
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -102,7 +117,9 @@ export function useKeyboardShortcuts({
             if (currentMsg) {
               mailStore.openCompose({
                 to: currentMsg.from,
-                subject: currentMsg.subject.startsWith("Re:") ? currentMsg.subject : `Re: ${currentMsg.subject}`,
+                subject: currentMsg.subject.startsWith("Re:")
+                  ? currentMsg.subject
+                  : `Re: ${currentMsg.subject}`,
                 body: "",
               });
             }

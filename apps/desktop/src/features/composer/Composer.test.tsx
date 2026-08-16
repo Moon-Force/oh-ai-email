@@ -1,4 +1,4 @@
-import { render, screen, waitForElementToBeRemoved } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Composer from "./Composer";
 import { buildReplyQuote } from "./quote";
@@ -69,7 +69,7 @@ test("save draft shows toast and stores local draft", async () => {
   expect(state.activeFolderId).toBe("drafts");
   expect(state.composeOpen).toBe(false);
   expect(state.messages.some((m) => m.subject === "草稿主题" && m.folderRole === "drafts")).toBe(
-    true,
+    true
   );
 });
 
@@ -92,8 +92,8 @@ test("shows pre-send check dialog when attachment is missing and proceeds on con
         initialTo="client@example.com"
         initialSubject="设计稿请查收"
         initialBody="请查收附件中的最新方案。"
-      />,
-    ),
+      />
+    )
   );
 
   await user.click(screen.getByRole("button", { name: "发送" }));
@@ -110,7 +110,7 @@ test("shows pre-send check dialog when attachment is missing and proceeds on con
     expect.objectContaining({
       to: "client@example.com",
       subject: "设计稿请查收",
-    }),
+    })
   );
 });
 
@@ -124,8 +124,8 @@ test("can dismiss pre-send check dialog to return and edit", async () => {
         initialTo="client@example.com"
         initialSubject="修改收款账户"
         initialBody="请汇款到新账号。"
-      />,
-    ),
+      />
+    )
   );
 
   await user.click(screen.getByRole("button", { name: "发送" }));
@@ -135,7 +135,9 @@ test("can dismiss pre-send check dialog to return and edit", async () => {
 
   // Click "返回修改"
   await user.click(screen.getByText("返回修改"));
-  await waitForElementToBeRemoved(() => screen.queryByTestId("presend-check-dialog"));
+  await waitFor(() => {
+    expect(screen.queryByTestId("presend-check-dialog")).not.toBeInTheDocument();
+  });
   expect(onSend).not.toHaveBeenCalled();
 });
 
@@ -146,6 +148,3 @@ test("opens AI write dialog and shows voice input button", async () => {
   expect(screen.getByText("根据提示生成正文")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "语音输入" })).toBeInTheDocument();
 });
-
-
-

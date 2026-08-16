@@ -25,13 +25,7 @@ export function createAppTheme(mode: PaletteMode) {
     },
     shape: { borderRadius: 12 },
     typography: {
-      fontFamily: [
-        "Roboto",
-        "Segoe UI",
-        "system-ui",
-        "-apple-system",
-        "sans-serif",
-      ].join(","),
+      fontFamily: ["Roboto", "Segoe UI", "system-ui", "-apple-system", "sans-serif"].join(","),
       h6: { fontWeight: 600, letterSpacing: "-0.01em" },
       subtitle1: { fontWeight: 600 },
       body2: { fontSize: "0.875rem" },
@@ -58,9 +52,7 @@ export function createAppTheme(mode: PaletteMode) {
             transition:
               "background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms cubic-bezier(0.22, 1, 0.36, 1)",
             "&.Mui-selected": {
-              backgroundColor: isDark
-                ? "rgba(91,140,255,0.16)"
-                : "rgba(47,107,255,0.1)",
+              backgroundColor: isDark ? "rgba(91,140,255,0.16)" : "rgba(47,107,255,0.1)",
             },
           },
         },

@@ -31,7 +31,9 @@ vi.mock("./router", async () => {
       };
     }),
 
-    quickReplyDraft: vi.fn(async ({ replyType }: { replyType: string }) => `快捷回复：${replyType}`),
+    quickReplyDraft: vi.fn(
+      async ({ replyType }: { replyType: string }) => `快捷回复：${replyType}`
+    ),
     extractActionItems: vi.fn(async () => ({
       tags: ["需回复", "有截止日期"],
       actionItems: ["审核设计稿", "安排会议"],
@@ -59,7 +61,6 @@ vi.mock("./router", async () => {
     ackCloudPrivacy: vi.fn(async () => undefined),
   };
 });
-
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -94,8 +95,8 @@ test("shows quick reply chips and inserts draft on click", async () => {
         subject="Project sync"
         from="boss@example.com"
         onInsertDraft={onInsertDraft}
-      />,
-    ),
+      />
+    )
   );
 
   expect(screen.getByTestId("quick-reply-chips")).toBeInTheDocument();
@@ -108,12 +109,12 @@ test("shows quick reply chips and inserts draft on click", async () => {
 
   expect(router.quickReplyDraft).toHaveBeenCalledWith(
     expect.objectContaining({ replyType: "ack" }),
-    expect.anything(),
+    expect.anything()
   );
   expect(onInsertDraft).toHaveBeenCalledWith(
     "快捷回复：ack",
     "Re: Project sync",
-    "boss@example.com",
+    "boss@example.com"
   );
 });
 
@@ -123,7 +124,7 @@ test("can cancel ongoing request in thinking state", async () => {
     () =>
       new Promise<string>((resolve) => {
         resolveSummarize = resolve;
-      }),
+      })
   );
 
   const user = userEvent.setup();
@@ -170,7 +171,7 @@ test("can cancel ongoing tone rewrite in thinking state and restore expanded sta
     () =>
       new Promise<string>((resolve) => {
         resolveRewrite = resolve;
-      }),
+      })
   );
 
   const user = userEvent.setup();
@@ -216,7 +217,7 @@ test("can extract action items, display intent tags, and check off items", async
 
 test("handles ABORTED error gracefully without displaying error message", async () => {
   vi.mocked(router.summarize).mockRejectedValueOnce(
-    new router.AiRequestError("ABORTED", "Request aborted"),
+    new router.AiRequestError("ABORTED", "Request aborted")
   );
 
   const user = userEvent.setup();
@@ -242,8 +243,8 @@ test("shows 线程摘要 button when multiple threadMessages exist and renders t
         subject="上线排期讨论"
         body="确认最终排期为8月15日"
         threadMessages={threadMessages}
-      />,
-    ),
+      />
+    )
   );
 
   const threadBtn = screen.getByTestId("thread-summary-button");
@@ -255,7 +256,7 @@ test("shows 线程摘要 button when multiple threadMessages exist and renders t
   expect(router.summarizeThread).toHaveBeenCalledWith(
     threadMessages,
     "上线排期讨论",
-    expect.anything(),
+    expect.anything()
   );
 
   expect(await screen.findByText("线索时间线摘要")).toBeInTheDocument();
@@ -283,8 +284,8 @@ test("shows 建议分箱 button and applies split only upon user confirmation", 
         body="请务必参会讨论上线事宜"
         from="director@corp.com"
         onApplySplit={onApplySplit}
-      />,
-    ),
+      />
+    )
   );
 
   const suggestBtn = screen.getByTestId("suggest-split-button");
@@ -313,11 +314,8 @@ test("shows 翻译 button and displays translated text", async () => {
 
   render(
     wrap(
-      <LumenCapsule
-        subject="Meeting Agenda"
-        body="Here is the agenda for tomorrow's team sync."
-      />,
-    ),
+      <LumenCapsule subject="Meeting Agenda" body="Here is the agenda for tomorrow's team sync." />
+    )
   );
 
   const translateBtn = screen.getByTestId("translate-button");
@@ -335,12 +333,7 @@ test("shows 翻译 button and displays translated text", async () => {
 test("shows reasoning accordion and read-aloud button", async () => {
   const user = userEvent.setup();
   render(
-    wrap(
-      <LumenCapsule
-        subject="Project Update"
-        body="Detailed project discussion content here."
-      />,
-    ),
+    wrap(<LumenCapsule subject="Project Update" body="Detailed project discussion content here." />)
   );
 
   await user.click(screen.getByRole("button", { name: "总结" }));
@@ -358,8 +351,8 @@ test("displays commitments tracker section when commitments are found in body", 
       <LumenCapsule
         subject="商务合作确认"
         body="我会在本周五前发送终版合同。请于8月22日前确认条款。"
-      />,
-    ),
+      />
+    )
   );
 
   const commitmentBtn = screen.getByTestId("commitments-button");
@@ -371,8 +364,3 @@ test("displays commitments tracker section when commitments are found in body", 
   expect(screen.getByText("对方承诺")).toBeInTheDocument();
   expect(screen.getByText(/发送终版合同/)).toBeInTheDocument();
 });
-
-
-
-
-

@@ -39,11 +39,7 @@ export function isAgentWorkflowRunning(requestId: string): boolean {
   return activeAgentControllers.has(requestId);
 }
 
-function emitStreamTokens(
-  text: string,
-  onEvent: (evt: AgentStreamEvent) => void,
-  chunkSize = 20,
-) {
+function emitStreamTokens(text: string, onEvent: (evt: AgentStreamEvent) => void, chunkSize = 20) {
   for (let i = 0; i < text.length; i += chunkSize) {
     const chunk = text.slice(i, i + chunkSize);
     onEvent({ type: "token", textChunk: chunk });
@@ -53,7 +49,7 @@ function emitStreamTokens(
 export async function runAgentWorkflow(
   params: AgentRunParams & {
     onEvent: (evt: AgentStreamEvent) => void;
-  },
+  }
 ): Promise<AgentProposalData> {
   const { agentType, prompt = "", context = {}, requestId, onEvent } = params;
 
@@ -185,7 +181,9 @@ export async function runAgentWorkflow(
 
       // Extract top 3 urgent topics
       const topUrgent = (importantUnread.length > 0 ? importantUnread : generalUnread).slice(0, 3);
-      const urgentSummaries = topUrgent.map((m, i) => `${i + 1}. [${m.fromName || m.from}] ${m.subject}`);
+      const urgentSummaries = topUrgent.map(
+        (m, i) => `${i + 1}. [${m.fromName || m.from}] ${m.subject}`
+      );
 
       toolDataSummary += `今日待处理：共 ${generalUnread.length} 封未读邮件（其中 ${importantUnread.length} 封重要）。\n`;
       if (urgentSummaries.length > 0) {
@@ -210,14 +208,20 @@ export async function runAgentWorkflow(
       }
 
       // Add a briefing calendar event item
-      const cal = toolExtractMeetingDetails("今日工作规划与任务复盘", "今日晨报梳理：重点处理 " + topUrgent.map((m) => m.subject).join("、 "), {
-        title: "今日工作规划与任务复盘",
-      });
+      const cal = toolExtractMeetingDetails(
+        "今日工作规划与任务复盘",
+        "今日晨报梳理：重点处理 " + topUrgent.map((m) => m.subject).join("、 "),
+        {
+          title: "今日工作规划与任务复盘",
+        }
+      );
       if (cal) proposedItems.push(cal);
     } else {
-
       // custom agent
-      emitStreamTokens(`[工具] 正在根据提示词「${prompt.slice(0, 30)}」检索并提取上下文...\n`, onEvent);
+      emitStreamTokens(
+        `[工具] 正在根据提示词「${prompt.slice(0, 30)}」检索并提取上下文...\n`,
+        onEvent
+      );
       const searchResults = toolSearchMessages(prompt, undefined);
       toolDataSummary += `根据查询匹配到 ${searchResults.length} 封相关邮件。\n`;
 
@@ -292,7 +296,7 @@ Please review and output the final structured proposals in JSON format.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPromptContent },
         ],
-        { requestId: reqId },
+        { requestId: reqId }
       );
 
       if (llmRes.ok) {
@@ -311,7 +315,7 @@ Please review and output the final structured proposals in JSON format.`;
       llmResultText,
       agentType,
       toolDataSummary,
-      proposedItems,
+      proposedItems
     );
 
     // Final events
@@ -322,8 +326,7 @@ Please review and output the final structured proposals in JSON format.`;
   } catch (error) {
     const isAbort =
       controller.signal.aborted ||
-      (error instanceof Error &&
-        (error.name === "AbortError" || error.message.includes("已取消")));
+      (error instanceof Error && (error.name === "AbortError" || error.message.includes("已取消")));
 
     const errorEvent: AgentErrorEvent = {
       type: "error",
@@ -363,7 +366,7 @@ function parseLlmProposalResult(
   rawText: string,
   agentType: AgentType,
   toolDataSummary: string,
-  fallbackItems: AgentProposalItem[],
+  fallbackItems: AgentProposalItem[]
 ): AgentProposalData {
   const defaultTitle = `${getAgentTypeLabel(agentType)}结果`;
   const defaultSummary =
@@ -381,7 +384,10 @@ function parseLlmProposalResult(
   try {
     let clean = rawText.trim();
     if (clean.startsWith("```")) {
-      clean = clean.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+      clean = clean
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
     }
     const jsonMatch = clean.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -393,20 +399,28 @@ function parseLlmProposalResult(
       items?: Array<Record<string, unknown>>;
     };
 
-    const title = typeof parsed.title === "string" && parsed.title.trim() ? parsed.title.trim() : defaultTitle;
-    const summary = typeof parsed.summary === "string" && parsed.summary.trim() ? parsed.summary.trim() : defaultSummary;
+    const title =
+      typeof parsed.title === "string" && parsed.title.trim() ? parsed.title.trim() : defaultTitle;
+    const summary =
+      typeof parsed.summary === "string" && parsed.summary.trim()
+        ? parsed.summary.trim()
+        : defaultSummary;
 
     const parsedItems: AgentProposalItem[] = [];
 
     if (Array.isArray(parsed.items) && parsed.items.length > 0) {
       for (const item of parsed.items) {
         const kind = item.kind;
-        const id = typeof item.id === "string" && item.id.trim() ? item.id.trim() : `item_${Math.random().toString(36).slice(2, 8)}`;
+        const id =
+          typeof item.id === "string" && item.id.trim()
+            ? item.id.trim()
+            : `item_${Math.random().toString(36).slice(2, 8)}`;
         const selected = item.selected !== false;
 
         if (kind === "calendar_event") {
           const itemTitle = typeof item.title === "string" ? item.title : "日程安排";
-          const startTime = typeof item.startTime === "string" ? item.startTime : new Date().toISOString();
+          const startTime =
+            typeof item.startTime === "string" ? item.startTime : new Date().toISOString();
           const endTime = typeof item.endTime === "string" ? item.endTime : undefined;
           const location = typeof item.location === "string" ? item.location : undefined;
           const attendees = Array.isArray(item.attendees) ? item.attendees.map(String) : undefined;
@@ -441,7 +455,10 @@ function parseLlmProposalResult(
             kind: "split_change",
             messageId: typeof item.messageId === "string" ? item.messageId : "",
             subject: typeof item.subject === "string" ? item.subject : "",
-            targetSplit: item.targetSplit === "important" || item.targetSplit === "other" ? item.targetSplit : "important",
+            targetSplit:
+              item.targetSplit === "important" || item.targetSplit === "other"
+                ? item.targetSplit
+                : "important",
             reason: typeof item.reason === "string" ? item.reason : "建议调整分箱",
             selected,
           });

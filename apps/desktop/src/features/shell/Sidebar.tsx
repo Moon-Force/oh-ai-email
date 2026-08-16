@@ -17,6 +17,7 @@ import SendIcon from "@mui/icons-material/Send";
 import DraftsIcon from "@mui/icons-material/Drafts";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SnoozeIcon from "@mui/icons-material/Snooze";
 import StarIcon from "@mui/icons-material/Star";
 import LabelIcon from "@mui/icons-material/Label";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
@@ -32,6 +33,7 @@ const MAILBOXES: {
   icon: ReactNode;
 }[] = [
   { id: "inbox", label: "收件箱", icon: <InboxIcon fontSize="small" /> },
+  { id: "snoozed", label: "稍后处理", icon: <SnoozeIcon fontSize="small" /> },
   { id: "sent", label: "已发送", icon: <SendIcon fontSize="small" /> },
   { id: "drafts", label: "草稿", icon: <DraftsIcon fontSize="small" /> },
   { id: "archive", label: "归档", icon: <ArchiveIcon fontSize="small" /> },

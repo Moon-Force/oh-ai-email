@@ -1,7 +1,5 @@
 appId: com.oh-ai-email.desktop
 productName: oh-ai-email
-# Use monorepo-installed Electron binary (skip re-download when present)
-electronDist: ../../node_modules/.pnpm/electron@30.5.1/node_modules/electron/dist
 files:
   - dist/**
   - dist-electron/**

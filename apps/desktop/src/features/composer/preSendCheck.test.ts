@@ -20,7 +20,7 @@ describe("runPreSendCheck", () => {
     expect(issues1).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "missing_attachment", severity: "warning" }),
-      ]),
+      ])
     );
 
     const issues2 = runPreSendCheck({
@@ -29,9 +29,7 @@ describe("runPreSendCheck", () => {
       attachmentsCount: 0,
     });
     expect(issues2).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: "missing_attachment" }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ type: "missing_attachment" })])
     );
   });
 
@@ -44,7 +42,7 @@ describe("runPreSendCheck", () => {
     expect(issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "financial_risk", severity: "warning" }),
-      ]),
+      ])
     );
   });
 
@@ -57,7 +55,7 @@ describe("runPreSendCheck", () => {
     expect(issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "aggressive_tone", severity: "info" }),
-      ]),
+      ])
     );
   });
 
@@ -68,7 +66,7 @@ describe("runPreSendCheck", () => {
       attachmentsCount: 0,
     });
     expect(issues.map((i) => i.type)).toEqual(
-      expect.arrayContaining(["missing_attachment", "financial_risk", "aggressive_tone"]),
+      expect.arrayContaining(["missing_attachment", "financial_risk", "aggressive_tone"])
     );
   });
 });

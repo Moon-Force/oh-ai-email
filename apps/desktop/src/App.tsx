@@ -79,10 +79,21 @@ export default function App() {
   }, [mode]);
 
   useEffect(() => {
-    void hydrate();
-    void hydrateAi();
-    void hydratePrefs();
-  }, [hydrate, hydrateAi, hydratePrefs]);
+    const init = async () => {
+      await hydrate();
+      await hydrateAi();
+      await hydratePrefs();
+      // Background initial sync on app start if accounts exist
+      if (useAccountsStore.getState().accounts.length > 0) {
+        setTimeout(() => {
+          if (!syncingRef.current) {
+            void syncNow(useAccountsStore.getState().activeAccountId ?? undefined);
+          }
+        }, 800);
+      }
+    };
+    void init();
+  }, [hydrate, hydrateAi, hydratePrefs, syncNow]);
 
   useEffect(() => {
     const unOpen = onMailEvent("mail:open-message", (data: unknown) => {
@@ -106,11 +117,32 @@ export default function App() {
       void useMailStore.getState().hydrate(payload?.accountId || undefined);
     });
 
+    // Window focus / visibility change debounced auto-sync (30s debounce)
+    let lastFocusSync = Date.now();
+    const handleFocusSync = () => {
+      const now = Date.now();
+      if (now - lastFocusSync < 30_000) return;
+      if (syncingRef.current) return;
+      if (useAccountsStore.getState().accounts.length === 0) return;
+      lastFocusSync = now;
+      void useMailStore
+        .getState()
+        .syncNow(useAccountsStore.getState().activeAccountId ?? undefined);
+    };
+
+    window.addEventListener("focus", handleFocusSync);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        handleFocusSync();
+      }
+    });
+
     return () => {
       unOpen();
       unSync();
       unCompose();
       unPushed();
+      window.removeEventListener("focus", handleFocusSync);
     };
   }, []);
 
@@ -133,13 +165,15 @@ export default function App() {
   const folderTitle =
     activeFolderId === "inbox"
       ? "收件箱"
-      : activeFolderId === "sent"
-        ? "已发送"
-        : activeFolderId === "drafts"
-          ? "草稿"
-          : activeFolderId === "archive"
-            ? "归档"
-            : "垃圾箱";
+      : activeFolderId === "snoozed"
+        ? "稍后处理"
+        : activeFolderId === "sent"
+          ? "已发送"
+          : activeFolderId === "drafts"
+            ? "草稿"
+            : activeFolderId === "archive"
+              ? "归档"
+              : "垃圾箱";
 
   /** Top-level surface: settings / account / compose / mail */
   const surfaceKey = composeOpen ? "compose" : view;
@@ -216,7 +250,10 @@ export default function App() {
                   <SyncIcon
                     sx={
                       syncing
-                        ? { animation: "spin 1s linear infinite", "@keyframes spin": { to: { transform: "rotate(360deg)" } } }
+                        ? {
+                            animation: "spin 1s linear infinite",
+                            "@keyframes spin": { to: { transform: "rotate(360deg)" } },
+                          }
                         : undefined
                     }
                   />
@@ -287,10 +324,7 @@ export default function App() {
               >
                 {/* Compose uses transform enter animation; TipTap mounts after the motion ends (see Composer). */}
                 {composeOpen ? (
-                  <ErrorBoundary
-                    fallbackTitle="写信界面出错"
-                    onReset={() => setComposeOpen(false)}
-                  >
+                  <ErrorBoundary fallbackTitle="写信界面出错" onReset={() => setComposeOpen(false)}>
                     <PaneTransition paneKey="compose" variant="compose">
                       <Composer
                         onClose={() => setComposeOpen(false)}
@@ -301,7 +335,11 @@ export default function App() {
                 ) : (
                   <PaneTransition paneKey={surfaceKey} variant="fade-up">
                     {view === "settings" ? (
-                      <Settings theme={mode} onThemeChange={setMode} onClose={() => setView("mail")} />
+                      <Settings
+                        theme={mode}
+                        onThemeChange={setMode}
+                        onClose={() => setView("mail")}
+                      />
                     ) : view === "add-account" ? (
                       <Box
                         sx={{
@@ -312,7 +350,10 @@ export default function App() {
                           p: 3,
                         }}
                       >
-                        <AddAccount onClose={() => setView("mail")} onAdded={() => setView("mail")} />
+                        <AddAccount
+                          onClose={() => setView("mail")}
+                          onAdded={() => setView("mail")}
+                        />
                       </Box>
                     ) : (
                       <Box sx={{ display: "flex", height: "100%", minHeight: 0 }}>

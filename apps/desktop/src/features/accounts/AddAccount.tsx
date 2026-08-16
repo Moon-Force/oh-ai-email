@@ -62,7 +62,7 @@ export default function AddAccount({ onClose, onAdded }: Props) {
 
   const provider = useMemo(
     () => (providerId === CUSTOM_PROVIDER_ID ? undefined : findProviderById(providerId)),
-    [providerId],
+    [providerId]
   );
 
   function applyServers(servers: MailServerPreset) {
@@ -183,7 +183,9 @@ export default function AddAccount({ onClose, onAdded }: Props) {
         setErr(result.error);
         return;
       }
-      setOk(`IMAP 连接成功 · ${draft.imapHost}:${draft.imapPort}${result.greeting ? ` · ${result.greeting}` : ""}`);
+      setOk(
+        `IMAP 连接成功 · ${draft.imapHost}:${draft.imapPort}${result.greeting ? ` · ${result.greeting}` : ""}`
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -204,7 +206,8 @@ export default function AddAccount({ onClose, onAdded }: Props) {
         </Stack>
 
         <Typography variant="body2" color="text.secondary">
-          选择常用邮箱可自动填入 IMAP / SMTP。密码/授权码经系统加密存储（钥匙串），不会明文写入邮件数据库。
+          选择常用邮箱可自动填入 IMAP /
+          SMTP。密码/授权码经系统加密存储（钥匙串），不会明文写入邮件数据库。
         </Typography>
 
         <Box>
@@ -378,10 +381,18 @@ export default function AddAccount({ onClose, onAdded }: Props) {
         {err && <Alert severity="error">{err}</Alert>}
         {ok && <Alert severity="success">{ok}</Alert>}
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" onClick={() => void testConnection()} disabled={testing || submitting}>
+          <Button
+            variant="outlined"
+            onClick={() => void testConnection()}
+            disabled={testing || submitting}
+          >
             {testing ? "测试中…" : "测试连接"}
           </Button>
-          <Button variant="contained" onClick={() => void submit()} disabled={testing || submitting}>
+          <Button
+            variant="contained"
+            onClick={() => void submit()}
+            disabled={testing || submitting}
+          >
             {submitting ? "添加中…" : "添加并同步"}
           </Button>
         </Stack>

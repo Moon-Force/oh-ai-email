@@ -67,7 +67,7 @@ export async function taskSummarize(input: {
       { role: "system", content: systemForSummarize() },
       { role: "user", content: ctx },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 }
 
@@ -85,7 +85,7 @@ export async function taskDraftReply(input: {
       { role: "system", content: systemForDraftReply(input.userPersona) },
       { role: "user", content: `Write a reply to this email:\n\n${ctx}` },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 }
 
@@ -104,7 +104,7 @@ export async function taskQuickReply(input: {
       { role: "system", content: systemForQuickReply(input.replyType, input.customNote) },
       { role: "user", content: `Write a quick reply to this email:\n\n${ctx}` },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 }
 
@@ -121,7 +121,7 @@ export async function taskExtractActionItems(input: {
       { role: "system", content: systemForActionItems() },
       { role: "user", content: ctx },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 
   if (!result.ok) {
@@ -131,7 +131,10 @@ export async function taskExtractActionItems(input: {
   try {
     let raw = result.text.trim();
     if (raw.startsWith("```")) {
-      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+      raw = raw
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
     }
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -188,7 +191,7 @@ export async function taskRewrite(input: {
       { role: "system", content: systemForRewrite(input.tone, input.userPersona) },
       { role: "user", content: cleaned },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 }
 
@@ -202,16 +205,15 @@ export async function taskCompose(input: {
   if (!prompt) {
     return { ok: false, code: "EMPTY", error: "请先输入写作提示" };
   }
-  const user =
-    input.existingBody?.trim()
-      ? `Instruction: ${prompt}\n\nExisting draft to improve or replace:\n${cleanContext(input.existingBody, 4000)}`
-      : `Instruction: ${prompt}`;
+  const user = input.existingBody?.trim()
+    ? `Instruction: ${prompt}\n\nExisting draft to improve or replace:\n${cleanContext(input.existingBody, 4000)}`
+    : `Instruction: ${prompt}`;
   return chatComplete(
     [
       { role: "system", content: systemForCompose() },
       { role: "user", content: user },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 }
 
@@ -241,7 +243,7 @@ export async function taskThreadSummary(input: {
       { role: "system", content: systemForThreadSummary() },
       { role: "user", content: promptUser },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 
   if (!result.ok) {
@@ -251,7 +253,10 @@ export async function taskThreadSummary(input: {
   try {
     let raw = result.text.trim();
     if (raw.startsWith("```")) {
-      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+      raw = raw
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
     }
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -266,8 +271,7 @@ export async function taskThreadSummary(input: {
       ? parsed.timeline
           .map((item: Record<string, unknown>) => ({
             sender: typeof item?.sender === "string" ? item.sender : "未知发件人",
-            date:
-              typeof item?.date === "string" && item.date.trim() ? item.date.trim() : undefined,
+            date: typeof item?.date === "string" && item.date.trim() ? item.date.trim() : undefined,
             point: typeof item?.point === "string" ? item.point.trim() : String(item || "").trim(),
           }))
           .filter((item) => Boolean(item.point))
@@ -308,7 +312,7 @@ export async function taskSuggestSplit(input: {
       { role: "system", content: systemForSuggestSplit() },
       { role: "user", content: ctx },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 
   if (!result.ok) {
@@ -318,7 +322,10 @@ export async function taskSuggestSplit(input: {
   try {
     let raw = result.text.trim();
     if (raw.startsWith("```")) {
-      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+      raw = raw
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
     }
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -374,7 +381,7 @@ export async function taskTranslate(input: {
       { role: "system", content: system },
       { role: "user", content: cleaned },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 }
 
@@ -406,9 +413,12 @@ export async function taskLearnUserTone(input: {
   const result = await chatComplete(
     [
       { role: "system", content: systemForLearnUserTone() },
-      { role: "user", content: `这是我最近发送的部分邮件样本，请分析并提取我的写作习惯与风格画像：\n\n${samplesText}` },
+      {
+        role: "user",
+        content: `这是我最近发送的部分邮件样本，请分析并提取我的写作习惯与风格画像：\n\n${samplesText}`,
+      },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 
   if (!result.ok) return result;
@@ -416,7 +426,10 @@ export async function taskLearnUserTone(input: {
   try {
     let raw = result.text.trim();
     if (raw.startsWith("```")) {
-      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+      raw = raw
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
     }
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) raw = jsonMatch[0];
@@ -462,19 +475,14 @@ export async function taskAnalyzeAttachment(input: {
 }): Promise<AiResult> {
   const docName = input.filename || "附件文档";
   const contentSnippet = cleanContext(
-    input.textContent ||
-      `[附件文件名: ${docName}, 类型: ${input.contentType || "未知"}]`,
-    6000,
+    input.textContent || `[附件文件名: ${docName}, 类型: ${input.contentType || "未知"}]`,
+    6000
   );
   return chatComplete(
     [
       { role: "system", content: systemForAttachmentAnalysis() },
       { role: "user", content: `请分析附件《${docName}》的内容并提取要点：\n\n${contentSnippet}` },
     ],
-    { mode: input.mode, requestId: input.requestId },
+    { mode: input.mode, requestId: input.requestId }
   );
 }
-
-
-
-

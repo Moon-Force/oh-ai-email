@@ -6,10 +6,7 @@ import {
   toolExtractTriageSuggestions,
   toolSearchMessages,
 } from "./tools";
-import {
-  abortAgentWorkflow,
-  runAgentWorkflow,
-} from "./engine";
+import { abortAgentWorkflow, runAgentWorkflow } from "./engine";
 import type { AgentStreamEvent } from "./types";
 import type { MessageRecord } from "../../mail/types";
 
@@ -82,7 +79,7 @@ describe("Agent Tools", () => {
   it("toolExtractMeetingDetails parses message context into calendar proposal item", () => {
     const item = toolExtractMeetingDetails(
       "关于周四项目同步会议",
-      "请于 2026-08-25T10:00:00 准时接入腾讯会议，参会人: lead@tech.com",
+      "请于 2026-08-25T10:00:00 准时接入腾讯会议，参会人: lead@tech.com"
     );
 
     expect(item).not.toBeNull();
@@ -120,7 +117,7 @@ describe("Agent Tools", () => {
   it("toolExtractCommitments extracts i_promised and they_promised commitments with deadlines", () => {
     const res = toolExtractCommitments(
       "项目合作推进",
-      "我会在本周五前发送终版报价单。请于8月22日前确认商务条款，另外您提到下周二提供系统演示。",
+      "我会在本周五前发送终版报价单。请于8月22日前确认商务条款，另外您提到下周二提供系统演示。"
     );
 
     expect(res.commitments.length).toBeGreaterThanOrEqual(2);
@@ -131,7 +128,9 @@ describe("Agent Tools", () => {
 
     const theyPromised = res.commitments.filter((c) => c.direction === "they_promised");
     expect(theyPromised.length).toBeGreaterThanOrEqual(1);
-    expect(theyPromised.some((c) => c.text.includes("确认商务条款") && c.deadline?.includes("8月22日"))).toBe(true);
+    expect(
+      theyPromised.some((c) => c.text.includes("确认商务条款") && c.deadline?.includes("8月22日"))
+    ).toBe(true);
   });
 });
 
@@ -229,7 +228,7 @@ describe("Agent Workflow Engine", () => {
             abortAgentWorkflow(reqId);
           }
         },
-      }),
+      })
     ).rejects.toThrow();
 
     const errorEvent = events.find((e) => e.type === "error");
@@ -239,4 +238,3 @@ describe("Agent Workflow Engine", () => {
     }
   });
 });
-

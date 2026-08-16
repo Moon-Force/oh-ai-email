@@ -51,7 +51,10 @@ export function isSpeechRecognitionSupported(): boolean {
 export function isSpeechSynthesisSupported(): boolean {
   if (typeof window === "undefined") return false;
   const win = window as unknown as { SpeechSynthesisUtterance?: unknown };
-  return "speechSynthesis" in window && Boolean(win.SpeechSynthesisUtterance || typeof SpeechSynthesisUtterance !== "undefined");
+  return (
+    "speechSynthesis" in window &&
+    Boolean(win.SpeechSynthesisUtterance || typeof SpeechSynthesisUtterance !== "undefined")
+  );
 }
 
 /**
@@ -61,7 +64,7 @@ export function isSpeechSynthesisSupported(): boolean {
 export function startSpeechRecognition(
   onResult: (text: string, isFinal: boolean) => void,
   onError?: (err: string) => void,
-  onEnd?: () => void,
+  onEnd?: () => void
 ): () => void {
   if (!isSpeechRecognitionSupported()) {
     onError?.("当前环境不支持语音识别 (SpeechRecognition)");
@@ -145,7 +148,7 @@ export function startSpeechRecognition(
 export function speakText(
   text: string,
   onEnd?: () => void,
-  onError?: (err: string) => void,
+  onError?: (err: string) => void
 ): () => void {
   if (!isSpeechSynthesisSupported()) {
     onError?.("当前环境不支持语音朗读 (SpeechSynthesis)");
@@ -165,7 +168,8 @@ export function speakText(
   }
 
   const UtteranceClass =
-    (window as unknown as { SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance }).SpeechSynthesisUtterance ||
+    (window as unknown as { SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance })
+      .SpeechSynthesisUtterance ||
     (typeof SpeechSynthesisUtterance !== "undefined" ? SpeechSynthesisUtterance : null);
 
   if (!UtteranceClass) {

@@ -48,6 +48,14 @@ vi.mock("../../lib/ipc", () => ({
   prefsSave: vi.fn(async (p: { syncIntervalMin?: number }) => ({
     syncIntervalMin: p.syncIntervalMin ?? 5,
   })),
+  prefsGetAutolaunch: vi.fn(async () => false),
+  prefsSetAutolaunch: vi.fn(async (enabled: boolean) => enabled),
+  updaterCheck: vi.fn(async () => ({
+    updateAvailable: false,
+    currentVersion: "0.1.0",
+    latestVersion: "0.1.0",
+    releaseNotes: "无新版本",
+  })),
 }));
 
 beforeEach(() => {
@@ -93,7 +101,6 @@ test("switches preset to DeepSeek and fetches models and balance", async () => {
   await user.click(screen.getByRole("button", { name: "查询余额" }));
   expect(await screen.findByText(/88\.00/)).toBeInTheDocument();
 });
-
 
 test("general tab toggles theme", async () => {
   const user = userEvent.setup();

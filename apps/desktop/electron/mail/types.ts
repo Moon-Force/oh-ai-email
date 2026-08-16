@@ -39,6 +39,9 @@ export type MessageRecord = {
   unread: boolean;
   split: "important" | "other";
   html?: string;
+  snoozedUntil?: number | null;
+  isPinned?: boolean;
+  isMuted?: boolean;
   /** Populated when listing for UI (not a messages column). */
   attachments?: AttachmentMeta[];
 };
@@ -62,9 +65,7 @@ export type ImapConnectInput = {
   imapTls: TlsMode;
 };
 
-export type TestConnectionResult =
-  | { ok: true; greeting?: string }
-  | { ok: false; error: string };
+export type TestConnectionResult = { ok: true; greeting?: string } | { ok: false; error: string };
 
 export type SyncResult = {
   accountId: string;

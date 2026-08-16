@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>oh-ai-email — 开源、轻快的下一代 AI 智能邮件客户端</title>
+    <meta
+      name="description"
+      content="oh-ai-email 是一款 Spark-like 现代极简 AI 邮件客户端，具备 IMAP IDLE 零延迟推信、混合双模副驾 AI、智能分箱与稍后处理、本地安全凭证存储。"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='%231976D2'><rect width='32' height='32' rx='6'/><path d='M4 9L16 18L28 9' stroke='white' stroke-width='2.5' fill='none'/></svg>"
+    />
+  </head>
+  <body>
+    <!-- Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-container">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+          </div>
+          <span>oh-ai-email</span>
+        </div>
+
+        <nav class="nav-links">
+          <a href="#features" class="nav-link">核心特性</a>
+          <a href="#preview" class="nav-link">功能演示</a>
+          <a href="#download" class="nav-link">下载客户端</a>
+          <a
+            href="https://github.com/Moon-Force/oh-ai-email"
+            target="_blank"
+            rel="noreferrer"
+            class="nav-link"
+            >GitHub</a
+          >
+        </nav>
+
+        <div class="nav-actions">
+          <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">☀️</button>
+          <a
+            href="#download"
+            class="btn btn-primary"
+            style="padding: 0.45rem 1rem; font-size: 0.85rem"
+            >免费下载</a
+          >
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="badge-tag">
+        <span class="badge-dot"></span>
+        <span>v0.1.0 桌面正式版现已发布</span>
+      </div>
+
+      <h1>开源、轻快、懂得思考的<br />下一代 AI 邮件客户端</h1>
+
+      <p>
+        融合 Spark 式清爽三栏交互、原生 IMAP IDLE 零延迟推信与混合双模 AI。<br />
+        云端大模型与本地 Ollama 自由切换，本地安全存储保护隐私。
+      </p>
+
+      <div class="hero-actions">
+        <a href="#download" class="btn btn-primary">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>立即下载桌面端</span>
+        </a>
+
+        <a
+          href="https://github.com/Moon-Force/oh-ai-email"
+          target="_blank"
+          rel="noreferrer"
+          class="btn btn-secondary"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+            ></path>
+            <path d="M9 18c-4.51 2-5-2-7-2"></path>
+          </svg>
+          <span>GitHub 开源仓库</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Interactive Live Preview Card -->
+    <section id="preview" class="preview-container">
+      <div class="window-card">
+        <div class="window-header">
+          <div class="window-dots">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+          <div class="window-title">oh-ai-email — 主工作区</div>
+          <div style="width: 42px"></div>
+        </div>
+
+        <div class="client-layout">
+          <!-- Sidebar -->
+          <aside class="client-sidebar">
+            <div class="sidebar-item active">
+              <span>📥 收件箱</span>
+              <span
+                style="
+                  font-size: 0.75rem;
+                  background: rgba(33, 150, 243, 0.2);
+                  padding: 1px 6px;
+                  border-radius: 999px;
+                "
+                >12</span
+              >
+            </div>
+            <div class="sidebar-item">
+              <span>⭐ 重要邮件</span>
+              <span style="font-size: 0.75rem; color: var(--text-faint)">3</span>
+            </div>
+            <div class="sidebar-item">
+              <span>⏰ 稍后处理 (Snoozed)</span>
+              <span style="font-size: 0.75rem; color: var(--text-faint)">2</span>
+            </div>
+            <div class="sidebar-item">
+              <span>📤 已发送</span>
+            </div>
+            <div class="sidebar-item">
+              <span>🗑️ 已删除</span>
+            </div>
+          </aside>
+
+          <!-- Mail List -->
+          <div class="client-list">
+            <div class="mail-item selected">
+              <div class="mail-item-sender">
+                <span>技术架构委员会</span>
+                <span style="font-size: 0.7rem; color: var(--text-faint)">10:42</span>
+              </div>
+              <div class="mail-item-sub">关于企业邮箱容量升级与附件审计方案</div>
+              <div class="mail-item-snippet">
+                各位同事，针对本季度企业邮箱大容量存储与附件审计功能...
+              </div>
+            </div>
+
+            <div class="mail-item">
+              <div class="mail-item-sender">
+                <span>GitHub Notifications</span>
+                <span style="font-size: 0.7rem; color: var(--text-faint)">09:15</span>
+              </div>
+              <div class="mail-item-sub">[Release] oh-ai-email v0.1.0 published</div>
+              <div class="mail-item-snippet">
+                Moon-Force/oh-ai-email release v0.1.0 is now ready for download...
+              </div>
+            </div>
+
+            <div class="mail-item">
+              <div class="mail-item-sender">
+                <span>产品研发组</span>
+                <span style="font-size: 0.7rem; color: var(--text-faint)">昨天</span>
+              </div>
+              <div class="mail-item-sub">下周迭代需求排期讨论确认</div>
+              <div class="mail-item-snippet">请大家在周五前提交各自分组的需求清单...</div>
+            </div>
+          </div>
+
+          <!-- Reader & Interactive Lumen Capsule -->
+          <main class="client-reader">
+            <div>
+              <div class="reader-header">
+                <div class="reader-title">关于企业邮箱容量升级与附件审计方案</div>
+                <div class="reader-meta">
+                  发件人：技术架构委员会 &lt;arch@company.org&gt; · 10:42 (10分钟前)
+                </div>
+              </div>
+              <div class="reader-body">
+                各位同事：<br />
+                针对本季度企业邮箱大容量存储与附件审计功能，技术团队已完成第一阶段灰度测试。
+                预计下周二下午 15:00
+                组织跨部门上线评审会议，请各部门负责人确认附件敏感词审计规则清单。
+              </div>
+            </div>
+
+            <!-- Interactive Capsule -->
+            <div class="demo-capsule">
+              <div class="capsule-controls">
+                <button class="capsule-btn active" data-action="summary">✨ AI 智能摘要</button>
+                <button class="capsule-btn" data-action="reply">✍️ 生成回复草稿</button>
+                <button class="capsule-btn" data-action="action">📋 提取行动项</button>
+                <button class="capsule-btn" data-action="translate">🌐 译为英文</button>
+              </div>
+              <div class="capsule-output" id="capsule-output-text">正在生成摘要...</div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Features Section -->
+    <section id="features" class="features-section">
+      <div class="section-header">
+        <h2>不仅是好看，更是强大的生产力引擎</h2>
+        <p>为高频邮件用户精心打造的每一个细节</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">⚡</div>
+          <h3>零延迟实时推信</h3>
+          <p>支持底层 IMAP IDLE 原生长连接推信，辅以 90s 智能心跳与快速重连梯子，邮件秒级送达。</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">🧠</div>
+          <h3>混合双模 AI 副驾</h3>
+          <p>
+            完美兼容 OpenAI 接口与本地 Ollama 离线大模型。原生支持 DeepSeek R1
+            深度思考流与结构化解析。
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">📥</div>
+          <h3>智能分箱与稍后处理</h3>
+          <p>
+            基于邮件特征的两级分箱（重要 / 其他），结合 Snooze
+            稍后处理功能，在指定时间自动唤醒待办。
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">🔒</div>
+          <h3>本地加密与绝对隐私</h3>
+          <p>
+            邮箱密码与 API Key 通过操作系统安全级 Keychain / safeStorage
+            加密，无任何中间代理服务器截留数据。
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">🎙️</div>
+          <h3>语音听写与双引擎朗读</h3>
+          <p>支持语音转文字快速起草回复，并提供轻量级与自然人声朗读长邮件，解放双眼。</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">🛡️</div>
+          <h3>审计与发信前安全检查</h3>
+          <p>内置 AI 敏感信息过滤与附件遗忘预检，每一次调用均可在审计中心透明追溯。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download-section">
+      <div class="section-header">
+        <h2>跨平台支持，即刻下载体验</h2>
+        <p>完全开源免费，支持 Windows、macOS 与 Linux 操作系统</p>
+      </div>
+
+      <div class="download-cards">
+        <div class="download-card">
+          <div style="font-size: 2rem">🪟</div>
+          <div class="platform-title">Windows</div>
+          <div class="platform-formats">.exe 安装包 · 便携绿色版</div>
+          <a
+            href="https://github.com/Moon-Force/oh-ai-email/releases"
+            target="_blank"
+            rel="noreferrer"
+            class="btn btn-primary"
+            style="width: 100%"
+            >下载 Windows 版</a
+          >
+        </div>
+
+        <div class="download-card">
+          <div style="font-size: 2rem">🍎</div>
+          <div class="platform-title">macOS</div>
+          <div class="platform-formats">Apple Silicon & Intel .dmg · .zip</div>
+          <a
+            href="https://github.com/Moon-Force/oh-ai-email/releases"
+            target="_blank"
+            rel="noreferrer"
+            class="btn btn-primary"
+            style="width: 100%"
+            >下载 macOS 版</a
+          >
+        </div>
+
+        <div class="download-card">
+          <div style="font-size: 2rem">🐧</div>
+          <div class="platform-title">Linux</div>
+          <div class="platform-formats">.AppImage · .deb 安装包</div>
+          <a
+            href="https://github.com/Moon-Force/oh-ai-email/releases"
+            target="_blank"
+            rel="noreferrer"
+            class="btn btn-primary"
+            style="width: 100%"
+            >下载 Linux 版</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div>© 2026 <strong>oh-ai-email</strong> · Moon-Force. Released under the MIT License.</div>
+      <div style="display: flex; gap: 1.5rem">
+        <a href="https://github.com/Moon-Force/oh-ai-email" target="_blank" rel="noreferrer"
+          >GitHub 源码</a
+        >
+        <a
+          href="https://github.com/Moon-Force/oh-ai-email/releases"
+          target="_blank"
+          rel="noreferrer"
+          >版本发布</a
+        >
+        <a href="https://github.com/Moon-Force/oh-ai-email/issues" target="_blank" rel="noreferrer"
+          >问题反馈</a
+        >
+      </div>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

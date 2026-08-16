@@ -1,15 +1,10 @@
 import type { CSSProperties } from "react";
-import {
-  Box,
-  List,
-  ListItemButton,
-  ListItemText,
-  Typography,
-  Chip,
-} from "@mui/material";
+import { Box, List, ListItemButton, ListItemText, Typography, Chip, Tooltip } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
+import ScheduleIcon from "@mui/icons-material/Schedule";
 import { useMailStore } from "./store";
-import { searchMessages } from "./search";
 import EmptyState from "../shell/EmptyState";
 
 export default function MessageList() {
@@ -21,16 +16,9 @@ export default function MessageList() {
   const split = useMailStore((s) => s.split);
   const activeFolderId = useMailStore((s) => s.activeFolderId);
   const allMessages = useMailStore((s) => s.messages);
+  const visibleMessages = useMailStore((s) => s.visibleMessages);
 
-  const folders = useMailStore((s) => s.folders);
-  const messages = (() => {
-    const folder = folders.find((f) => f.role === activeFolderId);
-    let list = folder
-      ? allMessages.filter((m) => m.folderId === folder.id)
-      : allMessages.filter((m) => m.folderRole === activeFolderId);
-    if (split !== "all") list = list.filter((m) => m.split === split);
-    return searchMessages(list, searchQuery);
-  })();
+  const messages = visibleMessages();
 
   const isSearching = searchQuery.trim().length > 0;
   const paneKey = `${activeFolderId}:${split}:${searchQuery.trim()}`;
@@ -38,13 +26,15 @@ export default function MessageList() {
   const folderLabel =
     activeFolderId === "inbox"
       ? "收件箱"
-      : activeFolderId === "sent"
-        ? "已发送"
-        : activeFolderId === "drafts"
-          ? "草稿"
-          : activeFolderId === "archive"
-            ? "归档"
-            : "垃圾箱";
+      : activeFolderId === "snoozed"
+        ? "稍后处理"
+        : activeFolderId === "sent"
+          ? "已发送"
+          : activeFolderId === "drafts"
+            ? "草稿"
+            : activeFolderId === "archive"
+              ? "归档"
+              : "垃圾箱";
 
   if (messages.length === 0) {
     return (
@@ -123,6 +113,35 @@ export default function MessageList() {
                 secondary={
                   <>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                      {m.isPinned && (
+                        <Tooltip title="已置顶">
+                          <PushPinIcon
+                            sx={{
+                              fontSize: 13,
+                              color: "warning.main",
+                              transform: "rotate(45deg)",
+                              flexShrink: 0,
+                            }}
+                          />
+                        </Tooltip>
+                      )}
+                      {m.isMuted && (
+                        <Tooltip title="已静音">
+                          <NotificationsOffIcon
+                            sx={{ fontSize: 13, color: "text.disabled", flexShrink: 0 }}
+                          />
+                        </Tooltip>
+                      )}
+                      {m.snoozedUntil != null && m.snoozedUntil > Date.now() && (
+                        <Chip
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                          icon={<ScheduleIcon sx={{ "&&": { fontSize: 12 } }} />}
+                          label="推迟中"
+                          sx={{ height: 18, fontSize: "0.65rem", flexShrink: 0 }}
+                        />
+                      )}
                       <Typography
                         variant="body2"
                         color="text.primary"

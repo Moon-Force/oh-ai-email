@@ -121,4 +121,3 @@ describe("AgentDrawer Component", () => {
     expect(useAgentStore.getState().agentType).toBe("daily_briefing");
   });
 });
-

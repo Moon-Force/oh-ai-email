@@ -1,18 +1,8 @@
 export type AgentType =
-  | "daily_briefing"
-  | "meeting_extractor"
-  | "batch_triage"
-  | "followup_sequence"
-  | "custom";
+  "daily_briefing" | "meeting_extractor" | "batch_triage" | "followup_sequence" | "custom";
 
 export type AgentStatus =
-  | "idle"
-  | "planning"
-  | "executing_tools"
-  | "review_pending"
-  | "completed"
-  | "cancelled"
-  | "error";
+  "idle" | "planning" | "executing_tools" | "review_pending" | "completed" | "cancelled" | "error";
 
 export type AgentStepEvent = {
   type: "step";
@@ -58,9 +48,7 @@ export type AgentProposalSplitItem = {
 };
 
 export type AgentProposalItem =
-  | AgentProposalCalendarItem
-  | AgentProposalDraftItem
-  | AgentProposalSplitItem;
+  AgentProposalCalendarItem | AgentProposalDraftItem | AgentProposalSplitItem;
 
 export type AgentProposalData = {
   title: string;
@@ -86,11 +74,7 @@ export type AgentErrorEvent = {
 };
 
 export type AgentStreamEvent =
-  | AgentStepEvent
-  | AgentTokenEvent
-  | AgentProposalEvent
-  | AgentDoneEvent
-  | AgentErrorEvent;
+  AgentStepEvent | AgentTokenEvent | AgentProposalEvent | AgentDoneEvent | AgentErrorEvent;
 
 export type AgentRunParams = {
   agentType: AgentType;

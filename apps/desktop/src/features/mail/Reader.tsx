@@ -11,6 +11,8 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  Menu,
+  MenuItem,
   Paper,
   Stack,
   Tooltip,
@@ -25,6 +27,11 @@ import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import DownloadIcon from "@mui/icons-material/Download";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import ScheduleIcon from "@mui/icons-material/Schedule";
 import { useMailStore, ambientFromSender } from "./store";
 import { useToastStore } from "../shell/toastStore";
 import LumenCapsule from "../ai/LumenCapsule";
@@ -41,8 +48,46 @@ export default function Reader() {
   const selectedId = useMailStore((s) => s.selectedId);
   const openCompose = useMailStore((s) => s.openCompose);
   const setMessageSplit = useMailStore((s) => s.setMessageSplit);
+  const togglePin = useMailStore((s) => s.togglePin);
+  const toggleMute = useMailStore((s) => s.toggleMute);
+  const snoozeMessage = useMailStore((s) => s.snoozeMessage);
+  const [snoozeAnchor, setSnoozeAnchor] = useState<null | HTMLElement>(null);
   const showToast = useToastStore((s) => s.showToast);
   const msg = messages.find((m) => m.id === selectedId);
+
+  const handleSnooze = (preset: "evening" | "tomorrow" | "weekend" | "next_week" | "clear") => {
+    if (!msg) return;
+    setSnoozeAnchor(null);
+    if (preset === "clear") {
+      snoozeMessage(msg.id, null);
+      showToast("已取消推迟，邮件已放回收件箱", "success", 2500);
+      return;
+    }
+    const d = new Date();
+    if (preset === "evening") {
+      d.setHours(18, 0, 0, 0);
+      if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    } else if (preset === "tomorrow") {
+      d.setDate(d.getDate() + 1);
+      d.setHours(9, 0, 0, 0);
+    } else if (preset === "weekend") {
+      const day = d.getDay();
+      const diff = (6 - day + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      d.setHours(9, 0, 0, 0);
+    } else if (preset === "next_week") {
+      const day = d.getDay();
+      const diff = (8 - day) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      d.setHours(9, 0, 0, 0);
+    }
+    snoozeMessage(msg.id, d.getTime());
+    showToast(
+      `已推迟处理至 ${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      "success",
+      3000
+    );
+  };
 
   useEffect(() => {
     if (msg) {
@@ -150,6 +195,66 @@ export default function Reader() {
                 aria-pressed={msg.split === "other"}
               />
             </Tooltip>
+            <Tooltip title={msg.isPinned ? "取消置顶" : "置顶邮件"}>
+              <IconButton
+                size="small"
+                color={msg.isPinned ? "warning" : "default"}
+                onClick={() => {
+                  togglePin(msg.id);
+                  showToast(msg.isPinned ? "已取消置顶" : "已置顶该邮件", "success", 2000);
+                }}
+                aria-label="置顶"
+              >
+                {msg.isPinned ? (
+                  <PushPinIcon fontSize="small" sx={{ transform: "rotate(45deg)" }} />
+                ) : (
+                  <PushPinOutlinedIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={msg.isMuted ? "取消静音（恢复通知）" : "静音此邮件（不再弹通知）"}>
+              <IconButton
+                size="small"
+                color={msg.isMuted ? "error" : "default"}
+                onClick={() => {
+                  toggleMute(msg.id);
+                  showToast(msg.isMuted ? "已取消静音" : "已静音该邮件", "info", 2000);
+                }}
+                aria-label="静音"
+              >
+                {msg.isMuted ? (
+                  <NotificationsOffIcon fontSize="small" />
+                ) : (
+                  <NotificationsNoneIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="稍后处理 (Snooze)">
+              <Button
+                size="small"
+                variant={msg.snoozedUntil && msg.snoozedUntil > Date.now() ? "contained" : "text"}
+                color={msg.snoozedUntil && msg.snoozedUntil > Date.now() ? "info" : "primary"}
+                startIcon={<ScheduleIcon />}
+                onClick={(e) => setSnoozeAnchor(e.currentTarget)}
+              >
+                {msg.snoozedUntil && msg.snoozedUntil > Date.now() ? "已推迟" : "稍后"}
+              </Button>
+            </Tooltip>
+            <Menu
+              anchorEl={snoozeAnchor}
+              open={Boolean(snoozeAnchor)}
+              onClose={() => setSnoozeAnchor(null)}
+            >
+              <MenuItem onClick={() => handleSnooze("evening")}>今天下午 (18:00)</MenuItem>
+              <MenuItem onClick={() => handleSnooze("tomorrow")}>明天上午 (09:00)</MenuItem>
+              <MenuItem onClick={() => handleSnooze("weekend")}>本周末 (周六 09:00)</MenuItem>
+              <MenuItem onClick={() => handleSnooze("next_week")}>下周一 (09:00)</MenuItem>
+              {msg.snoozedUntil != null && msg.snoozedUntil > Date.now() && (
+                <MenuItem onClick={() => handleSnooze("clear")} sx={{ color: "error.main" }}>
+                  取消推迟 (放回收件箱)
+                </MenuItem>
+              )}
+            </Menu>
             <Button
               size="small"
               variant="outlined"
@@ -179,7 +284,11 @@ export default function Reader() {
             data-testid="reader-attachments"
             sx={{ px: 2, py: 1, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}
           >
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.75 }}
+            >
               附件 · {attachments.length} 个
             </Typography>
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
@@ -351,12 +460,7 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
         </IconButton>
       </Tooltip>
 
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <AutoAwesomeIcon color="primary" fontSize="small" />
           附件智能提炼 · {attachment.filename}
@@ -390,7 +494,10 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
 
 function normalizeSubject(s?: string): string {
   if (!s) return "";
-  return s.replace(/^(\s*(re|fwd|fw|回复|转发)\s*[:：]\s*)+/i, "").trim().toLowerCase();
+  return s
+    .replace(/^(\s*(re|fwd|fw|回复|转发)\s*[:：]\s*)+/i, "")
+    .trim()
+    .toLowerCase();
 }
 
 function stripHtml(html: string): string {

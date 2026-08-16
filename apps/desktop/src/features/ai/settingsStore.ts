@@ -144,4 +144,3 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
     return dto;
   },
 }));
-

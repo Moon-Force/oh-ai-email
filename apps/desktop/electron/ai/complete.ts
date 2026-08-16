@@ -4,14 +4,7 @@ import { redactSensitiveData, restoreRedactedData } from "./clean";
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 export type AiErrorCode =
-  | "NO_KEY"
-  | "OLLAMA_DOWN"
-  | "TIMEOUT"
-  | "ABORTED"
-  | "HTTP"
-  | "EMPTY"
-  | "NETWORK"
-  | "CONFIG";
+  "NO_KEY" | "OLLAMA_DOWN" | "TIMEOUT" | "ABORTED" | "HTTP" | "EMPTY" | "NETWORK" | "CONFIG";
 
 export type AiResult =
   | { ok: true; text: string; reasoningContent?: string; mode: AiMode }
@@ -37,7 +30,7 @@ export function abortAiRequest(requestId: string): boolean {
 
 export async function chatComplete(
   messages: ChatMessage[],
-  opts?: { mode?: AiMode; timeoutMs?: number; requestId?: string },
+  opts?: { mode?: AiMode; timeoutMs?: number; requestId?: string }
 ): Promise<AiResult> {
   const settings = loadAiSettings();
   const mode = opts?.mode ?? settings.mode;
@@ -59,7 +52,7 @@ export async function chatComplete(
         settings.ollamaHost,
         settings.ollamaModel,
         combinedSignal,
-        controller.signal,
+        controller.signal
       );
     }
     const key = getCloudApiKey();
@@ -87,7 +80,7 @@ export async function chatComplete(
       key,
       settings.model,
       combinedSignal,
-      controller.signal,
+      controller.signal
     );
 
     if (res.ok && settings.redactSensitiveData && Object.keys(combinedReplacements).length > 0) {
@@ -125,7 +118,7 @@ async function callOpenAiCompatible(
   apiKey: string,
   model: string,
   signal: AbortSignal,
-  userAbortSignal?: AbortSignal,
+  userAbortSignal?: AbortSignal
 ): Promise<AiResult> {
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
   let res: Response;
@@ -189,7 +182,7 @@ async function callOllama(
   host: string,
   model: string,
   signal: AbortSignal,
-  userAbortSignal?: AbortSignal,
+  userAbortSignal?: AbortSignal
 ): Promise<AiResult> {
   const base = host.replace(/\/+$/, "");
   const url = `${base}/api/chat`;
@@ -231,7 +224,8 @@ async function callOllama(
 
   const data = (await res.json()) as { message?: { content?: string } };
   const text = data.message?.content?.trim() ?? "";
-  if (!text) return { ok: false, code: "EMPTY", error: "Ollama 返回为空（请检查模型名是否已 pull）" };
+  if (!text)
+    return { ok: false, code: "EMPTY", error: "Ollama 返回为空（请检查模型名是否已 pull）" };
   return { ok: true, text, mode: "local" };
 }
 
@@ -251,7 +245,9 @@ export async function probeOllama(): Promise<
   }
 }
 
-export async function probeCloud(): Promise<{ ok: true } | { ok: false; error: string; code: AiErrorCode }> {
+export async function probeCloud(): Promise<
+  { ok: true } | { ok: false; error: string; code: AiErrorCode }
+> {
   const settings = loadAiSettings();
   const key = getCloudApiKey();
   if (!key) return { ok: false, code: "NO_KEY", error: "未配置 API Key" };
@@ -279,7 +275,7 @@ export async function probeCloud(): Promise<{ ok: true } | { ok: false; error: s
           { role: "system", content: "Reply with OK only." },
           { role: "user", content: "ping" },
         ],
-        { mode: "cloud", timeoutMs: 20_000 },
+        { mode: "cloud", timeoutMs: 20_000 }
       );
       if (r.ok) return { ok: true };
       return { ok: false, code: r.code, error: r.error };
@@ -291,9 +287,4 @@ export async function probeCloud(): Promise<{ ok: true } | { ok: false; error: s
   }
 }
 
-export {
-  fetchRemoteModels,
-  fetchAccountBalance,
-  synthesizeSpeechMiMo,
-} from "./providers/openai";
-
+export { fetchRemoteModels, fetchAccountBalance, synthesizeSpeechMiMo } from "./providers/openai";

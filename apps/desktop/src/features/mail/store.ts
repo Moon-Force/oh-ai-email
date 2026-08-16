@@ -2,7 +2,15 @@ import { create } from "zustand";
 import type { MailFolder, MailFolderId, MailMessage, ShellView } from "./types";
 import { searchMessages } from "./search";
 import type { FolderDto, MessageDto } from "../../lib/ipc";
-import { mailMarkRead, mailSetSplit, mailSnapshot, mailSync } from "../../lib/ipc";
+import {
+  mailMarkRead,
+  mailMute,
+  mailPin,
+  mailSetSplit,
+  mailSnapshot,
+  mailSnooze,
+  mailSync,
+} from "../../lib/ipc";
 import { accountFromDto, useAccountsStore } from "../accounts/store";
 
 type SplitFilter = "important" | "other" | "all";
@@ -27,6 +35,9 @@ type State = {
   markRead: (id: string) => void;
   /** Manually set 分箱: important | other. Survives re-sync. */
   setMessageSplit: (id: string, split: "important" | "other") => void;
+  snoozeMessage: (id: string, untilMs: number | null) => void;
+  togglePin: (id: string) => void;
+  toggleMute: (id: string) => void;
   setFolder: (id: MailFolderId) => void;
   setSplit: (s: SplitFilter) => void;
   setSearchQuery: (q: string) => void;
@@ -44,6 +55,7 @@ type State = {
 
 const EMPTY_FOLDERS: MailFolder[] = [
   { id: "role:inbox", role: "inbox", name: "收件箱", unread: 0 },
+  { id: "role:snoozed", role: "snoozed", name: "稍后处理", unread: 0 },
   { id: "role:sent", role: "sent", name: "已发送", unread: 0 },
   { id: "role:drafts", role: "drafts", name: "草稿", unread: 0 },
   { id: "role:archive", role: "archive", name: "归档", unread: 0 },
@@ -51,7 +63,14 @@ const EMPTY_FOLDERS: MailFolder[] = [
 ];
 
 function mapRole(role: string): MailFolderId | "other" {
-  if (role === "inbox" || role === "sent" || role === "drafts" || role === "archive" || role === "trash") {
+  if (
+    role === "inbox" ||
+    role === "snoozed" ||
+    role === "sent" ||
+    role === "drafts" ||
+    role === "archive" ||
+    role === "trash"
+  ) {
     return role;
   }
   return "other";
@@ -84,6 +103,9 @@ function mapMessage(m: MessageDto, folders: MailFolder[]): MailMessage {
     unread: m.unread,
     split: m.split,
     html: m.html,
+    snoozedUntil: m.snoozedUntil ?? null,
+    isPinned: m.isPinned ?? false,
+    isMuted: m.isMuted ?? false,
     attachments: m.attachments?.map((a) => ({
       id: a.id,
       filename: a.filename,
@@ -98,7 +120,13 @@ function mergeUiFolders(remote: MailFolder[]): MailFolder[] {
   return EMPTY_FOLDERS.map((base) => {
     const hit = byRole.get(base.role);
     return hit
-      ? { ...base, id: hit.id, unread: hit.unread, remotePath: hit.remotePath, name: hit.name || base.name }
+      ? {
+          ...base,
+          id: hit.id,
+          unread: hit.unread,
+          remotePath: hit.remotePath,
+          name: hit.name || base.name,
+        }
       : base;
   });
 }
@@ -136,11 +164,36 @@ export const useMailStore = create<State>((set, get) => ({
     }));
     void mailSetSplit(id, split);
   },
+  snoozeMessage: (id, untilMs) => {
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === id ? { ...m, snoozedUntil: untilMs } : m)),
+    }));
+    void mailSnooze(id, untilMs);
+  },
+  togglePin: (id) => {
+    const msg = get().messages.find((m) => m.id === id);
+    if (!msg) return;
+    const next = !msg.isPinned;
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === id ? { ...m, isPinned: next } : m)),
+    }));
+    void mailPin(id, next);
+  },
+  toggleMute: (id) => {
+    const msg = get().messages.find((m) => m.id === id);
+    if (!msg) return;
+    const next = !msg.isMuted;
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === id ? { ...m, isMuted: next } : m)),
+    }));
+    void mailMute(id, next);
+  },
   setFolder: (id) => set({ activeFolderId: id, selectedId: null }),
   setSplit: (split) => set({ split }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setView: (view) => set({ view }),
-  setComposeOpen: (composeOpen) => set({ composeOpen, ...(composeOpen ? {} : { composeSeed: null }) }),
+  setComposeOpen: (composeOpen) =>
+    set({ composeOpen, ...(composeOpen ? {} : { composeSeed: null }) }),
   setComposeSeed: (composeSeed) => set({ composeSeed }),
   openCompose: (seed) =>
     set({
@@ -157,12 +210,17 @@ export const useMailStore = create<State>((set, get) => ({
     set({
       folders,
       messages,
-      selectedId: selectedId && messages.some((m) => m.id === selectedId) ? selectedId : messages[0]?.id ?? null,
+      selectedId:
+        selectedId && messages.some((m) => m.id === selectedId)
+          ? selectedId
+          : (messages[0]?.id ?? null),
     });
   },
   hydrate: async (accountId) => {
     const snap = await mailSnapshot(accountId);
-    useAccountsStore.getState().setAccounts(snap.accounts.map(accountFromDto), snap.activeAccountId);
+    useAccountsStore
+      .getState()
+      .setAccounts(snap.accounts.map(accountFromDto), snap.activeAccountId);
     get().applySnapshot(snap.folders, snap.messages);
   },
   syncNow: async (accountId) => {
@@ -181,12 +239,38 @@ export const useMailStore = create<State>((set, get) => ({
   },
   visibleMessages: () => {
     const { messages, activeFolderId, split, searchQuery, folders } = get();
-    const folder = folders.find((f) => f.role === activeFolderId);
-    let list = folder ? messages.filter((m) => m.folderId === folder.id) : messages.filter((m) => m.folderRole === activeFolderId);
+    const now = Date.now();
+
+    let list: MailMessage[] = [];
+    if (activeFolderId === "snoozed") {
+      list = messages.filter((m) => m.snoozedUntil != null && m.snoozedUntil > now);
+    } else {
+      const folder = folders.find((f) => f.role === activeFolderId);
+      list = folder
+        ? messages.filter((m) => m.folderId === folder.id)
+        : messages.filter((m) => m.folderRole === activeFolderId);
+      // In inbox, filter out snoozed messages that have not yet expired
+      if (activeFolderId === "inbox") {
+        list = list.filter((m) => !(m.snoozedUntil != null && m.snoozedUntil > now));
+      }
+    }
+
     if (split !== "all") list = list.filter((m) => m.split === split);
-    return searchMessages(list, searchQuery);
+
+    const searched = searchMessages(list, searchQuery);
+    // Sort: pinned messages first, then by dateMs DESC
+    return [...searched].sort((a, b) => {
+      const pinA = a.isPinned ? 1 : 0;
+      const pinB = b.isPinned ? 1 : 0;
+      if (pinA !== pinB) return pinB - pinA;
+      return b.dateMs - a.dateMs;
+    });
   },
   unreadInFolder: (id) => {
+    if (id === "snoozed") {
+      const now = Date.now();
+      return get().messages.filter((m) => m.snoozedUntil != null && m.snoozedUntil > now).length;
+    }
     const folder = get().folders.find((f) => f.role === id);
     if (folder) return folder.unread;
     return get().messages.filter((m) => m.folderRole === id && m.unread).length;

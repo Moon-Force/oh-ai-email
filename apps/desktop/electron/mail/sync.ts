@@ -27,7 +27,13 @@ import {
   withImapAccount,
   type FetchedAttachment,
 } from "./imap";
-import type { AccountRecord, AttachmentMeta, FolderRecord, MessageRecord, SyncResult } from "./types";
+import type {
+  AccountRecord,
+  AttachmentMeta,
+  FolderRecord,
+  MessageRecord,
+  SyncResult,
+} from "./types";
 import { showMailNotification } from "../notifications";
 
 export function storeFetchedAttachments(messageId: string, fetched: FetchedAttachment[]) {
@@ -59,7 +65,7 @@ export function storeFetchedAttachments(messageId: string, fetched: FetchedAttac
 
 /** If cached file is gone (older buggy sync), re-fetch that message from IMAP. */
 export async function ensureAttachmentFile(
-  attachmentId: string,
+  attachmentId: string
 ): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
   const att = getAttachment(attachmentId);
   if (!att) return { ok: false, error: "附件不存在或尚未同步" };
@@ -176,7 +182,16 @@ export async function syncAccount(accountId: string, limitPerFolder = 40): Promi
           accountId,
           remotePath: rf.path,
           role: rf.role,
-          name: rf.role === "inbox" ? "收件箱" : rf.role === "sent" ? "已发送" : rf.role === "drafts" ? "草稿" : rf.role === "trash" ? "垃圾箱" : rf.name,
+          name:
+            rf.role === "inbox"
+              ? "收件箱"
+              : rf.role === "sent"
+                ? "已发送"
+                : rf.role === "drafts"
+                  ? "草稿"
+                  : rf.role === "trash"
+                    ? "垃圾箱"
+                    : rf.name,
           unread: 0,
         };
         upsertFolder(folder);
@@ -201,10 +216,13 @@ export async function syncAccount(accountId: string, limitPerFolder = 40): Promi
               unread: m.unread,
               split: existing?.split ?? classifySplit(m.from, m.subject),
               html: m.html,
+              snoozedUntil: existing?.snoozedUntil ?? null,
+              isPinned: existing?.isPinned ?? false,
+              isMuted: existing?.isMuted ?? false,
             };
             const isNewUnread = !existing && m.unread && rf.role === "inbox";
             upsertMessage(rec);
-            if (isNewUnread) {
+            if (isNewUnread && !rec.isMuted) {
               try {
                 showMailNotification({
                   messageId: mid,
@@ -266,7 +284,8 @@ export async function markMessageReadRemote(messageIdStr: string): Promise<void>
 
 export function sortFoldersForUi(folders: FolderRecord[]): FolderRecord[] {
   return [...folders].sort(
-    (a, b) => (ROLE_PRIORITY[a.role] ?? 9) - (ROLE_PRIORITY[b.role] ?? 9) || a.name.localeCompare(b.name),
+    (a, b) =>
+      (ROLE_PRIORITY[a.role] ?? 9) - (ROLE_PRIORITY[b.role] ?? 9) || a.name.localeCompare(b.name)
   );
 }
 
@@ -447,10 +466,7 @@ export async function recordDraft(opts: {
   const localMessageId = messageId(account.id, draftsFolder.id, uid);
   const plain = body.replace(/\s+/g, " ").trim();
   const snippet = plain.slice(0, 160) || subject || "(无主题)";
-  const storedHtml =
-    html && html.trim() && html !== "<p></p>"
-      ? html
-      : bodyToHtml(body);
+  const storedHtml = html && html.trim() && html !== "<p></p>" ? html : bodyToHtml(body);
 
   const toLabel = to.trim() || "(未填收件人)";
   const rec: MessageRecord = {

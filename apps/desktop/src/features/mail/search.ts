@@ -21,16 +21,30 @@ export function parseSearchQuery(query: string): ParsedQuery {
     const lower = token.toLowerCase();
 
     if (lower.startsWith("from:") || lower.startsWith("发件人:")) {
-      parsed.from = token.slice(token.indexOf(":") + 1).trim().toLowerCase();
+      parsed.from = token
+        .slice(token.indexOf(":") + 1)
+        .trim()
+        .toLowerCase();
     } else if (lower.startsWith("to:") || lower.startsWith("收件人:")) {
-      parsed.to = token.slice(token.indexOf(":") + 1).trim().toLowerCase();
+      parsed.to = token
+        .slice(token.indexOf(":") + 1)
+        .trim()
+        .toLowerCase();
     } else if (lower.startsWith("subject:") || lower.startsWith("主题:")) {
-      parsed.subject = token.slice(token.indexOf(":") + 1).trim().toLowerCase();
+      parsed.subject = token
+        .slice(token.indexOf(":") + 1)
+        .trim()
+        .toLowerCase();
     } else if (lower === "is:unread" || lower === "is:未读" || lower === "未读") {
       parsed.isUnread = true;
     } else if (lower === "is:read" || lower === "is:已读" || lower === "已读") {
       parsed.isUnread = false;
-    } else if (lower === "has:attachment" || lower === "has:att" || lower === "有附件" || lower === "含附件") {
+    } else if (
+      lower === "has:attachment" ||
+      lower === "has:att" ||
+      lower === "有附件" ||
+      lower === "含附件"
+    ) {
       parsed.hasAttachment = true;
     } else if (lower === "split:important" || lower === "is:important" || lower === "重要") {
       parsed.split = "important";
@@ -55,7 +69,9 @@ export function searchMessages(messages: MailMessage[], query: string): MailMess
   for (const m of messages) {
     // 1. Field-specific checks
     if (parsed.from) {
-      const fromMatch = m.from.toLowerCase().includes(parsed.from) || (m.fromName ?? "").toLowerCase().includes(parsed.from);
+      const fromMatch =
+        m.from.toLowerCase().includes(parsed.from) ||
+        (m.fromName ?? "").toLowerCase().includes(parsed.from);
       if (!fromMatch) continue;
     }
     if (parsed.to && m.to) {
@@ -70,7 +86,9 @@ export function searchMessages(messages: MailMessage[], query: string): MailMess
       if (Boolean(m.unread) !== parsed.isUnread) continue;
     }
     if (parsed.hasAttachment !== undefined) {
-      const hasAtt = Boolean((m.attachments && m.attachments.length > 0) || (m.snippet && m.snippet.includes("📎")));
+      const hasAtt = Boolean(
+        (m.attachments && m.attachments.length > 0) || (m.snippet && m.snippet.includes("📎"))
+      );
       if (hasAtt !== parsed.hasAttachment) continue;
     }
     if (parsed.split !== undefined) {
@@ -126,4 +144,3 @@ export function highlightMatch(text: string, query: string): string {
   const pattern = allTerms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
   return text.replace(new RegExp(`(${pattern})`, "gi"), "«$1»");
 }
-

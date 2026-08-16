@@ -27,6 +27,10 @@ import {
   ToggleButtonGroup,
   Typography,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -39,7 +43,11 @@ import {
   aiProbeCloud,
   aiProbeOllama,
   aiQueryBalance,
+  prefsGetAutolaunch,
+  prefsSetAutolaunch,
+  updaterCheck,
   type AiBalanceResult,
+  type UpdateCheckResultDto,
 } from "../../lib/ipc";
 import { useToastStore } from "../shell/toastStore";
 
@@ -53,6 +61,10 @@ type Props = {
 
 export default function Settings({ onClose, theme, onThemeChange }: Props) {
   const [tab, setTab] = useState<Tab>("ai");
+  const [autoLaunch, setAutoLaunch] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResultDto | null>(null);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const {
     mode,
     setMode,
@@ -100,6 +112,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
   useEffect(() => {
     void hydrate();
     void hydratePrefs();
+    void prefsGetAutolaunch().then(setAutoLaunch);
   }, [hydrate, hydratePrefs]);
 
   async function onSaveGeneral() {
@@ -130,23 +143,18 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     setProbing(true);
     setProbeMsg(null);
     try {
-      if (mode === "local") {
-        const r = await aiProbeOllama();
+      if (mode === "cloud") {
+        const r = await aiProbeCloud();
         if (r.ok) {
-          const names = r.models.slice(0, 6).join(", ") || "（无模型，请 ollama pull）";
-          setProbeMsg(`Ollama 可用 · 模型：${names}`);
-          showToast("Ollama 连接成功", "success");
+          showToast(`云端连通成功（${model}）`, "success");
         } else {
-          setProbeMsg(r.error);
           showToast(r.error, "error");
         }
       } else {
-        const r = await aiProbeCloud();
+        const r = await aiProbeOllama();
         if (r.ok) {
-          setProbeMsg("云端连接正常");
-          showToast("云端探测成功", "success");
+          showToast(`本地 Ollama 正常（${r.models.join(", ") || "无模型"}）`, "success");
         } else {
-          setProbeMsg(r.error);
           showToast(r.error, "error");
         }
       }
@@ -192,7 +200,6 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
       setQueryingBalance(false);
     }
   }
-
 
   return (
     <Box data-testid="settings" sx={{ display: "flex", height: "100%", minHeight: 0 }}>
@@ -263,13 +270,71 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   </MenuItem>
                 ))}
               </Select>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.75, display: "block" }}
+              >
                 {syncIntervalMin === 0
                   ? "不会在后台拉信，只在你点同步或发信/存草稿后更新。"
                   : `后台约每 ${syncIntervalMin} 分钟同步一次当前账号（正在同步时会跳过）。`}
               </Typography>
             </FormControl>
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                系统集成
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={autoLaunch}
+                    onChange={async (e) => {
+                      const next = e.target.checked;
+                      setAutoLaunch(next);
+                      const res = await prefsSetAutolaunch(next);
+                      setAutoLaunch(res);
+                      showToast(res ? "已开启开机自启动" : "已关闭开机自启动", "info", 2000);
+                    }}
+                  />
+                }
+                label="开机自动启动（并在后台静默常驻）"
+              />
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                版本与更新
+              </Typography>
+              <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+                <Typography variant="body2" color="text.secondary">
+                  当前版本：<strong>v0.1.0</strong>
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={checkingUpdate}
+                  onClick={async () => {
+                    setCheckingUpdate(true);
+                    try {
+                      const res = await updaterCheck();
+                      setUpdateResult(res);
+                      setUpdateDialogOpen(true);
+                    } catch {
+                      showToast("检查更新失败，请检查网络", "error");
+                    } finally {
+                      setCheckingUpdate(false);
+                    }
+                  }}
+                >
+                  {checkingUpdate ? "正在检查..." : "检查更新"}
+                </Button>
+              </Stack>
+            </Box>
+
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", pt: 1 }}>
               <Button variant="contained" onClick={() => void onSaveGeneral()}>
                 保存通用设置
               </Button>
@@ -279,6 +344,54 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Typography>
               )}
             </Stack>
+
+            <Dialog
+              open={updateDialogOpen}
+              onClose={() => setUpdateDialogOpen(false)}
+              maxWidth="xs"
+              fullWidth
+            >
+              <DialogTitle>检查更新</DialogTitle>
+              <DialogContent dividers>
+                {updateResult?.updateAvailable ? (
+                  <Stack spacing={1.5}>
+                    <Alert severity="success">发现新版本 v{updateResult.latestVersion}！</Alert>
+                    <Typography variant="subtitle2">更新说明：</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: "pre-wrap", color: "text.secondary" }}
+                    >
+                      {updateResult.releaseNotes || "包含多项体验优化与功能提升。"}
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Stack spacing={1}>
+                    <Typography variant="body1">
+                      当前已是最新版本 (v{updateResult?.currentVersion || "0.1.0"})。
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      所有功能均已就绪。
+                    </Typography>
+                  </Stack>
+                )}
+              </DialogContent>
+              <DialogActions>
+                {updateResult?.updateAvailable && updateResult.releaseUrl && (
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      if (typeof window !== "undefined" && updateResult.releaseUrl) {
+                        window.open(updateResult.releaseUrl, "_blank");
+                      }
+                      setUpdateDialogOpen(false);
+                    }}
+                  >
+                    前往下载
+                  </Button>
+                )}
+                <Button onClick={() => setUpdateDialogOpen(false)}>关闭</Button>
+              </DialogActions>
+            </Dialog>
           </Stack>
         )}
 
@@ -300,7 +413,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               {mode === "cloud" ? (
                 <>
                   云端模式会将当前邮件的主题与正文（经清洗截断）发送到你配置的{" "}
-                  <code>{baseUrl || "base URL"}</code>。附件默认不上传。API Key 仅保存在本机加密存储。
+                  <code>{baseUrl || "base URL"}</code>。附件默认不上传。API Key
+                  仅保存在本机加密存储。
                 </>
               ) : (
                 <>
@@ -315,10 +429,13 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 AI 模式
               </Typography>
               <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
-
                 <Button
                   size="small"
-                  variant={baseUrl === "https://api.deepseek.com" && mode === "cloud" ? "contained" : "outlined"}
+                  variant={
+                    baseUrl === "https://api.deepseek.com" && mode === "cloud"
+                      ? "contained"
+                      : "outlined"
+                  }
                   onClick={() => {
                     setMode("cloud");
                     setBaseUrl("https://api.deepseek.com");
@@ -329,7 +446,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Button>
                 <Button
                   size="small"
-                  variant={baseUrl === "https://api.xiaomimimo.com/v1" && mode === "cloud" ? "contained" : "outlined"}
+                  variant={
+                    baseUrl === "https://api.xiaomimimo.com/v1" && mode === "cloud"
+                      ? "contained"
+                      : "outlined"
+                  }
                   onClick={() => {
                     setMode("cloud");
                     setBaseUrl("https://api.xiaomimimo.com/v1");
@@ -340,7 +461,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Button>
                 <Button
                   size="small"
-                  variant={baseUrl === "https://api.openai.com/v1" && mode === "cloud" ? "contained" : "outlined"}
+                  variant={
+                    baseUrl === "https://api.openai.com/v1" && mode === "cloud"
+                      ? "contained"
+                      : "outlined"
+                  }
                   onClick={() => {
                     setMode("cloud");
                     setBaseUrl("https://api.openai.com/v1");
@@ -445,26 +570,33 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   </Button>
                 </Box>
 
-                {balanceInfo && balanceInfo.ok && balanceInfo.balanceInfos && balanceInfo.balanceInfos.length > 0 && (
-                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1.5 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      账户余额信息
-                    </Typography>
-                    {balanceInfo.balanceInfos.map((b, idx) => (
-                      <Stack key={idx} direction="row" spacing={2} sx={{ fontSize: "0.85rem" }}>
-                        <Typography variant="body2">
-                          <strong>总余额：</strong>{b.currency} {b.total_balance}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          赠送：{b.granted_balance}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          充值：{b.topped_up_balance}
-                        </Typography>
-                      </Stack>
-                    ))}
-                  </Paper>
-                )}
+                {balanceInfo &&
+                  balanceInfo.ok &&
+                  balanceInfo.balanceInfos &&
+                  balanceInfo.balanceInfos.length > 0 && (
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1.5 }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        账户余额信息
+                      </Typography>
+                      {balanceInfo.balanceInfos.map((b, idx) => (
+                        <Stack key={idx} direction="row" spacing={2} sx={{ fontSize: "0.85rem" }}>
+                          <Typography variant="body2">
+                            <strong>总余额：</strong>
+                            {b.currency} {b.total_balance}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            赠送：{b.granted_balance}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            充值：{b.topped_up_balance}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Paper>
+                  )}
 
                 <FormControlLabel
                   control={
@@ -561,7 +693,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
             {/* Tone Persona Section */}
             <Divider sx={{ my: 1 }} />
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}
+              >
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                   <AutoAwesomeIcon color="primary" fontSize="small" />
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -606,7 +742,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
             </Paper>
 
             {probeMsg && (
-              <Alert severity={probeMsg.includes("失败") || probeMsg.includes("无法") ? "warning" : "success"}>
+              <Alert
+                severity={
+                  probeMsg.includes("失败") || probeMsg.includes("无法") ? "warning" : "success"
+                }
+              >
                 {probeMsg}
               </Alert>
             )}
@@ -625,17 +765,21 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               )}
             </Stack>
 
-
             <Divider sx={{ my: 2 }} />
 
             <Box data-testid="ai-audit-section">
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}
+              >
                 <div>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                     AI 调用与隐私审计
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    仅记录请求时间、模式、任务类型与字数统计；绝不持久化任何邮件正文、收件人或 API 密钥。
+                    仅记录请求时间、模式、任务类型与字数统计；绝不持久化任何邮件正文、收件人或 API
+                    密钥。
                   </Typography>
                 </div>
                 {auditRecords.length > 0 && (
@@ -654,7 +798,10 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               </Stack>
 
               {auditRecords.length === 0 ? (
-                <Paper variant="outlined" sx={{ p: 2, textAlign: "center", bgcolor: "action.hover" }}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, textAlign: "center", bgcolor: "action.hover" }}
+                >
                   <Typography variant="body2" color="text.secondary">
                     暂无 AI 调用记录。所有请求均严格受控且不保存邮件正文与密钥。
                   </Typography>
@@ -684,7 +831,10 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                               label={r.mode === "local" ? "本机" : "云端"}
                               color={r.mode === "local" ? "secondary" : "primary"}
                               variant="outlined"
-                              sx={{ height: 20, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+                              sx={{
+                                height: 20,
+                                "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" },
+                              }}
                             />
                           </TableCell>
                           <TableCell sx={{ fontSize: "0.75rem" }}>{r.task}</TableCell>
@@ -697,10 +847,25 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                           <TableCell align="center">
                             <Chip
                               size="small"
-                              label={r.status === "success" ? "成功" : r.status === "aborted" ? "已取消" : "失败"}
-                              color={r.status === "success" ? "success" : r.status === "aborted" ? "default" : "error"}
+                              label={
+                                r.status === "success"
+                                  ? "成功"
+                                  : r.status === "aborted"
+                                    ? "已取消"
+                                    : "失败"
+                              }
+                              color={
+                                r.status === "success"
+                                  ? "success"
+                                  : r.status === "aborted"
+                                    ? "default"
+                                    : "error"
+                              }
                               variant="filled"
-                              sx={{ height: 20, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+                              sx={{
+                                height: 20,
+                                "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" },
+                              }}
                             />
                           </TableCell>
                         </TableRow>

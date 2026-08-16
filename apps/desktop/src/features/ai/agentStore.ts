@@ -30,18 +30,14 @@ export interface AgentStoreState {
   context: Record<string, unknown>;
 
   // Actions
-  openDrawer: (
-    agentType?: AgentType,
-    context?: Record<string, unknown>,
-    prompt?: string,
-  ) => void;
+  openDrawer: (agentType?: AgentType, context?: Record<string, unknown>, prompt?: string) => void;
   closeDrawer: () => void;
   setAgentType: (type: AgentType) => void;
   setPrompt: (p: string) => void;
   runWorkflow: (
     agentType?: AgentType,
     prompt?: string,
-    context?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ) => Promise<void>;
   abortWorkflow: () => Promise<void>;
   toggleItemSelection: (id: string) => void;
@@ -129,7 +125,12 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
             set((s) => ({
               steps: [...s.steps.filter((st) => st.stepIndex !== evt.stepIndex), evt],
               currentStepIndex: evt.stepIndex,
-              status: evt.stepIndex === 1 ? "planning" : evt.stepIndex === 2 ? "executing_tools" : "review_pending",
+              status:
+                evt.stepIndex === 1
+                  ? "planning"
+                  : evt.stepIndex === 2
+                    ? "executing_tools"
+                    : "review_pending",
             }));
           } else if (evt.type === "token") {
             set((s) => ({ streamText: s.streamText + evt.textChunk }));
@@ -145,7 +146,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
               error: evt.message,
             });
           }
-        },
+        }
       );
 
       set({
@@ -163,8 +164,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
       });
     } catch (err) {
       const isAbort =
-        err instanceof Error &&
-        (err.name === "AbortError" || err.message.includes("已取消"));
+        err instanceof Error && (err.name === "AbortError" || err.message.includes("已取消"));
 
       set({
         status: isAbort ? "cancelled" : "error",
@@ -199,7 +199,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     if (!proposal) return;
 
     const nextItems = proposal.items.map((item) =>
-      item.id === id ? { ...item, selected: !item.selected } : item,
+      item.id === id ? { ...item, selected: !item.selected } : item
     );
 
     set({

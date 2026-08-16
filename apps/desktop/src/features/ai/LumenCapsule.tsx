@@ -17,6 +17,7 @@ import {
   IconButton,
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import MailIcon from "@mui/icons-material/Mail";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import PsychologyIcon from "@mui/icons-material/Psychology";
@@ -52,7 +53,14 @@ import { speakText, stopSpeaking } from "../voice/voiceService";
 import { TypewriterText } from "./TypewriterText";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
-type ResultKind = "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation" | "commitments";
+type ResultKind =
+  | "summary"
+  | "draft"
+  | "actionItems"
+  | "threadSummary"
+  | "suggestSplit"
+  | "translation"
+  | "commitments";
 
 export const QUICK_REPLY_OPTIONS = [
   { key: "ack", label: "收到谢谢" },
@@ -106,7 +114,14 @@ export default function LumenCapsule({
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
-    "summary" | "draft" | "actionItems" | "threadSummary" | "suggestSplit" | "translation" | { type: "quick"; replyType: string } | null
+    | "summary"
+    | "draft"
+    | "actionItems"
+    | "threadSummary"
+    | "suggestSplit"
+    | "translation"
+    | { type: "quick"; replyType: string }
+    | null
   >(null);
   const activeReqIdRef = useRef<string | null>(null);
 
@@ -290,7 +305,9 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
+        setState(
+          text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle"
+        );
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "线索摘要失败，请稍后重试";
@@ -330,7 +347,9 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
+        setState(
+          text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle"
+        );
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "分箱建议分析失败，请稍后重试";
@@ -362,7 +381,7 @@ export default function LumenCapsule({
     try {
       const d = await quickReplyDraft(
         { subject, from, body, replyType },
-        { mode, requestId: reqId },
+        { mode, requestId: reqId }
       );
       if (activeReqIdRef.current !== reqId) return;
       const reSubject = subject?.trim()
@@ -388,7 +407,9 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
+        setState(
+          text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle"
+        );
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "快捷回复失败，请稍后重试";
@@ -418,7 +439,9 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
+        setState(
+          text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle"
+        );
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "改写失败，请稍后重试";
@@ -487,7 +510,9 @@ export default function LumenCapsule({
         return;
       }
       if (e instanceof AiRequestError && e.code === "ABORTED") {
-        setState(text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle");
+        setState(
+          text || actionItemsData || threadSummaryData || suggestSplitData ? "expanded" : "idle"
+        );
         return;
       }
       const msg = e instanceof AiRequestError ? e.message : "翻译失败，请稍后重试";
@@ -535,9 +560,13 @@ export default function LumenCapsule({
               overflowX: "auto",
               scrollbarWidth: "none",
               "&::-webkit-scrollbar": { display: "none" },
-              bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.95)" : "rgba(255, 255, 255, 0.95)"),
+              bgcolor: (t) =>
+                t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.95)" : "rgba(255, 255, 255, 0.95)",
               backdropFilter: "blur(16px)",
-              border: (t) => (t.palette.mode === "dark" ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)"),
+              border: (t) =>
+                t.palette.mode === "dark"
+                  ? "1px solid rgba(255, 255, 255, 0.12)"
+                  : "1px solid rgba(0, 0, 0, 0.08)",
               boxShadow: (t) =>
                 t.palette.mode === "dark"
                   ? "0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2)"
@@ -552,13 +581,23 @@ export default function LumenCapsule({
                 px: 1,
                 py: 0.35,
                 borderRadius: 999,
-                bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(100, 149, 237, 0.16)" : "rgba(25, 118, 210, 0.08)"),
+                bgcolor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(100, 149, 237, 0.16)"
+                    : "rgba(25, 118, 210, 0.08)",
                 color: "primary.main",
                 flexShrink: 0,
               }}
             >
-              <AutoAwesomeIcon sx={{ fontSize: 15 }} />
-              <Typography sx={{ fontWeight: 700, fontSize: "0.75rem", letterSpacing: "0.04em", lineHeight: 1 }}>
+              <MailIcon sx={{ fontSize: 15 }} />
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.04em",
+                  lineHeight: 1,
+                }}
+              >
                 AI
               </Typography>
             </Box>
@@ -608,7 +647,10 @@ export default function LumenCapsule({
                   color: "text.primary",
                   transition: "all 0.15s ease",
                   "&:hover": {
-                    bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                    bgcolor: (t) =>
+                      t.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "rgba(0, 0, 0, 0.05)",
                     color: "primary.main",
                   },
                 }}
@@ -635,7 +677,8 @@ export default function LumenCapsule({
                 color: "text.primary",
                 transition: "all 0.15s ease",
                 "&:hover": {
-                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                   color: "primary.main",
                 },
               }}
@@ -661,7 +704,8 @@ export default function LumenCapsule({
                 color: "text.primary",
                 transition: "all 0.15s ease",
                 "&:hover": {
-                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                   color: "primary.main",
                 },
               }}
@@ -688,7 +732,8 @@ export default function LumenCapsule({
                 color: commitmentsData.length > 0 ? "warning.main" : "text.primary",
                 transition: "all 0.15s ease",
                 "&:hover": {
-                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                 },
               }}
             >
@@ -714,7 +759,8 @@ export default function LumenCapsule({
                 color: "text.primary",
                 transition: "all 0.15s ease",
                 "&:hover": {
-                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                   color: "primary.main",
                 },
               }}
@@ -741,7 +787,8 @@ export default function LumenCapsule({
                 color: "text.primary",
                 transition: "all 0.15s ease",
                 "&:hover": {
-                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"),
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                   color: "primary.main",
                 },
               }}
@@ -758,8 +805,14 @@ export default function LumenCapsule({
                 height: 22,
                 borderRadius: 999,
                 flexShrink: 0,
-                borderColor: (t) => (t.palette.mode === "dark" ? "rgba(100, 149, 237, 0.3)" : "rgba(25, 118, 210, 0.25)"),
-                bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(100, 149, 237, 0.08)" : "rgba(25, 118, 210, 0.04)"),
+                borderColor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(100, 149, 237, 0.3)"
+                    : "rgba(25, 118, 210, 0.25)",
+                bgcolor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(100, 149, 237, 0.08)"
+                    : "rgba(25, 118, 210, 0.04)",
                 "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem", fontWeight: 500 },
               }}
             />
@@ -768,7 +821,11 @@ export default function LumenCapsule({
               <Chip
                 size="small"
                 color="error"
-                label={error.includes("未配置云端") ? "未配置云端 Key · 去设置" : `${error.slice(0, 10)}… · 去设置`}
+                label={
+                  error.includes("未配置云端")
+                    ? "未配置云端 Key · 去设置"
+                    : `${error.slice(0, 10)}… · 去设置`
+                }
                 onClick={() => setView("settings")}
                 sx={{
                   height: 22,
@@ -798,7 +855,10 @@ export default function LumenCapsule({
                 onClick={() => void runQuickReply(opt.key)}
                 variant="outlined"
                 sx={{
-                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.85)" : "rgba(255, 255, 255, 0.9)"),
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark"
+                      ? "rgba(24, 28, 36, 0.85)"
+                      : "rgba(255, 255, 255, 0.9)",
                   backdropFilter: "blur(8px)",
                   cursor: "pointer",
                   fontSize: "0.75rem",
@@ -807,7 +867,10 @@ export default function LumenCapsule({
                   borderRadius: 999,
                   whiteSpace: "nowrap",
                   flexShrink: 0,
-                  border: (t) => (t.palette.mode === "dark" ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+                  border: (t) =>
+                    t.palette.mode === "dark"
+                      ? "1px solid rgba(255, 255, 255, 0.1)"
+                      : "1px solid rgba(0, 0, 0, 0.08)",
                   boxShadow: "0 2px 6px rgba(0, 0, 0, 0.03)",
                   transition: "all 0.15s ease-in-out",
                   "&:hover": {
@@ -925,11 +988,17 @@ export default function LumenCapsule({
                     p: 1.5,
                     borderRadius: 2,
                     bgcolor: (t) =>
-                      t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+                      t.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.04)"
+                        : "rgba(0, 0, 0, 0.02)",
                     borderColor: "divider",
                   }}
                 >
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1, flexWrap: "wrap", gap: 0.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center", mb: 1, flexWrap: "wrap", gap: 0.5 }}
+                  >
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       建议分箱:
                     </Typography>
@@ -969,7 +1038,11 @@ export default function LumenCapsule({
                   </Typography>
 
                   {currentSplit && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", mt: 1 }}
+                    >
                       当前分箱：{currentSplit === "important" ? "重要" : "其他"}
                       {currentSplit === suggestSplitData.split ? " (当前已是推荐分箱)" : ""}
                     </Typography>
@@ -978,7 +1051,10 @@ export default function LumenCapsule({
               )}
             </Stack>
           ) : kind === "commitments" ? (
-            <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }} data-testid="commitments-section">
+            <Box
+              sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}
+              data-testid="commitments-section"
+            >
               {commitmentsData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   正文中未检测到明确的双方承诺或截止日期。
@@ -1007,14 +1083,22 @@ export default function LumenCapsule({
                             : t.palette.warning.main,
                       }}
                     >
-                      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 0.5, flexWrap: "wrap", gap: 0.5 }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        sx={{ alignItems: "center", mb: 0.5, flexWrap: "wrap", gap: 0.5 }}
+                      >
                         <Chip
                           size="small"
                           data-testid="commitment-direction-chip"
                           label={c.direction === "i_promised" ? "我方承诺" : "对方承诺"}
                           color={c.direction === "i_promised" ? "success" : "warning"}
                           variant="filled"
-                          sx={{ fontWeight: 600, height: 22, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
+                          sx={{
+                            fontWeight: 600,
+                            height: 22,
+                            "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" },
+                          }}
                         />
                         {c.deadline && (
                           <Chip
@@ -1023,11 +1107,17 @@ export default function LumenCapsule({
                             label={`截止: ${c.deadline}`}
                             color="error"
                             variant="outlined"
-                            sx={{ height: 22, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
+                            sx={{
+                              height: 22,
+                              "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" },
+                            }}
                           />
                         )}
                       </Stack>
-                      <Typography variant="body2" sx={{ fontSize: "0.85rem", color: "text.primary" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontSize: "0.85rem", color: "text.primary" }}
+                      >
                         {c.text}
                       </Typography>
                     </Paper>
@@ -1045,7 +1135,9 @@ export default function LumenCapsule({
                     p: 1,
                     borderRadius: 1.5,
                     bgcolor: (t) =>
-                      t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+                      t.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.04)"
+                        : "rgba(0, 0, 0, 0.02)",
                     borderColor: "divider",
                   }}
                 >
@@ -1075,7 +1167,11 @@ export default function LumenCapsule({
                     暂无详细时间线记录
                   </Typography>
                 ) : (
-                  <Stack spacing={1} data-testid="thread-timeline-list" sx={{ position: "relative", pl: 0.5 }}>
+                  <Stack
+                    spacing={1}
+                    data-testid="thread-timeline-list"
+                    sx={{ position: "relative", pl: 0.5 }}
+                  >
                     {threadSummaryData.timeline.map((item, idx) => (
                       <Box
                         key={idx}
@@ -1087,8 +1183,15 @@ export default function LumenCapsule({
                           borderColor: "primary.main",
                         }}
                       >
-                        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 0.25 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary" }}>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          sx={{ alignItems: "center", mb: 0.25 }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             {item.sender}
                           </Typography>
                           {item.date && (
@@ -1096,11 +1199,17 @@ export default function LumenCapsule({
                               size="small"
                               label={item.date}
                               variant="outlined"
-                              sx={{ height: 18, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+                              sx={{
+                                height: 18,
+                                "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" },
+                              }}
                             />
                           )}
                         </Stack>
-                        <Typography variant="body2" sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontSize: "0.8rem", color: "text.secondary" }}
+                        >
                           {item.point}
                         </Typography>
                       </Box>
@@ -1121,8 +1230,10 @@ export default function LumenCapsule({
                   {actionItemsData.tags.map((t) => {
                     let color: "warning" | "error" | "primary" | "default" = "default";
                     if (t.includes("回复") || t.toLowerCase().includes("reply")) color = "warning";
-                    else if (t.includes("截止") || t.toLowerCase().includes("deadline")) color = "error";
-                    else if (t.includes("待办") || t.toLowerCase().includes("action")) color = "primary";
+                    else if (t.includes("截止") || t.toLowerCase().includes("deadline"))
+                      color = "error";
+                    else if (t.includes("待办") || t.toLowerCase().includes("action"))
+                      color = "primary";
                     return (
                       <Chip
                         key={t}
@@ -1187,9 +1298,17 @@ export default function LumenCapsule({
           ) : (
             <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pr: 0.5 }}>
               {reasoningContent && (
-                <Paper variant="outlined" sx={{ p: 1, mb: 1, bgcolor: "action.hover", borderRadius: 1.5 }}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1, mb: 1, bgcolor: "action.hover", borderRadius: 1.5 }}
+                >
                   <Box
-                    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                    }}
                     onClick={() => setShowReasoning(!showReasoning)}
                   >
                     <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
@@ -1199,7 +1318,11 @@ export default function LumenCapsule({
                       </Typography>
                     </Stack>
                     <IconButton size="small">
-                      {showReasoning ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                      {showReasoning ? (
+                        <ExpandLessIcon fontSize="small" />
+                      ) : (
+                        <ExpandMoreIcon fontSize="small" />
+                      )}
                     </IconButton>
                   </Box>
                   <Collapse in={showReasoning}>
@@ -1263,7 +1386,7 @@ export default function LumenCapsule({
                   showToast(
                     `已采纳建议并标记为「${suggestSplitData.split === "important" ? "重要" : "其他"}」`,
                     "success",
-                    3000,
+                    3000
                   );
                   close();
                 }}
@@ -1323,14 +1446,20 @@ export default function LumenCapsule({
             <Button
               size="small"
               color={isSpeaking ? "secondary" : "inherit"}
-              startIcon={isSpeaking ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
+              startIcon={
+                isSpeaking ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />
+              }
               onClick={() => {
                 if (isSpeaking) {
                   stopSpeaking();
                   setIsSpeaking(false);
                 } else {
                   setIsSpeaking(true);
-                  speakText(text || body, () => setIsSpeaking(false), () => setIsSpeaking(false));
+                  speakText(
+                    text || body,
+                    () => setIsSpeaking(false),
+                    () => setIsSpeaking(false)
+                  );
                 }
               }}
               data-testid="read-aloud-button"
@@ -1355,18 +1484,14 @@ export default function LumenCapsule({
   );
 }
 
-function PrivacyDialog(props: {
-  open: boolean;
-  onCancel: () => void;
-  onAccept: () => void;
-}) {
+function PrivacyDialog(props: { open: boolean; onCancel: () => void; onAccept: () => void }) {
   return (
     <Dialog open={props.open} onClose={props.onCancel}>
       <DialogTitle>云端 AI 隐私提示</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          云端模式会将当前邮件的主题与正文发送到你在设置中配置的 API 地址进行处理。附件默认不会上传。本机模式则仅请求本地
-          Ollama。
+          云端模式会将当前邮件的主题与正文发送到你在设置中配置的 API
+          地址进行处理。附件默认不会上传。本机模式则仅请求本地 Ollama。
         </DialogContentText>
       </DialogContent>
       <DialogActions>

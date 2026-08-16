@@ -19,7 +19,8 @@ export function TypewriterText({
   useEffect(() => {
     // Check for test environment or reduced motion preference
     const isTestEnv =
-      (typeof process !== "undefined" && (process.env.NODE_ENV === "test" || Boolean(process.env.VITEST))) ||
+      (typeof process !== "undefined" &&
+        (process.env.NODE_ENV === "test" || Boolean(process.env.VITEST))) ||
       Boolean((import.meta as unknown as { env?: { MODE?: string } }).env?.MODE === "test");
 
     const prefersReducedMotion =

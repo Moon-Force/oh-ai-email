@@ -43,7 +43,8 @@ export function systemForQuickReply(replyType: QuickReplyType, customNote?: stri
       intentDesc = "Acknowledge receipt and state that a detailed response will be provided later.";
       break;
     case "decline":
-      intentDesc = "Politely and professionally decline or express inability to accommodate at this time.";
+      intentDesc =
+        "Politely and professionally decline or express inability to accommodate at this time.";
       break;
     default:
       intentDesc = `Reply with the following intent: ${replyType}.`;
@@ -178,6 +179,3 @@ Format:
 3) Action Items & Follow-ups (any explicit requirements or next steps, or "none")
 Keep it objective, structured, and easy to scan.`;
 }
-
-
-

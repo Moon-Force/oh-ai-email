@@ -1,9 +1,6 @@
 import { listAccounts, listAllMessages } from "../../db";
 import type { MessageRecord } from "../../mail/types";
-import type {
-  AgentProposalCalendarItem,
-  AgentProposalSplitItem,
-} from "./types";
+import type { AgentProposalCalendarItem, AgentProposalSplitItem } from "./types";
 
 export type SearchMessageResult = {
   id: string;
@@ -26,7 +23,7 @@ export type SearchMessageResult = {
 export function toolSearchMessages(
   query: string,
   accountId?: string,
-  providedMessages?: MessageRecord[],
+  providedMessages?: MessageRecord[]
 ): SearchMessageResult[] {
   let allMessages: MessageRecord[] = [];
 
@@ -58,10 +55,7 @@ export function toolSearchMessages(
     const bodyText = `${m.snippet ?? ""} ${m.html ?? ""}`.toLowerCase();
 
     return terms.every(
-      (term) =>
-        subText.includes(term) ||
-        fromText.includes(term) ||
-        bodyText.includes(term),
+      (term) => subText.includes(term) || fromText.includes(term) || bodyText.includes(term)
     );
   });
 
@@ -170,7 +164,7 @@ export function toolExtractMeetingDetails(
     endTime?: string;
     location?: string;
     attendees?: string[];
-  },
+  }
 ): AgentProposalCalendarItem | null {
   const fullText = `${subject ?? ""} ${body ?? ""}`.trim();
   if (!fullText && !inferredDetails) {
@@ -178,9 +172,7 @@ export function toolExtractMeetingDetails(
   }
 
   const title =
-    inferredDetails?.title ||
-    subject?.replace(/^(re|fwd|回复|转发)[:：]\s*/i, "") ||
-    "会议日程";
+    inferredDetails?.title || subject?.replace(/^(re|fwd|回复|转发)[:：]\s*/i, "") || "会议日程";
 
   let startTime = inferredDetails?.startTime;
   if (!startTime) {
@@ -204,8 +196,16 @@ export function toolExtractMeetingDetails(
     }
   }
 
-  const location = inferredDetails?.location ?? (fullText.includes("腾讯会议") ? "腾讯会议" : fullText.includes("Zoom") ? "Zoom" : fullText.includes("Teams") ? "Microsoft Teams" : undefined);
-  
+  const location =
+    inferredDetails?.location ??
+    (fullText.includes("腾讯会议")
+      ? "腾讯会议"
+      : fullText.includes("Zoom")
+        ? "Zoom"
+        : fullText.includes("Teams")
+          ? "Microsoft Teams"
+          : undefined);
+
   // Extract potential emails from body if attendees not provided
   let attendees = inferredDetails?.attendees;
   if (!attendees || attendees.length === 0) {
@@ -241,7 +241,7 @@ export function toolExtractMeetingDetails(
  * Extracts triage suggestions for a batch of messages.
  */
 export function toolExtractTriageSuggestions(
-  messages: { id: string; subject: string; from: string; body: string }[],
+  messages: { id: string; subject: string; from: string; body: string }[]
 ): AgentProposalSplitItem[] {
   const suggestions: AgentProposalSplitItem[] = [];
 
@@ -314,10 +314,7 @@ export type ExtractCommitmentsResult = {
 /**
  * Extracts commitments (what I promised vs what they promised) and deadlines from email text.
  */
-export function toolExtractCommitments(
-  subject = "",
-  body = "",
-): ExtractCommitmentsResult {
+export function toolExtractCommitments(subject = "", body = ""): ExtractCommitmentsResult {
   const fullText = `${subject}\n${body}`.trim();
   if (!fullText) {
     return { commitments: [] };
@@ -333,7 +330,6 @@ export function toolExtractCommitments(
 
   const deadlineRegex =
     /(?:(?:(?:本周|下周|周|星期)[一二三四五六日天](?:前|下午\d*点?|上午\d*点?|晚上|中午)?)|(?:\d{1,2}月\d{1,2}[号日](?:前)?)|(?:\d{4}-\d{2}-\d{2})|明天(?:前|下午\d*点?|上午\d*点?|晚上|中午)?|后天|今晚|下周|月底|周五前|截止[：:]?\s*[^，。]+|by\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next week|\d{1,2}(?:st|nd|rd|th)?\s+[a-zA-Z]+|\d{4}-\d{2}-\d{2}))/i;
-
 
   const iPromisedPatterns = [
     /我(?:会|将|稍后|承诺|打算|负责|去办|来安排|会在)/i,
@@ -358,7 +354,9 @@ export function toolExtractCommitments(
     if (isIPromised || isTheyPromised) {
       const deadlineMatch = s.match(deadlineRegex);
       const deadline = deadlineMatch ? deadlineMatch[0].trim() : undefined;
-      const direction: "i_promised" | "they_promised" = isIPromised ? "i_promised" : "they_promised";
+      const direction: "i_promised" | "they_promised" = isIPromised
+        ? "i_promised"
+        : "they_promised";
       const key = `${direction}_${s}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -373,4 +371,3 @@ export function toolExtractCommitments(
 
   return { commitments };
 }
-

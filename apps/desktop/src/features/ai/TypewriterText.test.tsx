@@ -13,7 +13,7 @@ describe("TypewriterText", () => {
         speedMs={10}
         onDone={onDone}
         data-testid="typewriter"
-      />,
+      />
     );
 
     act(() => {

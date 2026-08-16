@@ -25,7 +25,7 @@ describe("attachments helpers", () => {
   it("rejects oversized total", () => {
     const err = validateAttachmentBatch(
       [{ size: 20 * 1024 * 1024 }],
-      [{ size: 10 * 1024 * 1024, name: "more.bin" }],
+      [{ size: 10 * 1024 * 1024, name: "more.bin" }]
     );
     expect(err).toMatch(/合计不能超过/);
   });

@@ -52,9 +52,7 @@ export function runPreSendCheck(data: {
 
   // 1. Missing Attachment check
   if (data.attachmentsCount === 0) {
-    const hasAttKeyword = ATTACHMENT_KEYWORDS.some((kw) =>
-      combined.includes(kw.toLowerCase()),
-    );
+    const hasAttKeyword = ATTACHMENT_KEYWORDS.some((kw) => combined.includes(kw.toLowerCase()));
     if (hasAttKeyword) {
       issues.push({
         type: "missing_attachment",
@@ -66,9 +64,7 @@ export function runPreSendCheck(data: {
   }
 
   // 2. Financial Risk check
-  const hasFinKeyword = FINANCIAL_KEYWORDS.some((kw) =>
-    combined.includes(kw.toLowerCase()),
-  );
+  const hasFinKeyword = FINANCIAL_KEYWORDS.some((kw) => combined.includes(kw.toLowerCase()));
   if (hasFinKeyword) {
     issues.push({
       type: "financial_risk",
@@ -80,7 +76,7 @@ export function runPreSendCheck(data: {
 
   // 3. Aggressive tone warning
   const hasAggressiveKeyword = AGGRESSIVE_KEYWORDS.some((kw) =>
-    combined.includes(kw.toLowerCase()),
+    combined.includes(kw.toLowerCase())
   );
   if (hasAggressiveKeyword) {
     issues.push({

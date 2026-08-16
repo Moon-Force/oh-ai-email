@@ -1,6 +1,7 @@
-import { BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import fs from "node:fs";
 import {
+  checkAndWakeSnoozedMessages,
   deleteAccount,
   getAccount,
   getAttachment,
@@ -12,11 +13,15 @@ import {
   listMessages,
   persist,
   recomputeFolderUnread,
+  setMessageMuted,
+  setMessagePinned,
+  setMessageSnooze,
   setMessageSplit,
   setMessageUnread,
   upsertAccount,
 } from "./db";
 import type { MessageRecord } from "./mail/types";
+import { checkForAppUpdates } from "./updater";
 
 function toMessageDto(m: MessageRecord) {
   return {
@@ -33,6 +38,9 @@ function toMessageDto(m: MessageRecord) {
     unread: m.unread,
     split: m.split,
     html: m.html,
+    snoozedUntil: m.snoozedUntil ?? null,
+    isPinned: m.isPinned ?? false,
+    isMuted: m.isMuted ?? false,
     attachments: (m.attachments ?? []).map((a) => ({
       id: a.id,
       filename: a.filename,
@@ -85,10 +93,7 @@ import {
   taskTranslate,
 } from "./ai/tasks";
 import type { RewriteTone } from "./ai/prompts";
-import {
-  abortAgentWorkflow,
-  runAgentWorkflow,
-} from "./ai/agent/engine";
+import { abortAgentWorkflow, runAgentWorkflow } from "./ai/agent/engine";
 import type { AgentRunParams, AgentStreamEvent } from "./ai/agent/types";
 
 export type AddAccountPayload = {
@@ -186,7 +191,8 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle("mail:snapshot", (_e, accountId?: string) => {
     const accounts = listAccounts();
-    const activeId = accountId && accounts.some((a) => a.id === accountId) ? accountId : accounts[0]?.id;
+    const activeId =
+      accountId && accounts.some((a) => a.id === accountId) ? accountId : accounts[0]?.id;
     if (!activeId) {
       return {
         accounts,
@@ -230,9 +236,54 @@ export async function registerIpc(): Promise<void> {
     return next ? toMessageDto(next) : null;
   });
 
+  ipcMain.handle("mail:snooze", (_e, id: string, untilMs: number | null) => {
+    setMessageSnooze(id, untilMs);
+    const next = getMessage(id);
+    return next ? toMessageDto(next) : null;
+  });
+
+  ipcMain.handle("mail:pin", (_e, id: string, isPinned: boolean) => {
+    setMessagePinned(id, isPinned);
+    const next = getMessage(id);
+    return next ? toMessageDto(next) : null;
+  });
+
+  ipcMain.handle("mail:mute", (_e, id: string, isMuted: boolean) => {
+    setMessageMuted(id, isMuted);
+    const next = getMessage(id);
+    return next ? toMessageDto(next) : null;
+  });
+
+  ipcMain.handle("prefs:autolaunch:get", () => {
+    try {
+      return app.getLoginItemSettings().openAtLogin;
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle("prefs:autolaunch:set", (_e, enabled: boolean) => {
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        openAsHidden: true,
+      });
+      return app.getLoginItemSettings().openAtLogin;
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle("updater:check", async () => {
+    return checkForAppUpdates();
+  });
+
   ipcMain.handle(
     "mail:saveAttachment",
-    async (_e, attachmentId: string): Promise<{ ok: true; path: string } | { ok: false; error: string }> => {
+    async (
+      _e,
+      attachmentId: string
+    ): Promise<{ ok: true; path: string } | { ok: false; error: string }> => {
       const ready = await ensureAttachmentFile(attachmentId);
       if (!ready.ok) return ready;
 
@@ -253,7 +304,7 @@ export async function registerIpc(): Promise<void> {
         const msg = e instanceof Error ? e.message : String(e);
         return { ok: false, error: msg };
       }
-    },
+    }
   );
 
   ipcMain.handle(
@@ -264,7 +315,7 @@ export async function registerIpc(): Promise<void> {
       const err = await shell.openPath(ready.path);
       if (err) return { ok: false, error: err };
       return { ok: true };
-    },
+    }
   );
 
   ipcMain.handle(
@@ -284,7 +335,7 @@ export async function registerIpc(): Promise<void> {
           contentBase64: string;
           size?: number;
         }[];
-      },
+      }
     ) => {
       const accounts = listAccounts();
       const account =
@@ -327,10 +378,15 @@ export async function registerIpc(): Promise<void> {
       const bodyForStore =
         payload.body ||
         (payload.html
-          ? payload.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+          ? payload.html
+              .replace(/<[^>]+>/g, " ")
+              .replace(/\s+/g, " ")
+              .trim()
           : "");
       const attachNote =
-        attCount > 0 ? `\n\n[附件 ${attCount} 个${totalBytes ? ` · ${Math.round(totalBytes / 1024)} KB` : ""}]` : "";
+        attCount > 0
+          ? `\n\n[附件 ${attCount} 个${totalBytes ? ` · ${Math.round(totalBytes / 1024)} KB` : ""}]`
+          : "";
       const recorded = await recordSentAfterSend({
         account,
         password,
@@ -347,7 +403,7 @@ export async function registerIpc(): Promise<void> {
         folderId: recorded.folderId,
         appendedToServer: recorded.appended,
       };
-    },
+    }
   );
 
   ipcMain.handle(
@@ -361,7 +417,7 @@ export async function registerIpc(): Promise<void> {
         subject: string;
         body: string;
         html?: string;
-      },
+      }
     ) => {
       const accounts = listAccounts();
       const account =
@@ -378,7 +434,10 @@ export async function registerIpc(): Promise<void> {
       const bodyForStore =
         payload.body ||
         (payload.html
-          ? payload.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+          ? payload.html
+              .replace(/<[^>]+>/g, " ")
+              .replace(/\s+/g, " ")
+              .trim()
           : "");
 
       try {
@@ -401,7 +460,7 @@ export async function registerIpc(): Promise<void> {
         const msg = e instanceof Error ? e.message : String(e);
         return { ok: false as const, error: msg };
       }
-    },
+    }
   );
 
   // ── AI ──────────────────────────────────────────────────────────
@@ -409,25 +468,20 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle(
     "ai:saveSettings",
-    (
-      _e,
-      payload: Partial<AiSettingsRecord> & { apiKey?: string },
-    ) => {
+    (_e, payload: Partial<AiSettingsRecord> & { apiKey?: string }) => {
       const { apiKey, ...rest } = payload;
       if (apiKey !== undefined) setCloudApiKey(apiKey);
       const saved = saveAiSettings(rest);
       return { ...saved, hasCloudApiKey: publicAiSettings().hasCloudApiKey };
-    },
+    }
   );
 
   ipcMain.handle("ai:probeOllama", () => probeOllama());
   ipcMain.handle("ai:probeCloud", () => probeCloud());
   ipcMain.handle("ai:listModels", () => fetchRemoteModels(loadAiSettings()));
   ipcMain.handle("ai:queryBalance", () => fetchAccountBalance(loadAiSettings()));
-  ipcMain.handle(
-    "ai:synthesizeSpeech",
-    (_e, payload: { text: string; voice?: string }) =>
-      synthesizeSpeechMiMo(payload.text, payload.voice, loadAiSettings()),
+  ipcMain.handle("ai:synthesizeSpeech", (_e, payload: { text: string; voice?: string }) =>
+    synthesizeSpeechMiMo(payload.text, payload.voice, loadAiSettings())
   );
 
   ipcMain.handle("ai:abort", (_e, requestId: string) => abortAiRequest(requestId));
@@ -442,8 +496,8 @@ export async function registerIpc(): Promise<void> {
         body: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskSummarize(payload),
+      }
+    ) => taskSummarize(payload)
   );
 
   ipcMain.handle(
@@ -457,8 +511,8 @@ export async function registerIpc(): Promise<void> {
         userPersona?: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskDraftReply(payload),
+      }
+    ) => taskDraftReply(payload)
   );
 
   ipcMain.handle(
@@ -473,8 +527,8 @@ export async function registerIpc(): Promise<void> {
         customNote?: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskQuickReply(payload),
+      }
+    ) => taskQuickReply(payload)
   );
 
   ipcMain.handle(
@@ -487,8 +541,8 @@ export async function registerIpc(): Promise<void> {
         body: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskExtractActionItems(payload),
+      }
+    ) => taskExtractActionItems(payload)
   );
 
   ipcMain.handle(
@@ -501,8 +555,8 @@ export async function registerIpc(): Promise<void> {
         userPersona?: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskRewrite(payload),
+      }
+    ) => taskRewrite(payload)
   );
 
   ipcMain.handle(
@@ -514,8 +568,8 @@ export async function registerIpc(): Promise<void> {
         existingBody?: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskCompose(payload),
+      }
+    ) => taskCompose(payload)
   );
 
   ipcMain.handle(
@@ -527,8 +581,8 @@ export async function registerIpc(): Promise<void> {
         messages: { sender: string; date?: string; body: string }[];
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskThreadSummary(payload),
+      }
+    ) => taskThreadSummary(payload)
   );
 
   ipcMain.handle(
@@ -542,8 +596,8 @@ export async function registerIpc(): Promise<void> {
         body: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskSuggestSplit(payload),
+      }
+    ) => taskSuggestSplit(payload)
   );
 
   ipcMain.handle(
@@ -555,8 +609,8 @@ export async function registerIpc(): Promise<void> {
         targetLang?: "zh" | "en";
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskTranslate(payload),
+      }
+    ) => taskTranslate(payload)
   );
 
   ipcMain.handle(
@@ -567,7 +621,7 @@ export async function registerIpc(): Promise<void> {
         accountId?: string;
         mode?: AiMode;
         requestId?: string;
-      },
+      }
     ) => {
       const accounts = listAccounts();
       const targetAccId = payload.accountId || accounts[0]?.id;
@@ -595,7 +649,7 @@ export async function registerIpc(): Promise<void> {
         mode: payload.mode,
         requestId: payload.requestId,
       });
-    },
+    }
   );
 
   ipcMain.handle(
@@ -609,35 +663,45 @@ export async function registerIpc(): Promise<void> {
         base64Data?: string;
         mode?: AiMode;
         requestId?: string;
-      },
-    ) => taskAnalyzeAttachment(payload),
+      }
+    ) => taskAnalyzeAttachment(payload)
   );
 
   // ── Agent Stream & Workflow ────────────────────────────────────
-  ipcMain.handle(
-    "agent:run",
-    async (
-      event,
-      params: AgentRunParams,
-    ) => {
-      return runAgentWorkflow({
-        ...params,
-        onEvent: (evt: AgentStreamEvent) => {
-          if (!event.sender.isDestroyed()) {
-            event.sender.send("agent:stream-event", {
-              requestId: params.requestId,
-              ...evt,
-            });
-          }
-        },
-      });
-    },
-  );
+  ipcMain.handle("agent:run", async (event, params: AgentRunParams) => {
+    return runAgentWorkflow({
+      ...params,
+      onEvent: (evt: AgentStreamEvent) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("agent:stream-event", {
+            requestId: params.requestId,
+            ...evt,
+          });
+        }
+      },
+    });
+  });
 
   ipcMain.handle("agent:abort", (_e, requestId: string) => {
     return abortAgentWorkflow(requestId);
   });
+
+  // Check snoozed messages every 15s
+  setInterval(() => {
+    try {
+      const woken = checkAndWakeSnoozedMessages();
+      if (woken.length > 0) {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win && !win.isDestroyed()) {
+          win.webContents.send("mail:pushed", {
+            eventType: "snooze-expired",
+            count: woken.length,
+            messagesSynced: woken.length,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[ipc] snooze wake check error", err);
+    }
+  }, 15_000);
 }
-
-
-

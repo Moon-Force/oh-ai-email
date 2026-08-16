@@ -30,8 +30,8 @@ test("renders list and selects message into reader", async () => {
       <>
         <MessageList />
         <Reader />
-      </>,
-    ),
+      </>
+    )
   );
   const list = screen.getByTestId("message-list");
   expect(within(list).getByText(/Q3 发布物料/)).toBeInTheDocument();
@@ -77,11 +77,13 @@ test("marking as other hides message from important split filter", async () => {
       <>
         <MessageList />
         <Reader />
-      </>,
-    ),
+      </>
+    )
   );
   expect(within(screen.getByTestId("message-list")).getByText(/Q3 发布物料/)).toBeInTheDocument();
   await user.click(screen.getByLabelText("标为其他"));
   expect(useMailStore.getState().messages.find((m) => m.id === "1")?.split).toBe("other");
-  expect(within(screen.getByTestId("message-list")).queryByText(/Q3 发布物料/)).not.toBeInTheDocument();
+  expect(
+    within(screen.getByTestId("message-list")).queryByText(/Q3 发布物料/)
+  ).not.toBeInTheDocument();
 });

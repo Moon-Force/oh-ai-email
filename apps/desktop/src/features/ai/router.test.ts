@@ -17,7 +17,11 @@ import {
 vi.mock("../../lib/ipc", () => ({
   hasDesktopApi: () => true,
   aiAbort: vi.fn(async () => true),
-  aiSummarize: vi.fn(async () => ({ ok: true as const, text: "【摘要】要点：hello", mode: "cloud" as const })),
+  aiSummarize: vi.fn(async () => ({
+    ok: true as const,
+    text: "【摘要】要点：hello",
+    mode: "cloud" as const,
+  })),
   aiDraftReply: vi.fn(async () => ({
     ok: true as const,
     text: "你好，\n\n关于来信的回复。",
@@ -94,9 +98,7 @@ describe("summarize", () => {
 
   it("passes requestId when provided", async () => {
     await summarize("hello team", { requestId: "req_123" });
-    expect(ipc.aiSummarize).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_123" }),
-    );
+    expect(ipc.aiSummarize).toHaveBeenCalledWith(expect.objectContaining({ requestId: "req_123" }));
   });
 });
 
@@ -109,7 +111,7 @@ describe("draftReply", () => {
   it("passes requestId when provided", async () => {
     await draftReply({ body: "test", subject: "re" }, { requestId: "req_draft_1" });
     expect(ipc.aiDraftReply).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_draft_1" }),
+      expect.objectContaining({ requestId: "req_draft_1" })
     );
   });
 });
@@ -119,24 +121,24 @@ describe("quickReplyDraft", () => {
     const d = await quickReplyDraft({ body: "test", replyType: "ack" });
     expect(d).toMatch(/收到/);
     expect(ipc.aiQuickReply).toHaveBeenCalledWith(
-      expect.objectContaining({ replyType: "ack", body: "test" }),
+      expect.objectContaining({ replyType: "ack", body: "test" })
     );
   });
 
   it("passes requestId when provided", async () => {
-    await quickReplyDraft(
-      { body: "test", replyType: "agree" },
-      { requestId: "req_qr_1" },
-    );
+    await quickReplyDraft({ body: "test", replyType: "agree" }, { requestId: "req_qr_1" });
     expect(ipc.aiQuickReply).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_qr_1", replyType: "agree" }),
+      expect.objectContaining({ requestId: "req_qr_1", replyType: "agree" })
     );
   });
 });
 
 describe("extractActionItems", () => {
   it("extracts tags and action items", async () => {
-    const data = await extractActionItems({ body: "Please submit Q3 report by Friday", subject: "Report" });
+    const data = await extractActionItems({
+      body: "Please submit Q3 report by Friday",
+      subject: "Report",
+    });
     expect(data.tags).toContain("需回复");
     expect(data.actionItems).toContain("提交 Q3 报告");
     expect(data.deadline).toBe("周五下午5点");
@@ -146,7 +148,7 @@ describe("extractActionItems", () => {
   it("passes requestId when provided", async () => {
     await extractActionItems({ body: "test" }, { requestId: "req_act_1" });
     expect(ipc.aiActionItems).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_act_1" }),
+      expect.objectContaining({ requestId: "req_act_1" })
     );
   });
 });
@@ -158,7 +160,7 @@ describe("summarizeThread", () => {
         { sender: "Alice", date: "2026-08-10", body: "Initial proposal" },
         { sender: "Bob", date: "2026-08-11", body: "Agreed" },
       ],
-      "Q3 Plan",
+      "Q3 Plan"
     );
     expect(data.summary).toContain("讨论了 Q3 发布计划");
     expect(data.timeline).toHaveLength(2);
@@ -172,7 +174,7 @@ describe("summarizeThread", () => {
       requestId: "req_thread_1",
     });
     expect(ipc.aiThreadSummary).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_thread_1" }),
+      expect.objectContaining({ requestId: "req_thread_1" })
     );
   });
 });
@@ -193,7 +195,7 @@ describe("suggestSplit", () => {
   it("passes requestId when provided", async () => {
     await suggestSplit({ body: "test" }, { requestId: "req_split_1" });
     expect(ipc.aiSuggestSplit).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_split_1" }),
+      expect.objectContaining({ requestId: "req_split_1" })
     );
   });
 });
@@ -203,14 +205,14 @@ describe("translateText", () => {
     const res = await translateText("Hello world", "zh");
     expect(res).toContain("你好世界");
     expect(ipc.aiTranslate).toHaveBeenCalledWith(
-      expect.objectContaining({ text: "Hello world", targetLang: "zh" }),
+      expect.objectContaining({ text: "Hello world", targetLang: "zh" })
     );
   });
 
   it("passes requestId when provided", async () => {
     await translateText("Hello", "en", { requestId: "req_trans_1" });
     expect(ipc.aiTranslate).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_trans_1", targetLang: "en" }),
+      expect.objectContaining({ requestId: "req_trans_1", targetLang: "en" })
     );
   });
 });
@@ -220,14 +222,14 @@ describe("rewriteTone", () => {
     const formal = await rewriteTone("thanks", "formal");
     expect(formal).toMatch(/敬启者/);
     expect(ipc.aiRewrite).toHaveBeenCalledWith(
-      expect.objectContaining({ tone: "formal", text: "thanks" }),
+      expect.objectContaining({ tone: "formal", text: "thanks" })
     );
   });
 
   it("passes requestId when provided", async () => {
     await rewriteTone("thanks", "shorter", { requestId: "req_rewrite_1" });
     expect(ipc.aiRewrite).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: "req_rewrite_1", tone: "shorter" }),
+      expect.objectContaining({ requestId: "req_rewrite_1", tone: "shorter" })
     );
   });
 });

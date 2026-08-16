@@ -279,7 +279,8 @@ export default function Composer({
     }
     const id = `local-draft:${accountId}:${now}`;
     const toLabel = opts.to.trim() || "(未填收件人)";
-    const snippetBase = opts.bodyText.replace(/\s+/g, " ").trim().slice(0, 160) || opts.subject || "(无主题)";
+    const snippetBase =
+      opts.bodyText.replace(/\s+/g, " ").trim().slice(0, 160) || opts.subject || "(无主题)";
     const msg: MailMessage = {
       id,
       accountId,
@@ -307,7 +308,7 @@ export default function Composer({
     const files = Array.from(list);
     const batchErr = validateAttachmentBatch(
       attachments,
-      files.map((f) => ({ size: f.size, name: f.name })),
+      files.map((f) => ({ size: f.size, name: f.name }))
     );
     if (batchErr) {
       setError(batchErr);
@@ -374,7 +375,7 @@ export default function Composer({
           attachments.length
             ? `已发送（预览模拟）· ${attachments.length} 个附件`
             : "已发送（预览模拟，未走 SMTP）",
-          "success",
+          "success"
         );
         onSend?.({ to, subject, body: bodyText });
         return;
@@ -471,9 +472,19 @@ export default function Composer({
 
   return (
     <Box data-testid="composer" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <AppBar
+        position="static"
+        color="default"
+        elevation={0}
+        sx={{ borderBottom: 1, borderColor: "divider" }}
+      >
         <Toolbar variant="dense" sx={{ gap: 1 }}>
-          <Button startIcon={<ArrowBackIcon />} onClick={onClose} aria-label="关闭写信" disabled={sending}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={onClose}
+            aria-label="关闭写信"
+            disabled={sending}
+          >
             返回
           </Button>
           <Typography variant="subtitle1" sx={{ flex: 1 }}>
@@ -719,7 +730,7 @@ export default function Composer({
                     },
                     () => {
                       setIsListening(false);
-                    },
+                    }
                   );
                   stopRecognitionRef.current = stop;
                 }

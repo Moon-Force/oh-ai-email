@@ -95,10 +95,55 @@ function migrate() {
       unread INTEGER NOT NULL DEFAULT 1,
       split TEXT NOT NULL DEFAULT 'other',
       html TEXT,
+      snoozed_until INTEGER DEFAULT NULL,
+      is_pinned INTEGER NOT NULL DEFAULT 0,
+      is_muted INTEGER NOT NULL DEFAULT 0,
       UNIQUE(account_id, folder_id, uid)
     );
   `);
-  d.run(`CREATE INDEX IF NOT EXISTS idx_messages_folder ON messages(account_id, folder_id, date_ms DESC);`);
+
+  // Incremental schema migration for existing databases MUST run before creating index on new columns
+  try {
+    const cols = rowsFrom(d.prepare(`PRAGMA table_info(messages)`)).map((c) => String(c.name));
+    if (!cols.includes("snoozed_until")) {
+      try {
+        d.run(`ALTER TABLE messages ADD COLUMN snoozed_until INTEGER DEFAULT NULL`);
+      } catch {
+        // ignore if already added
+      }
+    }
+    if (!cols.includes("is_pinned")) {
+      try {
+        d.run(`ALTER TABLE messages ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0`);
+      } catch {
+        // ignore if already added
+      }
+    }
+    if (!cols.includes("is_muted")) {
+      try {
+        d.run(`ALTER TABLE messages ADD COLUMN is_muted INTEGER NOT NULL DEFAULT 0`);
+      } catch {
+        // ignore if already added
+      }
+    }
+  } catch {
+    // fallback attempt if PRAGMA table_info fails
+    try {
+      d.run(`ALTER TABLE messages ADD COLUMN snoozed_until INTEGER DEFAULT NULL`);
+    } catch {}
+    try {
+      d.run(`ALTER TABLE messages ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0`);
+    } catch {}
+    try {
+      d.run(`ALTER TABLE messages ADD COLUMN is_muted INTEGER NOT NULL DEFAULT 0`);
+    } catch {}
+  }
+
+  d.run(
+    `CREATE INDEX IF NOT EXISTS idx_messages_folder ON messages(account_id, folder_id, date_ms DESC);`
+  );
+  d.run(`CREATE INDEX IF NOT EXISTS idx_messages_snooze ON messages(snoozed_until);`);
+
   d.run(`
     CREATE TABLE IF NOT EXISTS attachments (
       id TEXT PRIMARY KEY,
@@ -173,7 +218,7 @@ export function upsertAccount(a: AccountRecord) {
       a.smtpPort,
       a.smtpTls,
       a.createdAt,
-    ],
+    ]
   );
   persist();
 }
@@ -193,13 +238,17 @@ export function deleteAccount(id: string) {
 }
 
 export function attachmentsDir(messageId: string): string {
-  return path.join(app.getPath("userData"), "mail-attachments", messageId.replace(/[^\w.-]+/g, "_"));
+  return path.join(
+    app.getPath("userData"),
+    "mail-attachments",
+    messageId.replace(/[^\w.-]+/g, "_")
+  );
 }
 
 export function listAttachments(messageId: string): AttachmentMeta[] {
   const d = getDb();
   const stmt = d.prepare(
-    `SELECT * FROM attachments WHERE message_id = ? ORDER BY sort_index ASC, filename ASC`,
+    `SELECT * FROM attachments WHERE message_id = ? ORDER BY sort_index ASC, filename ASC`
   );
   stmt.bind([messageId]);
   return rowsFrom(stmt).map(mapAttachment);
@@ -240,7 +289,7 @@ export function replaceAttachments(messageId: string, items: AttachmentMeta[]) {
     d.run(
       `INSERT INTO attachments (id, message_id, filename, content_type, size, storage_path, sort_index)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [a.id, messageId, a.filename, a.contentType, a.size, a.storagePath, i],
+      [a.id, messageId, a.filename, a.contentType, a.size, a.storagePath, i]
     );
   });
 }
@@ -277,14 +326,14 @@ export function upsertFolder(f: FolderRecord) {
        role=excluded.role,
        name=excluded.name,
        unread=excluded.unread`,
-    [f.id, f.accountId, f.remotePath, f.role, f.name, f.unread],
+    [f.id, f.accountId, f.remotePath, f.role, f.name, f.unread]
   );
 }
 
 export function listMessages(accountId: string, folderId: string): MessageRecord[] {
   const d = getDb();
   const stmt = d.prepare(
-    `SELECT * FROM messages WHERE account_id = ? AND folder_id = ? ORDER BY date_ms DESC LIMIT 200`,
+    `SELECT * FROM messages WHERE account_id = ? AND folder_id = ? ORDER BY date_ms DESC LIMIT 200`
   );
   stmt.bind([accountId, folderId]);
   return rowsFrom(stmt).map(mapMessage);
@@ -293,7 +342,7 @@ export function listMessages(accountId: string, folderId: string): MessageRecord
 export function listAllMessages(accountId: string): MessageRecord[] {
   const d = getDb();
   const stmt = d.prepare(
-    `SELECT * FROM messages WHERE account_id = ? ORDER BY date_ms DESC LIMIT 500`,
+    `SELECT * FROM messages WHERE account_id = ? ORDER BY date_ms DESC LIMIT 500`
   );
   stmt.bind([accountId]);
   return rowsFrom(stmt).map((r) => withAttachments(mapMessage(r)));
@@ -312,8 +361,8 @@ export function upsertMessage(m: MessageRecord) {
   d.run(
     `INSERT INTO messages (
       id, account_id, folder_id, uid, from_addr, from_name, subject, snippet,
-      date_ms, date_label, unread, split, html
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      date_ms, date_label, unread, split, html, snoozed_until, is_pinned, is_muted
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       from_addr=excluded.from_addr,
       from_name=excluded.from_name,
@@ -323,7 +372,10 @@ export function upsertMessage(m: MessageRecord) {
       date_label=excluded.date_label,
       unread=excluded.unread,
       split=excluded.split,
-      html=COALESCE(excluded.html, messages.html)`,
+      html=COALESCE(excluded.html, messages.html),
+      snoozed_until=COALESCE(messages.snoozed_until, excluded.snoozed_until),
+      is_pinned=COALESCE(messages.is_pinned, excluded.is_pinned),
+      is_muted=COALESCE(messages.is_muted, excluded.is_muted)`,
     [
       m.id,
       m.accountId,
@@ -338,7 +390,10 @@ export function upsertMessage(m: MessageRecord) {
       m.unread ? 1 : 0,
       m.split,
       m.html ?? null,
-    ],
+      m.snoozedUntil ?? null,
+      m.isPinned ? 1 : 0,
+      m.isMuted ? 1 : 0,
+    ]
   );
 }
 
@@ -352,6 +407,42 @@ export function setMessageSplit(id: string, split: "important" | "other") {
   const d = getDb();
   d.run(`UPDATE messages SET split = ? WHERE id = ?`, [split, id]);
   persist();
+}
+
+export function setMessageSnooze(id: string, untilMs: number | null) {
+  const d = getDb();
+  d.run(`UPDATE messages SET snoozed_until = ? WHERE id = ?`, [untilMs ?? null, id]);
+  persist();
+}
+
+export function setMessagePinned(id: string, isPinned: boolean) {
+  const d = getDb();
+  d.run(`UPDATE messages SET is_pinned = ? WHERE id = ?`, [isPinned ? 1 : 0, id]);
+  persist();
+}
+
+export function setMessageMuted(id: string, isMuted: boolean) {
+  const d = getDb();
+  d.run(`UPDATE messages SET is_muted = ? WHERE id = ?`, [isMuted ? 1 : 0, id]);
+  persist();
+}
+
+export function checkAndWakeSnoozedMessages(): MessageRecord[] {
+  const d = getDb();
+  const now = Date.now();
+  const stmt = d.prepare(
+    `SELECT * FROM messages WHERE snoozed_until IS NOT NULL AND snoozed_until <= ?`
+  );
+  stmt.bind([now]);
+  const rows = rowsFrom(stmt);
+  if (rows.length === 0) return [];
+  const list = rows.map((r) => withAttachments(mapMessage(r)));
+  d.run(
+    `UPDATE messages SET snoozed_until = NULL WHERE snoozed_until IS NOT NULL AND snoozed_until <= ?`,
+    [now]
+  );
+  persist();
+  return list;
 }
 
 export function setMessageHtml(id: string, html: string) {
@@ -370,7 +461,7 @@ export function deleteMessage(id: string) {
 export function recomputeFolderUnread(accountId: string, folderId: string) {
   const d = getDb();
   const stmt = d.prepare(
-    `SELECT COUNT(*) AS c FROM messages WHERE account_id = ? AND folder_id = ? AND unread = 1`,
+    `SELECT COUNT(*) AS c FROM messages WHERE account_id = ? AND folder_id = ? AND unread = 1`
   );
   stmt.bind([accountId, folderId]);
   const row = rowsFrom(stmt)[0];
@@ -420,5 +511,8 @@ function mapMessage(r: Record<string, unknown>): MessageRecord {
     unread: Number(r.unread) === 1,
     split: (String(r.split) === "important" ? "important" : "other") as "important" | "other",
     html: r.html != null ? String(r.html) : undefined,
+    snoozedUntil: r.snoozed_until != null ? Number(r.snoozed_until) : null,
+    isPinned: Number(r.is_pinned) === 1,
+    isMuted: Number(r.is_muted) === 1,
   };
 }
