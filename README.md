@@ -73,67 +73,63 @@
 
 ## 当前状态
 
-项目处于 **早期建设中**。功能以 [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) 实施名单为准，按阶段交付。
+**v0.1.0 桌面端 MVP 已正式发布** 🎉
 
-**一期目标（桌面 MVP）**：能稳定收信、读信、回信，并具备摘要 / 草稿类 AI 与基础分箱。
-
-**二期方向**：iOS / Android / 鸿蒙，以及更强的整理与账号体验。
+- 涵盖 Phase 0 到 Phase 7 全部计划任务；
+- 提供 Windows（安装包与便携版）、macOS（.dmg / .zip）、Linux（.AppImage / .deb）跨平台构建；
+- 具备 IMAP IDLE 原生零延迟推信、混合双模 AI（云端兼容 + 本地 Ollama）、智能分箱与稍后处理（Snooze）、语音听写与朗读、系统托盘常驻与自动更新检测。
 
 ---
 
-## 简单技术说明
-
-想贡献代码或本地跑起来时，可以先知道这些：
-
-- 桌面应用壳 + 界面 + 本地邮件同步与 AI 调度
-- 邮件协议：IMAP / SMTP（后续可增强 OAuth 等）
-- 更细的架构与任务列表见 [`docs/`](docs/)
-
-完整约定见 [`AGENTS.md`](AGENTS.md)。
-
-## 开发 (Development)
+## 快速开始与开发 (Development)
 
 ```bash
 pnpm install
-pnpm -C apps/desktop dev        # 启动 Electron + Vite
-pnpm -C apps/desktop build      # 构建
-pnpm -C apps/desktop test       # Vitest
+
+# 1. 启动桌面端开发热重载 (Electron + Vite)
+pnpm -C apps/desktop dev
+
+# 2. 启动网页介绍站开发服务
+pnpm -C apps/web dev
+
+# 3. 运行全量单元测试 (Vitest)
+pnpm test
+
+# 4. 构建验证与代码检查
 pnpm lint && pnpm format:check
-cargo test --workspace
+pnpm -C apps/desktop build:unpack
 ```
 
 ---
 
-## 文档
+## 文档导航
 
-| 文档                                             | 内容                     |
-| ------------------------------------------------ | ------------------------ |
-| [docs/PRODUCT.md](docs/PRODUCT.md)               | 产品定位与范围           |
-| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | 实施名单与验收           |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | 架构（偏开发）           |
-| [docs/DESIGN.md](docs/DESIGN.md)                 | UI / MUI 规范            |
-| [design/](design/)                               | 历史示意稿（非实现准绳） |
-
----
-
-## 隐私
-
-- 邮件账号密码 / 令牌保存在本机安全存储中，不会提交到本开源仓库
-- 使用**云端 AI** 时，相关正文会按你的设置发往所选模型服务；可在设置中改为**本机模型**
-- 我们不运营你的邮箱服务器，信的权威数据仍在你的邮箱服务商
+| 文档                                                               | 说明                                      |
+| :----------------------------------------------------------------- | :---------------------------------------- |
+| [🌐 **官网与在线演示**](https://moon-force.github.io/oh-ai-email/) | 产品官方网站与交互式 AI 功能演示          |
+| [📄 **CHANGELOG.md**](CHANGELOG.md)                                | 版本变更记录与发布日志                    |
+| [🧭 **docs/PRODUCT.md**](docs/PRODUCT.md)                          | 产品定位、约束与 MVP 边界                 |
+| [📋 **docs/IMPLEMENTATION.md**](docs/IMPLEMENTATION.md)            | 分阶段研发清单与验收标准                  |
+| [🤖 **docs/AI_TODO.md**](docs/AI_TODO.md)                          | AI 核心决策与各波次（Wave 1-3）特性清单   |
+| [⚙️ **docs/AGENT_WORKFLOW.md**](docs/AGENT_WORKFLOW.md)            | 智能体工作流、沙箱工具与 HITL 确认门规范  |
+| [🏗️ **docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md)                | 系统分层、数据流、IMAP IDLE 与 IPC 架构   |
+| [📦 **docs/DISTRIBUTION.md**](docs/DISTRIBUTION.md)                | 跨平台打包、代码签名与 CI/CD 自动发布指南 |
+| [🎨 **docs/DESIGN.md**](docs/DESIGN.md)                            | MUI Material UI 设计规范与主题色彩系统    |
+| [📜 **AGENTS.md**](AGENTS.md)                                      | 编码代理规范与仓库开发准则                |
 
 ---
 
-## 参与与反馈
+## 隐私与安全
 
-- Issue / Discussion：欢迎提需求、缺陷与设计意见
-- PR：请先阅读 [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) 与 [`AGENTS.md`](AGENTS.md)，小步提交
+- **凭证安全**：邮件账号密码与 API Key 通过操作系统安全存储（Keychain / `safeStorage`）加密存储，绝不经过任何第三方代理服务器；
+- **AI 隐私**：支持在「设置中心」自主选择云端模型或本地 **Ollama 离线运行**；
+- **发信保护**：内置 AI 辅助检查敏感词与遗忘附件预检，且**绝对不会自动发送邮件**，发送权永远在用户手中。
 
 ---
 
-## 许可
+## 许可协议
 
-许可证将在首个可运行版本前确定（倾向 MIT 或 Apache-2.0）。确定后会在本文件与 `LICENSE` 中写明。
+本项目遵循 [MIT License](LICENSE)。
 
 ---
 

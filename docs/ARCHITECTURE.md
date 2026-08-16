@@ -2,18 +2,16 @@
 
 ## 1. 技术栈总览
 
-| 层         | 选型                                          | 职责                                                                             |
-| ---------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| 桌面壳     | **Electron**                                  | 窗口、系统集成、打包 Win/macOS/Linux                                             |
-| 层         | 选型                                          | 职责                                                                             |
-| --------   | -------------------------------------------   | -------------------------------------------------------------------------------- |
-| 桌面壳     | **Electron**                                  | 窗口、系统集成、打包 Win/macOS/Linux                                             |
-| UI         | **React + TypeScript + MUI**                  | 列表、读信、写信、设置、AI 面板；视觉见 [DESIGN.md](./DESIGN.md)（Material UI）  |
-| 主进程核心 | **Node.js / TypeScript (Electron)**           | IMAP/SMTP 协议管理、同步编排、安全存储 safeStorage、AI 路由与 Agent 引擎         |
-| 本地库     | **SQLite**（敏感字段加密 / safeStorage 加密） | 邮件元数据、正文缓存、账号配置                                                   |
-| 云端 AI    | 多厂商预设与 OpenAI 兼容代理通道              | DeepSeek (`deepseek-chat`, `deepseek-reasoner`), 小米 MiMo, 自定义兼容端点       |
-| 本地 AI    | **Ollama** HTTP API                           | 用户可选（`127.0.0.1:11434`），邮件内容不经云                                    |
-| 语音交互   | **Web Speech API + MiMo TTS**                 | 语音听写 (STT) + 邮件/摘要朗读 (TTS)                                             |
+| 层         | 选型                                          | 职责                                                                                  |
+| :--------- | :-------------------------------------------- | :------------------------------------------------------------------------------------ |
+| 桌面壳     | **Electron**                                  | 窗口、系统集成、托盘驻留、打包 Win/macOS/Linux                                        |
+| UI         | **React + TypeScript + MUI**                  | 列表、读信、写信、设置、AI 胶囊与抽屉；视觉见 [DESIGN.md](./DESIGN.md)（Material UI） |
+| 产品官网   | **Vite + 响应式现代 Web (apps/web)**          | 官方介绍页、交互式 AI 模拟器、下载矩阵、GitHub Pages 自动发布                         |
+| 主进程核心 | **Node.js / TypeScript (Electron)**           | IMAP/SMTP 协议管理、IMAP IDLE 实时推信、safeStorage 存储、AI 路由与 Agent 引擎        |
+| 本地库     | **SQLite**（敏感字段加密 / safeStorage 加密） | 邮件元数据、正文缓存、账号配置、Snooze/Pin/Mute 标记                                  |
+| 云端 AI    | 多厂商预设与 OpenAI 兼容代理通道              | DeepSeek (`deepseek-chat`, `deepseek-reasoner`), 小米 MiMo, 自定义兼容端点            |
+| 本地 AI    | **Ollama** HTTP API                           | 用户可选（`127.0.0.1:11434`），邮件内容不经云                                         |
+| 语音交互   | **Web Speech API + MiMo TTS**                 | 语音听写 (STT) + 邮件/摘要朗读 (TTS)                                                  |
 
 ## 2. 逻辑分层
 
@@ -35,17 +33,20 @@
 └──────────────────────────────────────────────────────┘
 ```
 
-## 3. 建议仓库结构（monorepo）
+## 3. Monorepo 仓库结构
 
 ```
 oh-ai-email/
+├── .github/
+│   └── workflows/               # CI 代码检查、Release 跨平台打包与 Pages 自动部署
 ├── apps/
-│   └── desktop/                 # Electron 桌面应用主体
-│       ├── src/                 # React 渲染进程（UI 界面）
-│       │   └── features/        # 按业务域自包含模块 (ai, composer, mail, settings, voice...)
-│       └── electron/            # Electron 主进程 (IPC, AI 引擎, 密钥存储, 同步)
-├── docs/                        # 架构、设计、工作流与 TODO 规范文档
-├── package.json / pnpm-workspace
+│   ├── desktop/                 # Electron 桌面应用主体
+│   │   ├── src/                 # React 渲染进程（MUI 界面与业务域模块）
+│   │   │   └── features/        # 按业务域自包含模块 (ai, composer, mail, settings, voice...)
+│   │   └── electron/            # Electron 主进程 (IPC, AI 引擎, 密钥存储, IMAP IDLE, 托盘)
+│   └── web/                     # 官方产品介绍网站 (GitHub Pages 部署)
+├── docs/                        # 架构、设计、工作流、分发与实施规范文档
+├── package.json / pnpm-workspace.yaml
 └── README.md
 ```
 

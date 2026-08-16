@@ -4,17 +4,18 @@
 
 ## 文档索引
 
-| 文档                                                     | 说明                                                      |
-| -------------------------------------------------------- | --------------------------------------------------------- |
-| [PRODUCT.md](./PRODUCT.md)                               | 产品定位、约束、对标与一期范围                            |
-| [ARCHITECTURE.md](./ARCHITECTURE.md)                     | 技术栈、分层架构、数据与 AI 流                            |
-| [AI_TODO.md](./AI_TODO.md)                               | **AI 冻结决策 + Wave TODO**（`feat/ai` 权威清单）         |
-| [AGENT_WORKFLOW.md](./AGENT_WORKFLOW.md)                 | **Agent 流与工作流规范**：HITL 安全门、沙箱工具、双层流式 |
-| [IMPLEMENTATION.md](./IMPLEMENTATION.md)                 | **实施名单**：分阶段任务、验收标准、顺序                  |
-| [DESIGN.md](./DESIGN.md)                                 | **UI 规范**：MUI Material UI + 布局/文案/无障碍           |
-| [../apps/desktop/src/theme/](../apps/desktop/src/theme/) | MUI 主题源码（`createAppTheme`）                          |
-| [../design/](../design/)                                 | 历史示意稿 / 品牌图标（**非**当前 UI 准绳）               |
-| [../design/brand/](../design/brand/)                     | **应用图标**：主图标 / 矢量 / monogram 备选               |
+| 文档                                                     | 说明                                                          |
+| :------------------------------------------------------- | :------------------------------------------------------------ |
+| [PRODUCT.md](./PRODUCT.md)                               | 产品定位、约束、对标与一期范围                                |
+| [ARCHITECTURE.md](./ARCHITECTURE.md)                     | 技术栈、分层架构、数据流与 AI 路由设计                        |
+| [AI_TODO.md](./AI_TODO.md)                               | **AI 冻结决策 + Wave TODO**（权威清单）                       |
+| [AGENT_WORKFLOW.md](./AGENT_WORKFLOW.md)                 | **Agent 流与工作流规范**：HITL 安全门、沙箱工具、双层流式     |
+| [IMPLEMENTATION.md](./IMPLEMENTATION.md)                 | **实施名单**：分阶段任务、验收标准、交付状态（全阶段完成）    |
+| [DISTRIBUTION.md](./DISTRIBUTION.md)                     | **分发与打包**：跨平台安装包构建、签名与 GitHub Actions CI/CD |
+| [DESIGN.md](./DESIGN.md)                                 | **UI 规范**：MUI Material UI + 布局/文案/无障碍               |
+| [../apps/desktop/src/theme/](../apps/desktop/src/theme/) | MUI 主题源码（`createAppTheme`）                              |
+| [../apps/web/](../apps/web/)                             | 产品官方网页介绍站与在线演示源码                              |
+| [../design/](../design/)                                 | 历史示意稿 / 品牌图标（**非**当前 UI 准绳）                   |
 
 > `design-tokens.css` / `design-preview.html` 已废弃（旧玻璃示意），仅保留占位说明。
 
