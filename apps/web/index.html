@@ -6,7 +6,7 @@
     <title>oh-ai-email — 开源、轻快的下一代 AI 智能邮件客户端</title>
     <meta
       name="description"
-      content="oh-ai-email 是一款 Spark-like 现代极简 AI 邮件客户端，具备 IMAP IDLE 零延迟推信、混合双模副驾 AI、智能分箱与稍后处理、本地安全凭证存储。"
+      content="oh-ai-email 是专为高效人士打造的 Spark-like 现代极简 AI 邮件客户端。支持 IMAP IDLE 零延迟推信、混合双模 AI（云端 / 本地 Ollama 离线）、智能分箱、Snooze 稍后处理与操作系统级安全存储。"
     />
     <link rel="stylesheet" href="./style.css" />
     <link
@@ -15,10 +15,12 @@
     />
   </head>
   <body>
+    <div class="ambient-glow-top"></div>
+
     <!-- Navigation Bar -->
     <header class="navbar">
       <div class="nav-container">
-        <div class="brand">
+        <a href="#" class="brand">
           <div class="brand-icon">
             <svg
               width="18"
@@ -26,37 +28,38 @@
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="2.2"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+              <rect width="20" height="16" x="2" y="4" rx="3"></rect>
               <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
             </svg>
           </div>
           <span>oh-ai-email</span>
-        </div>
+        </a>
 
         <nav class="nav-links">
+          <a href="#simulator" class="nav-link">交互演示</a>
           <a href="#features" class="nav-link">核心特性</a>
-          <a href="#preview" class="nav-link">功能演示</a>
-          <a href="#download" class="nav-link">下载客户端</a>
+          <a href="#shortcuts" class="nav-link">效率快捷键</a>
+          <a href="#faq" class="nav-link">常见问题</a>
           <a
             href="https://github.com/Moon-Force/oh-ai-email"
             target="_blank"
             rel="noreferrer"
             class="nav-link"
-            >GitHub</a
+            >GitHub 开源</a
           >
         </nav>
 
         <div class="nav-actions">
-          <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">☀️</button>
+          <button id="theme-toggle" class="theme-toggle" aria-label="切换明暗主题">☀️</button>
           <a
             href="#download"
             class="btn btn-primary"
-            style="padding: 0.45rem 1rem; font-size: 0.85rem"
-            >免费下载</a
+            style="padding: 0.5rem 1.15rem; font-size: 0.88rem"
+            >免费下载 v0.1.0</a
           >
         </div>
       </div>
@@ -64,27 +67,35 @@
 
     <!-- Hero Section -->
     <section class="hero">
-      <div class="badge-tag">
-        <span class="badge-dot"></span>
-        <span>v0.1.0 桌面正式版现已发布</span>
+      <div class="status-pill">
+        <span class="pulse-dot"></span>
+        <span>IMAP IDLE 实时推信 0s 延迟 · DeepSeek R1 & Ollama 双模已就绪</span>
       </div>
 
-      <h1>开源、轻快、懂得思考的<br />下一代 AI 邮件客户端</h1>
+      <h1>
+        开源、轻快、懂得思考的<br />
+        <span class="hero-title-highlight">下一代 AI 智能邮件客户端</span>
+      </h1>
 
       <p>
-        融合 Spark 式清爽三栏交互、原生 IMAP IDLE 零延迟推信与混合双模 AI。<br />
-        云端大模型与本地 Ollama 自由切换，本地安全存储保护隐私。
+        告别传统邮箱的臃肿与延迟。融合 Spark 式灵动三栏体验、原生 IMAP IDLE
+        秒级长连接，以及深度思考的混合双模 AI 助读与起草。 邮箱密码与私钥 100%
+        写入本机安全密钥库，绝无中间代理。
       </p>
 
       <div class="hero-actions">
-        <a href="#download" class="btn btn-primary">
+        <a
+          href="#download"
+          class="btn btn-primary"
+          style="font-size: 1.05rem; padding: 0.85rem 1.8rem"
+        >
           <svg
-            width="18"
-            height="18"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="2.2"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
@@ -92,7 +103,7 @@
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span>立即下载桌面端</span>
+          <span>立即下载桌面端 (Win / Mac / Linux)</span>
         </a>
 
         <a
@@ -100,10 +111,11 @@
           target="_blank"
           rel="noreferrer"
           class="btn btn-secondary"
+          style="font-size: 1.05rem; padding: 0.85rem 1.6rem"
         >
           <svg
-            width="18"
-            height="18"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -116,13 +128,32 @@
             ></path>
             <path d="M9 18c-4.51 2-5-2-7-2"></path>
           </svg>
-          <span>GitHub 开源仓库</span>
+          <span>GitHub 开源仓库 (MIT)</span>
         </a>
+      </div>
+
+      <div class="hero-stats-row">
+        <div class="stat-item">
+          <div class="stat-value">⚡ 0 秒</div>
+          <div class="stat-label">IMAP IDLE 实时推信</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">🔒 100%</div>
+          <div class="stat-label">OS safeStorage 本地加密</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">🧠 双模</div>
+          <div class="stat-label">云端兼容 + 本地 Ollama 离线</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">🛡️ 0 乱发</div>
+          <div class="stat-label">人机协同，绝不私自发信</div>
+        </div>
       </div>
     </section>
 
-    <!-- Interactive Live Preview Card -->
-    <section id="preview" class="preview-container">
+    <!-- Interactive Simulator Showcase -->
+    <section id="simulator" class="preview-container">
       <div class="window-card">
         <div class="window-header">
           <div class="window-dots">
@@ -130,210 +161,386 @@
             <span class="dot yellow"></span>
             <span class="dot green"></span>
           </div>
-          <div class="window-title">oh-ai-email — 主工作区</div>
-          <div style="width: 42px"></div>
+          <div class="window-title">
+            <span>oh-ai-email :: 主工作区 (Lumen Studio Interactive)</span>
+            <span class="window-badge">🟢 IMAP IDLE Connected</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-faint); font-family: var(--font-mono)">
+            DeepSeek R1 / safeStorage Active
+          </div>
         </div>
 
-        <div class="client-layout">
+        <div class="cockpit-layout">
           <!-- Sidebar -->
-          <aside class="client-sidebar">
-            <div class="sidebar-item active">
+          <aside class="cockpit-sidebar">
+            <div class="nav-folder active">
               <span>📥 收件箱</span>
-              <span
-                style="
-                  font-size: 0.75rem;
-                  background: rgba(33, 150, 243, 0.2);
-                  padding: 1px 6px;
-                  border-radius: 999px;
-                "
-                >12</span
-              >
+              <span class="nav-folder-badge">12</span>
             </div>
-            <div class="sidebar-item">
-              <span>⭐ 重要邮件</span>
-              <span style="font-size: 0.75rem; color: var(--text-faint)">3</span>
+            <div class="nav-folder">
+              <span>⭐ 重要邮件 (Important)</span>
+              <span class="nav-folder-badge">3</span>
             </div>
-            <div class="sidebar-item">
+            <div class="nav-folder">
               <span>⏰ 稍后处理 (Snoozed)</span>
-              <span style="font-size: 0.75rem; color: var(--text-faint)">2</span>
+              <span class="nav-folder-badge">2</span>
             </div>
-            <div class="sidebar-item">
+            <div class="nav-folder">
+              <span>📌 置顶关注 (Pinned)</span>
+            </div>
+            <div class="nav-folder">
               <span>📤 已发送</span>
             </div>
-            <div class="sidebar-item">
+            <div class="nav-folder">
               <span>🗑️ 已删除</span>
+            </div>
+            <div
+              style="
+                margin-top: auto;
+                padding-top: 1rem;
+                border-top: 1px solid var(--border-subtle);
+              "
+            >
+              <div class="nav-folder">
+                <span>⚙️ 设置与审计中心</span>
+              </div>
             </div>
           </aside>
 
-          <!-- Mail List -->
-          <div class="client-list">
-            <div class="mail-item selected">
-              <div class="mail-item-sender">
-                <span>技术架构委员会</span>
-                <span style="font-size: 0.7rem; color: var(--text-faint)">10:42</span>
+          <!-- Email List with Realistic Scenarios -->
+          <div class="cockpit-list">
+            <div class="mail-card selected" data-key="arch">
+              <div class="mail-card-header">
+                <span class="mail-sender">架构委员会 · 李总工</span>
+                <span class="mail-time">10:42</span>
               </div>
-              <div class="mail-item-sub">关于企业邮箱容量升级与附件审计方案</div>
-              <div class="mail-item-snippet">
-                各位同事，针对本季度企业邮箱大容量存储与附件审计功能...
-              </div>
-            </div>
-
-            <div class="mail-item">
-              <div class="mail-item-sender">
-                <span>GitHub Notifications</span>
-                <span style="font-size: 0.7rem; color: var(--text-faint)">09:15</span>
-              </div>
-              <div class="mail-item-sub">[Release] oh-ai-email v0.1.0 published</div>
-              <div class="mail-item-snippet">
-                Moon-Force/oh-ai-email release v0.1.0 is now ready for download...
+              <div class="mail-subject">关于企业邮箱千万级邮件归档升级与 AI 审计规则方案</div>
+              <div class="mail-snippet">
+                本季度针对企业邮箱的高并发同步与增量附件审计，架构组已在灰度集群...
               </div>
             </div>
 
-            <div class="mail-item">
-              <div class="mail-item-sender">
-                <span>产品研发组</span>
-                <span style="font-size: 0.7rem; color: var(--text-faint)">昨天</span>
+            <div class="mail-card" data-key="investor">
+              <div class="mail-card-header">
+                <span class="mail-sender">启明创投 · 张合伙人</span>
+                <span class="mail-time">09:15</span>
               </div>
-              <div class="mail-item-sub">下周迭代需求排期讨论确认</div>
-              <div class="mail-item-snippet">请大家在周五前提交各自分组的需求清单...</div>
+              <div class="mail-subject">关于 oh-ai-email 桌面客户端商业化与开源生态进展</div>
+              <div class="mail-snippet">
+                看到 oh-ai-email 刚发布的 v0.1.0 版本，不仅在 GitHub 获得了...
+              </div>
+            </div>
+
+            <div class="mail-card" data-key="global">
+              <div class="mail-card-header">
+                <span class="mail-sender">Sarah Jenkins</span>
+                <span class="mail-time">昨天</span>
+              </div>
+              <div class="mail-subject">Global Collaboration & AI Mail Extension Standards</div>
+              <div class="mail-snippet">
+                We tested oh-ai-email across macOS and Linux. The zero-telemetry...
+              </div>
             </div>
           </div>
 
           <!-- Reader & Interactive Lumen Capsule -->
-          <main class="client-reader">
+          <main class="cockpit-reader">
             <div>
-              <div class="reader-header">
-                <div class="reader-title">关于企业邮箱容量升级与附件审计方案</div>
-                <div class="reader-meta">
-                  发件人：技术架构委员会 &lt;arch@company.org&gt; · 10:42 (10分钟前)
+              <div class="reader-mail-header">
+                <div class="reader-mail-title" id="reader-title">
+                  关于企业邮箱千万级邮件归档升级与 AI 审计规则方案
+                </div>
+                <div class="reader-mail-meta" id="reader-meta">
+                  发件人：架构委员会 · 李总工 &lt;arch-lead@company.org&gt; · 10:42 (10分钟前)
                 </div>
               </div>
-              <div class="reader-body">
-                各位同事：<br />
-                针对本季度企业邮箱大容量存储与附件审计功能，技术团队已完成第一阶段灰度测试。
+              <div class="reader-mail-content" id="reader-body">
+                各位技术骨干：<br />
+                本季度针对企业邮箱的高并发同步与增量附件审计，架构组已在灰度集群完成 1000
+                万级邮件索引压测。测试表明 SQLite + safeStorage 本地加密方案将检索耗时降低了
+                78%。<br /><br />
                 预计下周二下午 15:00
-                组织跨部门上线评审会议，请各部门负责人确认附件敏感词审计规则清单。
+                召开跨部门上线终审会议，请安全组周五前确认附件敏感词过滤清单，研发组准备好 IMAP IDLE
+                保活指标看板。
               </div>
             </div>
 
-            <!-- Interactive Capsule -->
-            <div class="demo-capsule">
-              <div class="capsule-controls">
-                <button class="capsule-btn active" data-action="summary">✨ AI 智能摘要</button>
-                <button class="capsule-btn" data-action="reply">✍️ 生成回复草稿</button>
-                <button class="capsule-btn" data-action="action">📋 提取行动项</button>
-                <button class="capsule-btn" data-action="translate">🌐 译为英文</button>
+            <!-- Lumen Copilot Interactive Sandbox -->
+            <div class="lumen-interactive-capsule">
+              <div class="capsule-header">
+                <div class="capsule-title">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                  >
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <span>Lumen AI 副驾交互沙箱</span>
+                </div>
+                <label class="reasoning-switch-group">
+                  <input type="checkbox" id="toggle-think" class="toggle-checkbox" checked />
+                  <span>显示 DeepSeek R1 思考过程</span>
+                </label>
               </div>
-              <div class="capsule-output" id="capsule-output-text">正在生成摘要...</div>
+
+              <div class="capsule-chip-group">
+                <button class="action-chip active" data-action="summary">✨ 智能摘要</button>
+                <button class="action-chip" data-action="reply">✍️ 生成商务回复</button>
+                <button class="action-chip" data-action="action">📋 提取行动清单 (GTD)</button>
+                <button class="action-chip" data-action="translate">🌐 译为英文</button>
+              </div>
+
+              <!-- Collapsible DeepSeek-R1 Think block -->
+              <div class="thinking-block show" id="thinking-block"></div>
+
+              <!-- Streamed Output -->
+              <div class="capsule-output-pane" id="capsule-output-text">正在生成...</div>
+
+              <div class="capsule-footer-actions">
+                <button class="copy-btn" id="copy-btn">📋 复制结果</button>
+              </div>
             </div>
           </main>
         </div>
       </div>
     </section>
 
-    <!-- Core Features Section -->
+    <!-- Deep-Dive Features Section -->
     <section id="features" class="features-section">
-      <div class="section-header">
-        <h2>不仅是好看，更是强大的生产力引擎</h2>
-        <p>为高频邮件用户精心打造的每一个细节</p>
+      <div class="section-head">
+        <h2>不仅是极简外观，更是强大的生产力底座</h2>
+        <p>每一个设计细节都围绕「收件箱降噪」与「零数据泄露」深度打磨</p>
       </div>
 
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon-wrapper">⚡</div>
-          <h3>零延迟实时推信</h3>
-          <p>支持底层 IMAP IDLE 原生长连接推信，辅以 90s 智能心跳与快速重连梯子，邮件秒级送达。</p>
+      <div class="bento-grid">
+        <!-- Feature 1: IMAP IDLE -->
+        <div class="bento-card col-span-2">
+          <div class="bento-icon">⚡</div>
+          <h3>IMAP IDLE 零延迟实时推信 (RFC 2177)</h3>
+          <p>
+            不同于传统客户端每隔 10~15 分钟机械轮询，oh-ai-email 建立与邮箱服务器的 90s 心跳长连接。
+            新邮件一旦到达服务器，瞬间毫秒级推送至桌面并触发系统原生 Toast 通知。
+          </p>
+          <div class="push-compare-widget">
+            <div class="compare-row">
+              <span style="color: var(--text-faint)">传统客户端轮询机制</span>
+              <span style="color: var(--warning); font-weight: 600"
+                >延迟 5 ~ 15 分钟 · 频繁唤醒耗电</span
+              >
+            </div>
+            <div class="compare-row">
+              <span style="color: var(--text-main); font-weight: 600">oh-ai-email IDLE 长连接</span>
+              <span style="color: var(--accent-emerald); font-weight: 700"
+                >⚡ &lt; 0.5 秒即达 · 90s 心跳极低功耗</span
+              >
+            </div>
+          </div>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon-wrapper">🧠</div>
-          <h3>混合双模 AI 副驾</h3>
+        <!-- Feature 2: Hybrid AI -->
+        <div class="bento-card">
+          <div class="bento-icon">🧠</div>
+          <h3>混合双模 AI 架构</h3>
           <p>
-            完美兼容 OpenAI 接口与本地 Ollama 离线大模型。原生支持 DeepSeek R1
-            深度思考流与结构化解析。
+            首创云端与本地大模型无缝切换。可直连 DeepSeek / OpenAI 兼容接口，亦可一键接入本机
+            <strong>Ollama (127.0.0.1:11434)</strong>，绝不上传私密邮件。
+          </p>
+          <div
+            style="
+              margin-top: auto;
+              padding: 0.75rem;
+              background: var(--bg-base);
+              border-radius: 8px;
+              font-size: 0.8rem;
+              color: var(--text-muted);
+            "
+          >
+            🛡️ 附件默认不送模型 · 敏感词自动脱敏
+          </div>
+        </div>
+
+        <!-- Feature 3: Smart Inbox & Snooze -->
+        <div class="bento-card">
+          <div class="bento-icon">📥</div>
+          <h3>智能分箱与 Snooze 稍后处理</h3>
+          <p>
+            将「重要事务」与「订阅通知」智能分离。支持将邮件推迟至今晚、明天上午或指定周末，到点自动唤醒提醒，保持
+            Inbox Zero。
           </p>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon-wrapper">📥</div>
-          <h3>智能分箱与稍后处理</h3>
+        <!-- Feature 4: Local Encryption -->
+        <div class="bento-card">
+          <div class="bento-icon">🔒</div>
+          <h3>系统级 Keychain / safeStorage 加密</h3>
           <p>
-            基于邮件特征的两级分箱（重要 / 其他），结合 Snooze
-            稍后处理功能，在指定时间自动唤醒待办。
+            所有邮箱授权密码、API Key 均使用操作系统底层加密引擎（Windows DPAPI / macOS Keychain /
+            Linux Secret Service）存储，数据库绝无明文凭证。
           </p>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon-wrapper">🔒</div>
-          <h3>本地加密与绝对隐私</h3>
+        <!-- Feature 5: Pre-send check -->
+        <div class="bento-card">
+          <div class="bento-icon">🛡️</div>
+          <h3>发信前智能安全守门人</h3>
           <p>
-            邮箱密码与 API Key 通过操作系统安全级 Keychain / safeStorage
-            加密，无任何中间代理服务器截留数据。
+            正文提及“如附件所示”却未添加附件？包含内部敏感词汇？发送前智能拦截并温柔提示，避免职场尴尬。
           </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon-wrapper">🎙️</div>
-          <h3>语音听写与双引擎朗读</h3>
-          <p>支持语音转文字快速起草回复，并提供轻量级与自然人声朗读长邮件，解放双眼。</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon-wrapper">🛡️</div>
-          <h3>审计与发信前安全检查</h3>
-          <p>内置 AI 敏感信息过滤与附件遗忘预检，每一次调用均可在审计中心透明追溯。</p>
         </div>
       </div>
     </section>
 
-    <!-- Download Section -->
-    <section id="download" class="download-section">
-      <div class="section-header">
-        <h2>跨平台支持，即刻下载体验</h2>
-        <p>完全开源免费，支持 Windows、macOS 与 Linux 操作系统</p>
+    <!-- Keyboard Command Center -->
+    <section id="shortcuts" class="keyboard-section">
+      <div class="section-head">
+        <h2>全键盘效率流，优雅而不受束缚</h2>
+        <p>保留熟悉的鼠标操作，同时为极客与高频用户提供肌肉记忆级的快捷操作</p>
       </div>
 
-      <div class="download-cards">
-        <div class="download-card">
-          <div style="font-size: 2rem">🪟</div>
-          <div class="platform-title">Windows</div>
-          <div class="platform-formats">.exe 安装包 · 便携绿色版</div>
+      <div class="keyboard-grid">
+        <div class="key-card">
+          <span>撰写新邮件</span>
+          <span class="key-kbd">C</span>
+        </div>
+        <div class="key-card">
+          <span>快速回复来信</span>
+          <span class="key-kbd">R</span>
+        </div>
+        <div class="key-card">
+          <span>Snooze 稍后处理</span>
+          <span class="key-kbd">H</span>
+        </div>
+        <div class="key-card">
+          <span>置顶 / 取消置顶</span>
+          <span class="key-kbd">P</span>
+        </div>
+        <div class="key-card">
+          <span>全局命令面板</span>
+          <span class="key-kbd">Ctrl / ⌘ + K</span>
+        </div>
+        <div class="key-card">
+          <span>快捷键大全</span>
+          <span class="key-kbd">?</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cross-Platform Download Section -->
+    <section id="download" class="download-section">
+      <div class="section-head">
+        <h2>跨平台原生支持，即刻下载体验</h2>
+        <p>完全开源免费，Windows、macOS 与 Linux 安装包已全面就绪</p>
+      </div>
+
+      <div class="download-grid">
+        <!-- Windows -->
+        <div class="download-box">
+          <div class="os-icon">🪟</div>
+          <div class="os-name">Windows</div>
+          <div class="os-desc">适用于 Windows 10 / 11 (x64)</div>
           <a
             href="https://github.com/Moon-Force/oh-ai-email/releases"
             target="_blank"
             rel="noreferrer"
             class="btn btn-primary"
             style="width: 100%"
-            >下载 Windows 版</a
           >
+            下载 Windows 安装包 (.exe)
+          </a>
+          <div class="os-formats">支持 NSIS 安装向导 · 绿色免安装便携版</div>
         </div>
 
-        <div class="download-card">
-          <div style="font-size: 2rem">🍎</div>
-          <div class="platform-title">macOS</div>
-          <div class="platform-formats">Apple Silicon & Intel .dmg · .zip</div>
+        <!-- macOS -->
+        <div class="download-box">
+          <div class="os-icon">🍎</div>
+          <div class="os-name">macOS</div>
+          <div class="os-desc">支持 Apple Silicon (M系列) & Intel 架构</div>
           <a
             href="https://github.com/Moon-Force/oh-ai-email/releases"
             target="_blank"
             rel="noreferrer"
             class="btn btn-primary"
             style="width: 100%"
-            >下载 macOS 版</a
           >
+            下载 macOS 镜像 (.dmg)
+          </a>
+          <div class="os-formats">.dmg 磁盘映像 · 独立 .zip 归档</div>
         </div>
 
-        <div class="download-card">
-          <div style="font-size: 2rem">🐧</div>
-          <div class="platform-title">Linux</div>
-          <div class="platform-formats">.AppImage · .deb 安装包</div>
+        <!-- Linux -->
+        <div class="download-box">
+          <div class="os-icon">🐧</div>
+          <div class="os-name">Linux</div>
+          <div class="os-desc">适用于 Ubuntu / Debian / Fedora 等主流发行版</div>
           <a
             href="https://github.com/Moon-Force/oh-ai-email/releases"
             target="_blank"
             rel="noreferrer"
             class="btn btn-primary"
             style="width: 100%"
-            >下载 Linux 版</a
           >
+            下载 Linux 产物 (.AppImage / .deb)
+          </a>
+          <div class="os-formats">通用 .AppImage 单文件 · Debian .deb 包</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Accordion Section -->
+    <section id="faq" class="faq-section">
+      <div class="section-head">
+        <h2>常见问题解答 (FAQ)</h2>
+        <p>关于隐私、协议支持与使用方式的一切</p>
+      </div>
+
+      <div class="faq-item open">
+        <div class="faq-question">
+          <span>这和自建邮件服务器或第三方中转有何不同？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer">
+          oh-ai-email
+          <strong>只做纯客户端</strong
+          >，绝不自建邮件服务器，也不做中间服务器代收代发。你的邮件数据直接通过标准 TLS 加密的
+          IMAP/SMTP 协议与 QQ邮箱、163网易、Gmail、Outlook 或企业邮服务商通信。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>我的邮箱密码与 AI Key 安全吗？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer">
+          绝对安全。密码和密钥仅保存在你本机的操作系统安全存储库中（Windows safeStorage / macOS
+          Keychain）。使用本地 Ollama 模式时，邮件内容连云端都不会发送，100% 在本地显卡/CPU 计算。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>AI 会不会在我不知情的情况下自动发送邮件？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer">
+          <strong>绝不。</strong> 产品的核心原则是「人机协同（Human-in-the-loop）」。AI
+          生成的回复只会作为可编辑的草稿插入编辑器中，最终的发信按钮永远必须由用户手动点击。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>如何配置本地 Ollama 离线运行？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer">
+          在本地安装 Ollama 并运行模型（例如 <code>ollama run qwen2.5:7b</code> 或
+          <code>ollama run deepseek-r1:8b</code>），打开客户端「设置中心」->「AI
+          设置」，选择「Ollama 本地模式」即可一键自动识别模型。
         </div>
       </div>
     </section>
@@ -341,21 +548,43 @@
     <!-- Footer -->
     <footer>
       <div>© 2026 <strong>oh-ai-email</strong> · Moon-Force. Released under the MIT License.</div>
-      <div style="display: flex; gap: 1.5rem">
+      <div class="footer-links">
         <a href="https://github.com/Moon-Force/oh-ai-email" target="_blank" rel="noreferrer"
-          >GitHub 源码</a
+          >GitHub 仓库</a
         >
         <a
           href="https://github.com/Moon-Force/oh-ai-email/releases"
           target="_blank"
           rel="noreferrer"
-          >版本发布</a
+          >Releases 下载</a
         >
         <a href="https://github.com/Moon-Force/oh-ai-email/issues" target="_blank" rel="noreferrer"
-          >问题反馈</a
+          >提交 Issue</a
         >
       </div>
     </footer>
+
+    <!-- Toast Notification for simulator -->
+    <div
+      id="app-toast"
+      style="
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #1976d2;
+        color: #fff;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.25s ease;
+        z-index: 999;
+        pointer-events: none;
+      "
+    ></div>
 
     <script type="module" src="./app.js"></script>
   </body>
