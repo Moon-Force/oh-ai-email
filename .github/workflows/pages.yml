@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "apps/web/**"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
