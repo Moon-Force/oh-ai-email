@@ -17,13 +17,13 @@ themeBtn?.addEventListener("click", () => {
   updateThemeIcon();
 });
 
-// Dynamic Rotating Prompt Bar (Kimi Work style)
+// Dynamic Rotating Prompt Bar (Natural, everyday work prompts)
 const promptSuggestions = [
-  "帮我分析李总工的千万级邮件归档升级方案，并提炼周五前安全组的行动项",
-  "用专业且诚恳的商务语调，起草针对启明创投张合伙人的 Q3 路线图回信",
-  "以流利英文回复 Sarah，告知 oh-ai-email 的 MCP 扩展沙箱协议规范",
-  "检索上个月来自财务部门的增值税发票附件，并标记为重要邮件",
-  "检查当前草稿正文是否提及附件，但尚未上传任何文件",
+  "帮我总结这封长邮件的核心要点，并列出我需要完成的待办事项",
+  "帮我用诚恳、专业的语气写一封商务合作确认回信",
+  "把这封海外客户的英文需求邮件翻译成中文，并生成地道英文回复",
+  "检查当前写信草稿，看看是否遗漏了附件或写错了收件人称呼",
+  "帮我将这封重要的邮件推迟到明天上午 9 点再提醒我处理",
 ];
 
 let promptIdx = 0;
@@ -44,89 +44,89 @@ function cyclePrompt() {
       setTimeout(() => {
         promptIdx = (promptIdx + 1) % promptSuggestions.length;
         cyclePrompt();
-      }, 4000);
+      }, 3500);
     }
-  }, 40);
+  }, 35);
 }
 cyclePrompt();
 
-// Scenario Data for the Interactive Copilot Window
+// Realistic Everyday Scenarios
 const scenarios = {
-  arch: {
-    sender: "李总工 (架构委员会) <arch-lead@company.org>",
-    time: "10:42",
-    title: "关于企业邮箱千万级邮件归档升级与 AI 审计规则方案",
-    body: `各位技术骨干：\n本季度针对企业邮箱的高并发同步与增量附件审计，架构组已在灰度集群完成 1000 万级邮件索引压测。测试表明 SQLite + safeStorage 本地加密方案将检索耗时降低了 78%。\n\n预计下周二下午 15:00 召开跨部门上线终审会议，请安全组周五前确认附件敏感词过滤清单，研发组准备好 IMAP IDLE 保活指标看板。\n\n顺祝商祺，\n李总工`,
+  project: {
+    sender: "张经理 (产品研发部) <zhang.pm@company.com>",
+    time: "10:30",
+    title: "【重要】新版产品上线排期与各部门配合事项",
+    body: `各位同事好：\n经过团队两周的集中攻坚，新版本的主流程已全部完成自测。下周二下午 3 点我们将正式开启全量上线。\n\n为了确保平稳发布，请市场组在周五前准备好发版推文与海报；请客服组周一前完成常见问题手册更新；研发组请做好发布当天的监控值班安排。\n\n感谢大家的辛苦付出！\n张经理`,
     aiOutputs: {
       summary: {
-        think: `[DeepSeek-R1 深度推理]\n1. 提取核心进展：1000万级邮件本地加密检索性能提升 78%。\n2. 识别关键时间线：周五前（安全组规则确认）、下周二 15:00（跨部门终审会）。\n3. 梳理架构要求：准备 IMAP IDLE 保活监控指标。`,
-        content: `📌 【核心摘要】\n1. 压测突破：千万级邮件本地加密归档完成，检索性能提升 78%。\n2. 关键节点：下周二 15:00 召开跨部门终审评审会。\n3. 待办分工：安全组周五前确认敏感词规则，研发组准备 IDLE 监控看板。`,
+        think: `[AI 思考中] 正在分析邮件重点...\n• 核心事件：新版本下周二 15:00 正式上线。\n• 待办分工：市场组（周五前）、客服组（周一前）、研发组（上线值班）。`,
+        content: `📌 【邮件速览】\n1. 上线时间：下周二 15:00 全量发布新版本。\n2. 各组分工：\n   • 市场组：周五前备好宣发材料\n   • 客服组：周一前更新答疑手册\n   • 研发组：做好上线当天值班监控`,
       },
       reply: {
-        think: `[DeepSeek-R1 深度推理]\n1. 来信人：架构委员会李总工。\n2. 拟定对策：确认收到、反馈 IDLE 看板进度、准时参会。`,
-        content: `李总工您好，\n\n收到关于邮件归档方案与审计规则的通知。研发团队已准备好 IMAP IDLE 实时推信与保活压测指标看板，我们将在周五前同步安全组完成联调，并准时参加下周二 15:00 的终审评审会。\n\n祝好，\n研发团队`,
+        think: `[AI 思考中] 拟定专业得体的确认回复...`,
+        content: `张经理好，\n\n收到上线排期通知。我们团队的相关准备工作已就绪，会按时在周五前完成对接，并全力配合下周二的正式发布。\n\n祝好！`,
       },
       action: {
-        think: `[DeepSeek-R1 深度推理]\n1. 抽取动词、责任人和 Deadline。`,
-        content: `📋 【提取行动清单 (GTD)】\n• [待办 | 截止周五] 安全组确认附件敏感词过滤清单\n• [待办 | 截止周一] 研发组准备 IMAP IDLE 保活指标看板\n• [日程 | 下周二 15:00] 参加跨部门上线终审会议`,
+        think: `[AI 思考中] 提取待办清单与截止时间...`,
+        content: `📋 【提取待办清单】\n• [待办 | 周五前] 市场组提交宣发文案与海报素材\n• [待办 | 周一前] 客服组完成客服问答手册更新\n• [日程 | 下周二 15:00] 参加新版本上线发布与值班保障`,
       },
       translate: {
-        think: `[DeepSeek-R1 深度推理]\n1. 翻译为标准跨国工程英文。`,
-        content: `Dear Tech Committee,\nRegarding the multi-million archive upgrade and AI audit rules, the architecture team has concluded stress testing on the canary cluster, reducing query latency by 78%.\n\nThe review meeting is scheduled for next Tuesday at 15:00. Please ensure the sensitive filter list is approved by Friday.`,
+        think: `[AI 思考中] 译为地道商务英文...`,
+        content: `Hi Team,\nThe new release is scheduled for next Tuesday at 3:00 PM. Marketing materials should be ready by Friday, customer support FAQs updated by Monday, and engineering on-call support prepared for launch day.`,
       },
     },
   },
-  investor: {
-    sender: "张合伙人 (启明创投) <investor@qimingvc.com>",
+  client: {
+    sender: "王总 (星云科技) <wang@nebulatech.cn>",
     time: "09:15",
-    title: "关于 oh-ai-email 桌面客户端商业化与开源生态进展",
-    body: `团队您好：\n看到 oh-ai-email 刚发布的 v0.1.0 版本，不仅在 GitHub 获得了很高的关注，而且 IMAP IDLE 零延迟推信与本地 Ollama 隐私体验非常亮眼。\n\n下周团队有时间线上同步一下 Q3 的产品路线图吗？我们对企业级部署和离线大模型合规非常感兴趣。\n\n张合伙人`,
+    title: "关于年度企业服务方案与合作意向沟通",
+    body: `您好：\n在行业展会上了解到贵团队的 AI 效率工具，体验非常出色。我们公司目前有 300+ 员工，希望在内部全面升级邮件与知识协同工具。\n\n请问下周方便安排一次 30 分钟的线上沟通吗？想进一步了解部署方案与企业采购优惠。\n\n星云科技 · 王总`,
     aiOutputs: {
       summary: {
-        think: `[DeepSeek-R1 深度推理]\n1. 意图：启明创投张合伙人肯定 v0.1.0 架构，约下周讨论 Q3 路线图。`,
-        content: `📌 【投资人来信摘要】\n1. 投资方高度认可 v0.1.0 版本的 IMAP IDLE 零延迟与本地 Ollama 隐私架构。\n2. 邀请下周开展线上会议，深入沟通 Q3 商业化规划与企业级合规部署。`,
+        think: `[AI 思考中] 客户合作咨询，意向强烈（300人规模企业），约下周线上会谈。`,
+        content: `📌 【合作邀约摘要】\n1. 来信人：星云科技王总（300+ 团队规模）。\n2. 意图：希望为全员采购部署 AI 办公工具，邀请下周线上沟通 30 分钟了解企业方案。`,
       },
       reply: {
-        think: `[DeepSeek-R1 深度推理]\n1. 拟定商务回应，主动提供 2 个候选时间段。`,
-        content: `张总您好，\n\n非常感谢对 oh-ai-email v0.1.0 架构与开源生态的认可！我们非常乐意与您同步 Q3 的企业级合规路线图。\n\n下周三上午 10:00 或周四下午 14:00 均可，请问哪个时段方便？期待与您的深入交流。\n\n祝好，\n创始人团队`,
+        think: `[AI 思考中] 拟定热情诚恳、提供明确时间选项的商务回信...`,
+        content: `王总您好，\n\n非常感谢您对我们产品的关注与认可！我们非常期待与星云科技的合作。\n\n下周二上午 10:00 或周三下午 14:30 都可以，请问哪个时段方便？我将为您准备定制的企业版演示与专属方案。\n\n祝商祺！\n商务团队`,
       },
       action: {
-        think: `[DeepSeek-R1 深度推理]\n1. 提取待办。`,
-        content: `📋 【提取行动清单】\n• [沟通] 确认与启明创投线上沟通的具体时间档期\n• [材料] 整理 Q3 企业版合规与本地模型私有化部署 Deck`,
+        think: `[AI 思考中] 提取跟进行动...`,
+        content: `📋 【待办备忘】\n• [沟通] 确认王总线上会议的具体时间\n• [材料] 准备针对 300 人团队的企业级定制介绍与报价方案`,
       },
       translate: {
-        think: `[DeepSeek-R1 深度推理]\n1. 英文转译。`,
-        content: `Hello Team,\nCongratulations on the v0.1.0 launch. The IMAP IDLE push and local Ollama privacy design are truly impressive.\nCould we schedule an online sync next week regarding the Q3 roadmap and enterprise compliance?`,
+        think: `[AI 思考中] 英文版本...`,
+        content: `Hello Mr. Wang,\nThank you for reaching out. We would be delighted to schedule a 30-minute online meeting next week to introduce our enterprise deployment and customized offerings for your team.`,
       },
     },
   },
   global: {
-    sender: "Sarah Jenkins <sarah@nordictech.io>",
+    sender: "Emma Watson (Design Lab) <emma@designlab.co>",
     time: "昨天",
-    title: "Global Collaboration & AI Mail Extension Standards",
-    body: `Hi Team,\nWe tested oh-ai-email across macOS and Linux. The zero-telemetry architecture and offline DeepSeek R1 integration meet our GDPR privacy requirements perfectly.\n\nCould you share your integration specs for custom MCP (Model Context Protocol) tool servers?\n\nBest regards,\nSarah Jenkins`,
+    title: "Feedback on the new UI & Collaboration Proposal",
+    body: `Hi Team,\nI've been using your AI email client for the past two weeks. The distraction-free interface and offline privacy mode are absolute game-changers for my daily workflow.\n\nOur studio would love to feature your app in our upcoming Design Trends 2026 report. Could you share some high-res brand screenshots?\n\nBest,\nEmma`,
     aiOutputs: {
       summary: {
-        think: `[DeepSeek-R1 深度推理]\n1. 关键信息：已在 macOS/Linux 部署测试，满足 GDPR 零数据出境。\n2. 核心请求：MCP 工具协议规范。`,
-        content: `📌 【跨国合作来信摘要】\n1. 北欧技术团队已在 macOS/Linux 部署测试，确认符合 GDPR 零遥测隐私合规。\n2. 对方希望获取自定义 MCP (Model Context Protocol) 工具扩展协议接入标准。`,
+        think: `[AI 思考中] 海外设计师 Emma 来信表扬 UI 与离线隐私，邀请参与 2026 设计趋势报告，索取高清素材。`,
+        content: `📌 【海外来信中文摘要】\n1. 用户反馈：设计师 Emma 高度评价极简界面与离线隐私保护体验。\n2. 合作邀请：希望在《2026 设计趋势报告》中推荐本产品，需要提供高清产品截图。`,
       },
       reply: {
-        think: `[DeepSeek-R1 深度推理]\n1. 英文回复，指向 AGENT_WORKFLOW.md 文档。`,
-        content: `Hi Sarah,\n\nThank you for reaching out. We are glad to hear that oh-ai-email meets your GDPR compliance standards.\nOur MCP server and agent sandbox specifications are documented under docs/AGENT_WORKFLOW.md in our open-source repo. We'd love to collaborate on your custom tool extension.\n\nBest,\nCore Team`,
+        think: `[AI 思考中] 拟定自然礼貌的英文回信...`,
+        content: `Hi Emma,\n\nThank you so much for the lovely feedback! We are thrilled to hear that the app helps your daily workflow.\nWe would love to be part of your report. I have attached the high-res press kit and screenshots for you.\n\nBest regards,\nCore Team`,
       },
       action: {
-        think: `[DeepSeek-R1 深度推理]\n1. 行动抽取。`,
-        content: `📋 【提取行动清单】\n• [技术对接] 发送 docs/AGENT_WORKFLOW.md MCP 协议规范给 Sarah\n• [合规背书] 整理 GDPR 零数据出境合规说明文档`,
+        think: `[AI 思考中] 提取待办...`,
+        content: `📋 【提取行动】\n• [素材] 整理并发送品牌高清设计素材包给 Emma`,
       },
       translate: {
-        think: `[DeepSeek-R1 深度推理]\n1. 翻译为中文。`,
-        content: `团队好，\n我们正在规范内部通信工具，并在 macOS 和 Linux 上测试了 oh-ai-email。其零遥测架构与离线 DeepSeek R1 集成完全符合我们的 GDPR 隐私标准。请问能否分享自定义 MCP 工具服务的接入规范？`,
+        think: `[AI 思考中] 译为中文对照...`,
+        content: `你好团队：我过去两周一直在使用你们的 AI 邮件客户端。清爽无打扰的界面和离线隐私体验彻底改变了我的日常工作。我们工作室很想在即将发布的《2026 设计趋势报告》中推荐你们，请问能否分享一些高清截图？祝好，Emma`,
       },
     },
   },
 };
 
-let currentScenarioKey = "arch";
+let currentScenarioKey = "project";
 let currentActionKey = "summary";
 let isThinkingEnabled = true;
 

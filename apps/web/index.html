@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>oh-ai-email — 面向知识工作者的下一代 AI 智能邮件客户端</title>
+    <title>oh-ai-email — 优雅、轻快、懂你的 AI 智能邮件客户端</title>
     <meta
       name="description"
-      content="oh-ai-email 是开源的下一代 AI 智能邮件客户端。支持 IMAP IDLE 零延迟推信、DeepSeek R1 深度思考流、本地 Ollama 隐私沙箱与 safeStorage 硬件级加密。"
+      content="oh-ai-email 是为高效职场人量身打造的现代 AI 邮件客户端。新邮件实时直达，AI 智能提炼长信要点与起草得体回复，隐私安全保存在本机。"
     />
     <link rel="stylesheet" href="./style.css" />
     <link
@@ -36,41 +36,41 @@
         </a>
 
         <nav class="nav-menu">
-          <a href="#showcase" class="nav-link">工作台演示</a>
-          <a href="#architecture" class="nav-link">运行机制</a>
-          <a href="#features" class="nav-link">核心特性</a>
+          <a href="#showcase" class="nav-link">功能演示</a>
+          <a href="#highlights" class="nav-link">产品亮点</a>
+          <a href="#experience" class="nav-link">日常体验</a>
           <a href="#faq" class="nav-link">常见问题</a>
           <a
             href="https://github.com/Moon-Force/oh-ai-email"
             target="_blank"
             rel="noreferrer"
             class="nav-link"
-            >GitHub (MIT)</a
+            >开源仓库</a
           >
         </nav>
 
         <div class="nav-actions">
           <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">☀️</button>
-          <a href="#download" class="btn btn-primary">下载桌面端</a>
+          <a href="#download" class="btn btn-primary">免费下载</a>
         </div>
       </div>
     </header>
 
-    <!-- Hero Section (Kimi Work / Deep Research Style) -->
+    <!-- Hero Section -->
     <section class="hero-section">
       <div class="hero-pill-badge">
         <span class="pulse-indicator"></span>
-        <span>RFC 2177 IMAP IDLE 零延迟长连接 · DeepSeek R1 思考模型双模就绪</span>
+        <span>新邮件秒推即达 · 深度思考 AI 读写助手现已就绪</span>
       </div>
 
       <h1 class="hero-title">
-        重新定义知识工作者的<br />
-        AI 智能邮件客户端
+        告别繁杂冗长的邮件<br />
+        让处理工作变得轻松愉悦
       </h1>
 
       <p class="hero-subtitle">
-        告别传统邮箱的机械轮询与冗长打扰。融合 Spark 式灵动多栏体验、毫秒级原生推信与深度思考的 AI
-        读写副驾。密码密钥 100% 写入本机硬件安全区。
+        专为高效办公打造的现代邮件客户端。一眼看懂长邮件核心要点，一键生成得体回信；
+        来信即时推达不再反复刷新，邮箱密码与数据 100% 留在你的电脑里。
       </p>
 
       <div class="hero-cta-group">
@@ -87,7 +87,7 @@
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span>免费下载 v0.1.0 (Win / Mac / Linux)</span>
+          <span>立即免费下载 (Win / Mac / Linux)</span>
         </a>
 
         <a
@@ -110,11 +110,11 @@
             ></path>
             <path d="M9 18c-4.51 2-5-2-7-2"></path>
           </svg>
-          <span>GitHub 仓库</span>
+          <span>GitHub 开源免费</span>
         </a>
       </div>
 
-      <!-- Kimi Work Style Prompt Cycling Showcase -->
+      <!-- Natural Everyday Work Prompt Bar -->
       <div class="hero-prompt-bar">
         <div style="color: var(--Accent-Blue-Light); display: flex; align-items: center">
           <svg
@@ -132,7 +132,7 @@
         </div>
         <div class="prompt-typing-text">
           <span id="hero-prompt-text"
-            >帮我分析李总工的千万级邮件归档升级方案，并提炼周五前安全组的行动项</span
+            >帮我总结这封长邮件的核心要点，并列出我需要完成的待办事项</span
           >
           <span class="prompt-cursor"></span>
         </div>
@@ -144,12 +144,12 @@
             white-space: nowrap;
           "
         >
-          DeepSeek R1 + safeStorage
+          AI 助手在线
         </div>
       </div>
     </section>
 
-    <!-- Interactive Showcase Window (Kimi Work Desktop Experience) -->
+    <!-- Interactive Showcase Window -->
     <section id="showcase" class="showcase-container">
       <div class="window-shell">
         <div class="window-topbar">
@@ -159,14 +159,10 @@
             <span class="light-dot green"></span>
           </div>
           <div class="window-center-tab">
-            <span>oh-ai-email — 主工作区 (Interactive Simulator)</span>
-            <span class="status-badge-live">● 0s 推信保活中</span>
+            <span>oh-ai-email — 沉浸式体验窗口</span>
+            <span class="status-badge-live">● 实时在线</span>
           </div>
-          <div
-            style="font-size: 0.75rem; color: var(--Labels-Tertiary); font-family: var(--font-mono)"
-          >
-            safeStorage: Encrypted
-          </div>
+          <div style="font-size: 0.75rem; color: var(--Labels-Tertiary)">本地安全存储已开启</div>
         </div>
 
         <div class="app-grid">
@@ -185,7 +181,7 @@
               >
             </div>
             <div class="sidebar-row">
-              <span>⭐ 重要关注</span>
+              <span>⭐ 重要邮件</span>
               <span
                 style="
                   font-size: 0.75rem;
@@ -197,7 +193,7 @@
               >
             </div>
             <div class="sidebar-row">
-              <span>⏰ 稍后处理 (Snoozed)</span>
+              <span>⏰ 稍后处理</span>
               <span
                 style="
                   font-size: 0.75rem;
@@ -209,7 +205,7 @@
               >
             </div>
             <div class="sidebar-row">
-              <span>📌 置顶邮件</span>
+              <span>📌 置顶关注</span>
             </div>
             <div class="sidebar-row">
               <span>📤 已发送</span>
@@ -225,43 +221,41 @@
               "
             >
               <div class="sidebar-row">
-                <span>⚙️ 审计与 AI 设置</span>
+                <span>⚙️ 账户与设置</span>
               </div>
             </div>
           </div>
 
           <!-- Thread List -->
           <div class="app-thread-list">
-            <div class="thread-item selected" data-scenario="arch">
+            <div class="thread-item selected" data-scenario="project">
               <div class="thread-sender">
-                <span>李总工 (架构组)</span>
-                <span style="font-size: 0.75rem; color: var(--Labels-Tertiary)">10:42</span>
+                <span>张经理 (产品部)</span>
+                <span style="font-size: 0.75rem; color: var(--Labels-Tertiary)">10:30</span>
               </div>
-              <div class="thread-subject">关于企业邮箱千万级邮件归档升级与 AI 审计规则方案</div>
+              <div class="thread-subject">【重要】新版产品上线排期与各部门配合事项</div>
               <div class="thread-preview">
-                本季度针对企业邮箱的高并发同步与增量附件审计，架构组已完成...
+                经过团队两周的集中攻坚，新版本的主流程已全部完成自测...
               </div>
             </div>
 
-            <div class="thread-item" data-scenario="investor">
+            <div class="thread-item" data-scenario="client">
               <div class="thread-sender">
-                <span>张合伙人 (启明创投)</span>
+                <span>王总 (星云科技)</span>
                 <span style="font-size: 0.75rem; color: var(--Labels-Tertiary)">09:15</span>
               </div>
-              <div class="thread-subject">关于 oh-ai-email 桌面客户端商业化与开源生态进展</div>
-              <div class="thread-preview">
-                看到 oh-ai-email 刚发布的 v0.1.0 版本，不仅在 GitHub 获得了...
-              </div>
+              <div class="thread-subject">关于年度企业服务方案与合作意向沟通</div>
+              <div class="thread-preview">在行业展会上了解到贵团队的效率工具，体验非常出色...</div>
             </div>
 
             <div class="thread-item" data-scenario="global">
               <div class="thread-sender">
-                <span>Sarah Jenkins</span>
+                <span>Emma Watson</span>
                 <span style="font-size: 0.75rem; color: var(--Labels-Tertiary)">昨天</span>
               </div>
-              <div class="thread-subject">Global Collaboration & AI Mail Extension Standards</div>
+              <div class="thread-subject">Feedback on the new UI & Collaboration Proposal</div>
               <div class="thread-preview">
-                We tested oh-ai-email across macOS and Linux. The zero-telemetry...
+                I've been using your AI email client for the past two weeks...
               </div>
             </div>
           </div>
@@ -271,25 +265,23 @@
             <div>
               <div class="reader-header-area">
                 <h2 class="reader-subject" id="reader-subject-text">
-                  关于企业邮箱千万级邮件归档升级与 AI 审计规则方案
+                  【重要】新版产品上线排期与各部门配合事项
                 </h2>
                 <div class="reader-meta-info" id="reader-meta-text">
-                  发件人：李总工 (架构委员会) &lt;arch-lead@company.org&gt; · 10:42
+                  发件人：张经理 (产品研发部) &lt;zhang.pm@company.com&gt; · 10:30
                 </div>
               </div>
 
               <div class="reader-mail-body" id="reader-body-text">
-                各位技术骨干：<br />
-                本季度针对企业邮箱的高并发同步与增量附件审计，架构组已在灰度集群完成 1000
-                万级邮件索引压测。测试表明 SQLite + safeStorage 本地加密方案将检索耗时降低了
-                78%。<br /><br />
-                预计下周二下午 15:00
-                召开跨部门上线终审会议，请安全组周五前确认附件敏感词过滤清单，研发组准备好 IMAP IDLE
-                保活指标看板。
+                各位同事好：<br />
+                经过团队两周的集中攻坚，新版本的主流程已全部完成自测。下周二下午 3
+                点我们将正式开启全量上线。<br /><br />
+                为了确保平稳发布，请市场组在周五前准备好发版推文与海报；请客服组周一前完成常见问题手册更新；研发组请做好发布当天的监控值班安排。<br /><br />
+                感谢大家的辛苦付出！
               </div>
             </div>
 
-            <!-- Deep Research / Kimi Work Style Lumen Copilot -->
+            <!-- Everyday Friendly Copilot -->
             <div class="lumen-copilot-card">
               <div class="copilot-controls">
                 <div class="copilot-brand-title">
@@ -305,7 +297,7 @@
                       d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"
                     ></path>
                   </svg>
-                  <span>Lumen AI 深度思考副驾</span>
+                  <span>AI 智能办公助手</span>
                 </div>
                 <label
                   style="
@@ -318,14 +310,14 @@
                   "
                 >
                   <input type="checkbox" id="toggle-think" checked />
-                  <span>显示 DeepSeek R1 思考推理</span>
+                  <span>显示思考过程</span>
                 </label>
               </div>
 
               <div class="chip-bar">
-                <button class="agent-chip active" data-action="summary">✨ 智能提炼摘要</button>
-                <button class="agent-chip" data-action="reply">✍️ 起草专业回复</button>
-                <button class="agent-chip" data-action="action">📋 提取行动清单 (GTD)</button>
+                <button class="agent-chip active" data-action="summary">✨ 提炼重点</button>
+                <button class="agent-chip" data-action="reply">✍️ 生成得体回复</button>
+                <button class="agent-chip" data-action="action">📋 提取待办清单</button>
                 <button class="agent-chip" data-action="translate">🌐 译为英文</button>
               </div>
 
@@ -337,121 +329,115 @@
       </div>
     </section>
 
-    <!-- 3-Phase Execution Architecture (Inspired by Kimi Deep Research 3-Stage Process) -->
-    <section id="architecture" class="process-section">
-      <span class="section-tagline">底层运行机制</span>
-      <h2 class="section-headline">从接收信号到安全交付的三阶架构</h2>
+    <!-- 3 Everyday Steps -->
+    <section id="highlights" class="process-section">
+      <span class="section-tagline">为什么选择我们</span>
+      <h2 class="section-headline">从容处理每一封邮件的优雅方式</h2>
       <p class="section-desc">
-        深度研究用户每一封邮件的意图，通过严谨的分阶段机制完成处理，杜绝盲目幻觉与未经确认的误发
+        把重复枯燥的读信、分类与措辞交给 AI，把宝贵的时间留给真正重要的事情
       </p>
 
       <div class="process-step-grid">
-        <!-- Stage 1 -->
+        <!-- Step 1 -->
         <div class="process-card">
-          <div class="step-num">STAGE 01</div>
-          <h3>意图识别与智能分箱</h3>
+          <div class="step-num">STEP 01</div>
+          <h3>一眼看懂长邮件</h3>
           <p>
-            解析来信发件人、上下文主题与时间紧迫度。将重要商务、系统告警与低信噪比推广自动归类，保持收件箱始终处于清爽的
-            Inbox Zero 状态。
+            面对几百字、几千字的大篇幅邮件或多轮往来回复，AI 自动为你提取核心要点与关键截止时间，3
+            秒掌握全貌。
           </p>
           <div class="process-visual">
-            <span style="color: var(--Accent-Blue-Light)">❯ Parse Intent</span><br />
-            <span style="color: var(--Labels-Tertiary)">├── 紧迫度: High (终审会)</span><br />
-            <span style="color: var(--Labels-Tertiary)">└── 目标分类: Important Inbox</span>
+            <span style="color: var(--Accent-Blue-Light)">📌 提取核心</span><br />
+            <span style="color: var(--Labels-Tertiary)">• 发布时间：下周二 15:00</span><br />
+            <span style="color: var(--Labels-Tertiary)">• 关键待办：周五前提交宣发文案</span>
           </div>
         </div>
 
-        <!-- Stage 2 -->
+        <!-- Step 2 -->
         <div class="process-card">
-          <div class="step-num">STAGE 02</div>
-          <h3>自主保活与零延迟直推</h3>
+          <div class="step-num">STEP 02</div>
+          <h3>一键生成得体回复</h3>
           <p>
-            基于 RFC 2177 IMAP IDLE 标准，与邮件服务器维持 90
-            秒低功耗长连接。新信到达瞬间毫秒级推送，无需手动下拉刷新或高耗电机械轮询。
+            不再为回信措辞而纠结。无论是正式商务、日常确认还是地道英文沟通，AI
+            都能瞬间帮你拟出恰到好处的回复草稿。
           </p>
           <div class="process-visual">
-            <span style="color: var(--Accent-Emerald)">❯ IMAP IDLE (rfc2177)</span><br />
-            <span style="color: var(--Labels-Tertiary)">├── Keepalive: 90s heartbeat</span><br />
-            <span style="color: var(--Labels-Tertiary)">└── Latency: &lt; 0.5s instant toast</span>
+            <span style="color: var(--Accent-Emerald)">✍️ 拟定草稿</span><br />
+            <span style="color: var(--Labels-Tertiary)">• 语气：商务礼貌、条理清晰</span><br />
+            <span style="color: var(--Labels-Tertiary)">• 状态：已填入编辑器，可自由修改</span>
           </div>
         </div>
 
-        <!-- Stage 3 -->
+        <!-- Step 3 -->
         <div class="process-card">
-          <div class="step-num">STAGE 03</div>
-          <h3>深度思考与人机协同守门</h3>
+          <div class="step-num">STEP 03</div>
+          <h3>贴心把关，绝不误发</h3>
           <p>
-            支持 DeepSeek R1 深度推理输出。AI
-            生成的内容仅作为可编辑草稿提供给用户，配备遗忘附件智能拦截与敏感词检测，绝不私自发信。
+            写信提及“详见附件”却忘记上传？AI
+            发信前智能提醒，避免职场尴尬；生成的回复只做草稿，最终发信必须由你确认。
           </p>
           <div class="process-visual">
-            <span style="color: var(--Accent-Purple)">❯ DeepSeek R1 &lt;think&gt;</span><br />
-            <span style="color: var(--Labels-Tertiary)">├── Pre-send check: Passed</span><br />
-            <span style="color: var(--Labels-Tertiary)">└── Human-in-the-Loop: Ready</span>
+            <span style="color: var(--Accent-Purple)">🛡️ 安全守门</span><br />
+            <span style="color: var(--Labels-Tertiary)">• 附件检查：已检测完整</span><br />
+            <span style="color: var(--Labels-Tertiary)">• 权限保护：等待用户手动点击发送</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Deep-Dive Features Grid (Kimi Work Style) -->
-    <section id="features" class="process-section">
-      <span class="section-tagline">核心特性矩阵</span>
-      <h2 class="section-headline">为极致效率与数据隐私而打造</h2>
-      <p class="section-desc">每一项工程决策都坚守「客户端自持私钥」与「零遥测追踪」的开源底线</p>
+    <!-- 4 Major Feature Experiences -->
+    <section id="experience" class="process-section">
+      <span class="section-tagline">贴心功能</span>
+      <h2 class="section-headline">处处为你着想的细节设计</h2>
+      <p class="section-desc">没有冗余复杂的功能堆砌，每一个特性都为了让你更省心</p>
 
       <div class="feature-deep-grid">
         <div class="deep-card">
           <div class="deep-icon">⚡</div>
-          <h3>IMAP IDLE 零延迟推信</h3>
+          <h3>新邮件秒推即达</h3>
           <p>
-            不同于传统客户端每隔 15 分钟机械唤醒轮询，oh-ai-email
-            建立与邮箱服务端的纯净长连接。新邮件到达瞬时直推，极低 CPU 与网络消耗。
-          </p>
-        </div>
-
-        <div class="deep-card">
-          <div class="deep-icon">🧠</div>
-          <h3>混合双模 AI 架构 (云端 / 本地 Ollama)</h3>
-          <p>
-            既支持直连 OpenAI / DeepSeek 云端大模型，也支持一键连接本机
-            <strong>Ollama (127.0.0.1:11434)</strong> 离线运行，邮件内容 100% 不出本机。
-          </p>
-        </div>
-
-        <div class="deep-card">
-          <div class="deep-icon">🔒</div>
-          <h3>操作系统底层 safeStorage 加密</h3>
-          <p>
-            所有邮箱授权密码、API 密钥与本地 SQLite 归档均通过 Windows DPAPI、macOS Keychain 或
-            Linux Secret Service 加密存储，拒绝任何明文凭证。
+            像聊天软件一样灵敏。邮件到达服务器的瞬间，电脑右下角立即弹出通知，告别每隔十几分钟手动下拉刷新的焦虑。
           </p>
         </div>
 
         <div class="deep-card">
           <div class="deep-icon">⏰</div>
-          <h3>Snooze 稍后唤醒与快捷键效率流</h3>
+          <h3>稍后提醒，收件箱更清爽</h3>
           <p>
-            支持将繁杂邮件推迟至今晚、明天上午或指定周末唤醒。内置
-            <code>Ctrl/Cmd + K</code> 命令面板与全键盘盲操流，让邮件处理行云流水。
+            现在没时间处理？一键将邮件推迟至今晚、明天上午或周末。到点自动唤醒提醒，平时不再占用注意力。
+          </p>
+        </div>
+
+        <div class="deep-card">
+          <div class="deep-icon">🔒</div>
+          <h3>密码与隐私 100% 存本机</h3>
+          <p>
+            不设中间服务器，你的邮箱密码直接由电脑操作系统的安全库加密保管。支持完全离线运行本地大模型，邮件绝不上云。
+          </p>
+        </div>
+
+        <div class="deep-card">
+          <div class="deep-icon">🌐</div>
+          <h3>跨国沟通无障碍</h3>
+          <p>
+            无论是接收海外客户的英文邮件，还是需要写一封地道流畅的外文回信，内置的双向润色助手让你随时从容应对。
           </p>
         </div>
       </div>
     </section>
 
-    <!-- Cross-Platform Download Hub (Kimi Work Style) -->
+    <!-- Download Matrix -->
     <section id="download" class="download-section">
-      <span class="section-tagline">即刻拥有</span>
-      <h2 class="section-headline">跨平台原生桌面端下载</h2>
-      <p class="section-desc" style="margin-bottom: 0">
-        完全开源免费 (MIT 协议)，选择你的操作系统立即安装体验
-      </p>
+      <span class="section-tagline">免费获取</span>
+      <h2 class="section-headline">下载桌面客户端，开启轻松工作</h2>
+      <p class="section-desc" style="margin-bottom: 0">完全开源免费，支持所有主流电脑操作系统</p>
 
       <div class="download-cards-grid">
         <!-- Windows -->
         <div class="download-tile">
           <div class="os-badge-icon">🪟</div>
-          <div class="os-title">Windows</div>
-          <div class="os-meta">Windows 10 / 11 (x64)</div>
+          <div class="os-title">Windows 版</div>
+          <div class="os-meta">适用于 Windows 10 / 11</div>
           <a
             href="https://github.com/Moon-Force/oh-ai-email/releases"
             target="_blank"
@@ -462,15 +448,15 @@
             下载 Windows 安装包 (.exe)
           </a>
           <span style="font-size: 0.78rem; color: var(--Labels-Tertiary); margin-top: 0.75rem">
-            含 NSIS 安装向导 & 便携免安装版
+            一键安装向导 / 绿色便携版
           </span>
         </div>
 
         <!-- macOS -->
         <div class="download-tile">
           <div class="os-badge-icon">🍎</div>
-          <div class="os-title">macOS</div>
-          <div class="os-meta">Apple Silicon (M系列) & Intel 架构</div>
+          <div class="os-title">macOS 版</div>
+          <div class="os-meta">支持 M系列芯片 & Intel 芯片</div>
           <a
             href="https://github.com/Moon-Force/oh-ai-email/releases"
             target="_blank"
@@ -481,15 +467,15 @@
             下载 macOS 镜像 (.dmg)
           </a>
           <span style="font-size: 0.78rem; color: var(--Labels-Tertiary); margin-top: 0.75rem">
-            Universal 通用二进制 DMG
+            双架构通用 DMG
           </span>
         </div>
 
         <!-- Linux -->
         <div class="download-tile">
           <div class="os-badge-icon">🐧</div>
-          <div class="os-title">Linux</div>
-          <div class="os-meta">Ubuntu / Debian / Fedora / Arch</div>
+          <div class="os-title">Linux 版</div>
+          <div class="os-meta">适用于 Ubuntu / Debian / Fedora 等</div>
           <a
             href="https://github.com/Moon-Force/oh-ai-email/releases"
             target="_blank"
@@ -500,80 +486,77 @@
             下载 Linux 产物 (.AppImage / .deb)
           </a>
           <span style="font-size: 0.78rem; color: var(--Labels-Tertiary); margin-top: 0.75rem">
-            单文件 AppImage & Debian 安装包
+            AppImage 单文件 / Deb 安装包
           </span>
         </div>
       </div>
     </section>
 
-    <!-- FAQ Accordion (Kimi Style) -->
+    <!-- FAQ Accordion -->
     <section id="faq" class="faq-wrap">
       <span class="section-tagline">常见问题</span>
-      <h2 class="section-headline" style="text-align: center">关于安全、协议与使用的解答</h2>
+      <h2 class="section-headline" style="text-align: center">为你解答关心的事项</h2>
 
       <div class="faq-row active">
         <div class="faq-q">
-          <span>这和自建邮件服务器或第三方中转服务有何不同？</span>
+          <span>支持哪些邮箱账户？</span>
           <span class="faq-chevron">▼</span>
         </div>
         <div class="faq-a">
-          oh-ai-email
-          <strong>只做纯客户端</strong
-          >，绝不自建邮件服务器，也不做中间服务器代收代发。你的邮件数据直接通过标准 TLS 加密的
-          IMAP/SMTP 协议与 QQ邮箱、163网易、Gmail、Outlook 或企业邮服务商通信。
+          支持几乎所有常见邮箱！包括 QQ 邮箱、163 网易邮箱、腾讯企业邮、阿里企业邮、Outlook、Gmail
+          以及所有支持标准 IMAP/SMTP 协议的企事业单位邮箱。
         </div>
       </div>
 
       <div class="faq-row">
         <div class="faq-q">
-          <span>我的邮箱密码与 AI Key 安全吗？</span>
+          <span>我的邮箱密码安全吗？</span>
           <span class="faq-chevron">▼</span>
         </div>
         <div class="faq-a">
-          绝对安全。密码和密钥仅保存在你本机的操作系统安全存储库中（Windows safeStorage / macOS
-          Keychain）。使用本地 Ollama 模式时，邮件内容连云端都不会发送，100% 在本地显卡/CPU 计算。
+          非常安全。客户端采用直连模式，直接与你的邮件服务商（如腾讯、网易）建立加密连接。密码使用你电脑系统的安全芯片/加密库进行加密存储，不会上传到任何中间服务器。
         </div>
       </div>
 
       <div class="faq-row">
         <div class="faq-q">
-          <span>AI 会不会在我不知情的情况下自动发送邮件？</span>
+          <span>AI 会不会在我不知情的情况下自动把邮件发出去？</span>
           <span class="faq-chevron">▼</span>
         </div>
         <div class="faq-a">
-          <strong>绝不。</strong> 产品的核心原则是「人机协同（Human-in-the-loop）」。AI
-          生成的回复只会作为可编辑的草稿插入编辑器中，最终的发信按钮永远必须由用户手动点击。
+          <strong>绝对不会。</strong> AI
+          生成的回复只会作为建议和草稿放入编辑框中，你可以随时修改、调整或删除，最终必须由你手动点击“发送”按钮才会发出。
         </div>
       </div>
 
       <div class="faq-row">
         <div class="faq-q">
-          <span>如何配置本地 Ollama 离线运行？</span>
+          <span>可以完全免费使用吗？</span>
           <span class="faq-chevron">▼</span>
         </div>
         <div class="faq-a">
-          在本地安装 Ollama 并运行模型（例如 <code>ollama run qwen2.5:7b</code> 或
-          <code>ollama run deepseek-r1:8b</code>），打开客户端「设置中心」->「AI
-          设置」，选择「Ollama 本地模式」即可一键自动识别模型。
+          是的！oh-ai-email 是基于 MIT
+          协议的完全免费开源软件。你可以自由下载使用、添加多个邮箱账户。如果使用 AI
+          功能，可以直接填入你自己的大模型 Key，也可以搭配本机免费的 Ollama 离线模型使用。
         </div>
       </div>
     </section>
 
     <!-- Footer -->
     <footer class="site-footer">
-      <div>© 2026 <strong>oh-ai-email</strong> · Moon-Force. Released under the MIT License.</div>
+      <div>© 2026 <strong>oh-ai-email</strong> · Moon-Force. 遵循 MIT 开源协议.</div>
       <div class="footer-nav">
         <a href="https://github.com/Moon-Force/oh-ai-email" target="_blank" rel="noreferrer"
-          >GitHub 开源仓库</a
+          >GitHub 源码</a
         >
         <a
           href="https://github.com/Moon-Force/oh-ai-email/releases"
           target="_blank"
           rel="noreferrer"
-          >Releases 下载</a
+          >版本发布</a
         >
         <a href="https://github.com/Moon-Force/oh-ai-email/issues" target="_blank" rel="noreferrer"
-          >提交 Issue</a
+          >问题反馈</a
         >
       </div>
     </footer>
