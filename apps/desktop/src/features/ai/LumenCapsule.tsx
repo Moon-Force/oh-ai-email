@@ -836,15 +836,21 @@ export default function LumenCapsule({
                 height: 22,
                 borderRadius: 999,
                 flexShrink: 0,
+                color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
                 borderColor: (t) =>
                   t.palette.mode === "dark"
-                    ? "rgba(100, 149, 237, 0.3)"
-                    : "rgba(25, 118, 210, 0.25)",
+                    ? "rgba(96, 165, 250, 0.4)"
+                    : "rgba(37, 99, 235, 0.35)",
                 bgcolor: (t) =>
                   t.palette.mode === "dark"
-                    ? "rgba(100, 149, 237, 0.08)"
-                    : "rgba(25, 118, 210, 0.04)",
-                "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem", fontWeight: 500 },
+                    ? "rgba(59, 130, 246, 0.12)"
+                    : "rgba(37, 99, 235, 0.08)",
+                "& .MuiChip-label": {
+                  px: 0.75,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
+                },
               }}
             />
 
@@ -888,8 +894,9 @@ export default function LumenCapsule({
                 sx={{
                   bgcolor: (t) =>
                     t.palette.mode === "dark"
-                      ? "rgba(24, 28, 36, 0.85)"
-                      : "rgba(255, 255, 255, 0.9)",
+                      ? "rgba(24, 28, 36, 0.9)"
+                      : "#FFFFFF",
+                  color: "text.primary",
                   backdropFilter: "blur(8px)",
                   cursor: "pointer",
                   fontSize: "0.75rem",
@@ -900,16 +907,22 @@ export default function LumenCapsule({
                   flexShrink: 0,
                   border: (t) =>
                     t.palette.mode === "dark"
-                      ? "1px solid rgba(255, 255, 255, 0.1)"
-                      : "1px solid rgba(0, 0, 0, 0.08)",
-                  boxShadow: "0 2px 6px rgba(0, 0, 0, 0.03)",
+                      ? "1px solid rgba(255, 255, 255, 0.15)"
+                      : "1px solid rgba(15, 23, 42, 0.12)",
+                  boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
                   transition: "all 0.15s ease-in-out",
+                  "& .MuiChip-label": {
+                    color: "text.primary",
+                    px: 1,
+                  },
                   "&:hover": {
-                    bgcolor: "primary.main",
-                    color: "primary.contrastText",
-                    borderColor: "primary.main",
+                    bgcolor: (t) => (t.palette.mode === "dark" ? "#3B82F6" : "#2563EB"),
+                    borderColor: (t) => (t.palette.mode === "dark" ? "#3B82F6" : "#2563EB"),
                     transform: "translateY(-1px)",
-                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+                    boxShadow: "0 4px 10px rgba(37, 99, 235, 0.2)",
+                    "& .MuiChip-label": {
+                      color: "#FFFFFF !important",
+                    },
                   },
                 }}
               />
@@ -993,7 +1006,25 @@ export default function LumenCapsule({
               label={mode === "local" ? "本机" : "云端"}
               color="primary"
               variant="outlined"
-              sx={{ ml: "auto", height: 22 }}
+              sx={{
+                ml: "auto",
+                height: 22,
+                color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
+                borderColor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(96, 165, 250, 0.4)"
+                    : "rgba(37, 99, 235, 0.35)",
+                bgcolor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(59, 130, 246, 0.12)"
+                    : "rgba(37, 99, 235, 0.08)",
+                "& .MuiChip-label": {
+                  px: 0.75,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
+                },
+              }}
             />
             <Button
               size="small"
@@ -1217,7 +1248,25 @@ export default function LumenCapsule({
               label={mode === "local" ? "本机" : "云端"}
               color="primary"
               variant="outlined"
-              sx={{ ml: "auto", height: 22 }}
+              sx={{
+                ml: "auto",
+                height: 22,
+                color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
+                borderColor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(96, 165, 250, 0.4)"
+                    : "rgba(37, 99, 235, 0.35)",
+                bgcolor: (t) =>
+                  t.palette.mode === "dark"
+                    ? "rgba(59, 130, 246, 0.12)"
+                    : "rgba(37, 99, 235, 0.08)",
+                "& .MuiChip-label": {
+                  px: 0.75,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
+                },
+              }}
             />
             <Tooltip title="在独立小窗中展开">
               <IconButton

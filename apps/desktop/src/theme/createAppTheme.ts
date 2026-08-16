@@ -174,20 +174,47 @@ export function createAppTheme(mode: PaletteMode) {
           root: {
             fontWeight: 500,
             borderRadius: 6,
-          },
-          colorPrimary: {
-            backgroundColor: isDark ? "#3B82F6" : "#2563EB",
-            color: "#FFFFFF",
-            "&:hover": {
-              backgroundColor: isDark ? "#2563EB" : "#1D4ED8",
+            "&.MuiChip-filledPrimary": {
+              backgroundColor: isDark ? "#3B82F6" : "#2563EB",
+              color: "#FFFFFF",
+              "& .MuiChip-label": {
+                color: "#FFFFFF",
+              },
+              "&:hover": {
+                backgroundColor: isDark ? "#2563EB" : "#1D4ED8",
+              },
             },
-          },
-          colorSecondary: {
-            backgroundColor: isDark ? "#A78BFA" : "#7C3AED",
-            color: "#FFFFFF",
-          },
-          outlined: {
-            borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(15, 23, 42, 0.15)",
+            "&.MuiChip-outlinedPrimary": {
+              borderColor: isDark ? "#3B82F6" : "#2563EB",
+              color: isDark ? "#60A5FA" : "#2563EB",
+              "& .MuiChip-label": {
+                color: isDark ? "#60A5FA" : "#2563EB",
+              },
+              "&:hover": {
+                backgroundColor: isDark ? "rgba(59, 130, 246, 0.12)" : "rgba(37, 99, 235, 0.08)",
+              },
+            },
+            "&.MuiChip-filledSecondary": {
+              backgroundColor: isDark ? "#A78BFA" : "#7C3AED",
+              color: "#FFFFFF",
+              "& .MuiChip-label": {
+                color: "#FFFFFF",
+              },
+            },
+            "&.MuiChip-outlinedSecondary": {
+              borderColor: isDark ? "#A78BFA" : "#7C3AED",
+              color: isDark ? "#C4B5FD" : "#7C3AED",
+              "& .MuiChip-label": {
+                color: isDark ? "#C4B5FD" : "#7C3AED",
+              },
+            },
+            "&.MuiChip-outlined": {
+              borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(15, 23, 42, 0.15)",
+              color: isDark ? "#F8FAFC" : "#0F172A",
+              "& .MuiChip-label": {
+                color: isDark ? "#F8FAFC" : "#0F172A",
+              },
+            },
           },
         },
       },
