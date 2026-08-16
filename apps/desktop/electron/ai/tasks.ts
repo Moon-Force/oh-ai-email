@@ -1,12 +1,6 @@
 import { buildMailContext, cleanContext } from "./clean";
-import {
-  abortAiRequest,
-  chatComplete,
-  type AiErrorCode,
-  type AiResult,
-  type StreamChunkCallback,
-} from "./complete";
-import type { AiMode } from "./settings";
+import { abortAiRequest, type AiErrorCode, type AiResult, type StreamChunkCallback } from "./complete";
+import { loadAiSettings, type AiMode } from "./settings";
 import {
   systemForActionItems,
   systemForAttachmentAnalysis,
@@ -22,6 +16,8 @@ import {
   type QuickReplyType,
   type RewriteTone,
 } from "./prompts";
+import { runAgentWorkflow } from "./agent/engine";
+import type { AgentStreamEvent, AgentType } from "./agent/types";
 
 export { abortAiRequest };
 
@@ -60,6 +56,73 @@ export type SuggestSplitResult =
     }
   | { ok: false; code: AiErrorCode; error: string };
 
+export type UserPersonaResult =
+  | {
+      ok: true;
+      personaSummary: string;
+      toneStyle: string;
+      greetingHabit: string;
+      signoffHabit: string;
+      keyTraits: string[];
+      mode: AiMode;
+    }
+  | { ok: false; code: AiErrorCode; error: string };
+
+/**
+ * Unified Pi-Agent Task Executor Helper
+ */
+async function executeAgentTask(
+  agentType: AgentType,
+  prompt: string,
+  context: Record<string, unknown>,
+  opts?: {
+    mode?: AiMode;
+    requestId?: string;
+    onChunk?: StreamChunkCallback;
+  }
+): Promise<AiResult> {
+  let reasoningAccumulator = "";
+  let contentAccumulator = "";
+
+  try {
+    const proposal = await runAgentWorkflow({
+      agentType,
+      prompt,
+      context,
+      requestId: opts?.requestId,
+      onEvent: (evt: AgentStreamEvent) => {
+        if (evt.type === "thinking_token") {
+          reasoningAccumulator += evt.textChunk;
+          opts?.onChunk?.({ reasoningChunk: evt.textChunk });
+        } else if (evt.type === "token") {
+          contentAccumulator += evt.textChunk;
+          opts?.onChunk?.({ contentChunk: evt.textChunk });
+        }
+      },
+    });
+
+    const settings = loadAiSettings();
+    const mode = opts?.mode ?? settings.mode;
+
+    return {
+      ok: true,
+      text: proposal.summary || contentAccumulator.trim(),
+      reasoningContent: reasoningAccumulator.trim() || undefined,
+      mode: mode === "local" ? "local" : "cloud",
+    };
+  } catch (err: unknown) {
+    const isAbort =
+      (err instanceof Error && err.name === "AbortError") ||
+      String(err).includes("取消") ||
+      String(err).includes("ABORTED");
+    if (isAbort) {
+      return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, code: "NETWORK", error: msg };
+  }
+}
+
 export async function taskSummarize(input: {
   subject?: string;
   from?: string;
@@ -68,13 +131,15 @@ export async function taskSummarize(input: {
   requestId?: string;
   onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
-  const ctx = buildMailContext(input);
-  return chatComplete(
-    [
-      { role: "system", content: systemForSummarize() },
-      { role: "user", content: ctx },
-    ],
-    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
+  return executeAgentTask(
+    "summarize",
+    "请为这封邮件生成结构化摘要，提炼核心事实、背景与待确认事项。",
+    {
+      subject: input.subject,
+      from: input.from,
+      body: input.body,
+    },
+    input
   );
 }
 
@@ -87,13 +152,16 @@ export async function taskDraftReply(input: {
   requestId?: string;
   onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
-  const ctx = buildMailContext(input);
-  return chatComplete(
-    [
-      { role: "system", content: systemForDraftReply(input.userPersona) },
-      { role: "user", content: `Write a reply to this email:\n\n${ctx}` },
-    ],
-    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
+  return executeAgentTask(
+    "draft_reply",
+    `请依据邮件内容起草得体的回复。${input.userPersona ? `用户写作风格画像: ${input.userPersona}` : ""}`,
+    {
+      subject: input.subject,
+      from: input.from,
+      body: input.body,
+      userPersona: input.userPersona,
+    },
+    input
   );
 }
 
@@ -107,13 +175,17 @@ export async function taskQuickReply(input: {
   requestId?: string;
   onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
-  const ctx = buildMailContext(input);
-  return chatComplete(
-    [
-      { role: "system", content: systemForQuickReply(input.replyType, input.customNote) },
-      { role: "user", content: `Write a quick reply to this email:\n\n${ctx}` },
-    ],
-    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
+  return executeAgentTask(
+    "quick_reply",
+    `请生成针对来信的快捷回复（意图类型: ${input.replyType}${input.customNote ? `，备注: ${input.customNote}` : ""}）。`,
+    {
+      subject: input.subject,
+      from: input.from,
+      body: input.body,
+      replyType: input.replyType,
+      customNote: input.customNote,
+    },
+    input
   );
 }
 
@@ -123,14 +195,17 @@ export async function taskExtractActionItems(input: {
   body: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<ActionItemsResult> {
-  const ctx = buildMailContext(input);
-  const result = await chatComplete(
-    [
-      { role: "system", content: systemForActionItems() },
-      { role: "user", content: ctx },
-    ],
-    { mode: input.mode, requestId: input.requestId }
+  const result = await executeAgentTask(
+    "action_items",
+    "请识别并提取邮件中的所有待办事项、负责人与交付截止时间。",
+    {
+      subject: input.subject,
+      from: input.from,
+      body: input.body,
+    },
+    input
   );
 
   if (!result.ok) {
@@ -165,8 +240,8 @@ export async function taskExtractActionItems(input: {
 
     return {
       ok: true,
-      tags: tags.length > 0 ? tags : ["仅供参考"],
-      actionItems,
+      tags: tags.length > 0 ? tags : ["待办事项"],
+      actionItems: actionItems.length > 0 ? actionItems : [result.text],
       deadline,
       mode: result.mode,
     };
@@ -178,7 +253,7 @@ export async function taskExtractActionItems(input: {
     return {
       ok: true,
       tags: lines.length > 0 ? ["待办事项"] : ["仅供参考"],
-      actionItems: lines,
+      actionItems: lines.length > 0 ? lines : [result.text],
       mode: result.mode,
     };
   }
@@ -196,12 +271,15 @@ export async function taskRewrite(input: {
   if (!cleaned.trim()) {
     return { ok: false, code: "EMPTY", error: "没有可改写的文本" };
   }
-  return chatComplete(
-    [
-      { role: "system", content: systemForRewrite(input.tone, input.userPersona) },
-      { role: "user", content: cleaned },
-    ],
-    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
+  return executeAgentTask(
+    "rewrite",
+    `请将以下文本按照「${input.tone}」语气进行专业改写与润色：\n\n${cleaned}${input.userPersona ? `\n\n用户写作风格画像: ${input.userPersona}` : ""}`,
+    {
+      body: cleaned,
+      tone: input.tone,
+      userPersona: input.userPersona,
+    },
+    input
   );
 }
 
@@ -216,15 +294,14 @@ export async function taskCompose(input: {
   if (!prompt) {
     return { ok: false, code: "EMPTY", error: "请先输入写作提示" };
   }
-  const user = input.existingBody?.trim()
-    ? `Instruction: ${prompt}\n\nExisting draft to improve or replace:\n${cleanContext(input.existingBody, 4000)}`
-    : `Instruction: ${prompt}`;
-  return chatComplete(
-    [
-      { role: "system", content: systemForCompose() },
-      { role: "user", content: user },
-    ],
-    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
+  return executeAgentTask(
+    "compose",
+    prompt,
+    {
+      body: input.existingBody || "",
+      prompt,
+    },
+    input
   );
 }
 
@@ -233,6 +310,7 @@ export async function taskThreadSummary(input: {
   messages: { sender: string; date?: string; body: string }[];
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<ThreadSummaryResult> {
   if (!input.messages || input.messages.length === 0) {
     return { ok: false, code: "EMPTY", error: "没有可分析的邮件线索" };
@@ -249,12 +327,14 @@ export async function taskThreadSummary(input: {
 
   const promptUser = `${input.subject ? `Thread Subject: ${input.subject}\n\n` : ""}${formattedMessages}`;
 
-  const result = await chatComplete(
-    [
-      { role: "system", content: systemForThreadSummary() },
-      { role: "user", content: promptUser },
-    ],
-    { mode: input.mode, requestId: input.requestId }
+  const result = await executeAgentTask(
+    "thread_summary",
+    promptUser,
+    {
+      subject: input.subject,
+      body: formattedMessages,
+    },
+    input
   );
 
   if (!result.ok) {
@@ -291,7 +371,14 @@ export async function taskThreadSummary(input: {
     return {
       ok: true,
       summary: summary || result.text,
-      timeline,
+      timeline:
+        timeline.length > 0
+          ? timeline
+          : input.messages.map((m) => ({
+              sender: m.sender,
+              date: m.date,
+              point: cleanContext(m.body, 120),
+            })),
       mode: result.mode,
     };
   } catch {
@@ -315,15 +402,18 @@ export async function taskSuggestSplit(input: {
   body: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<SuggestSplitResult> {
   const from = input.from ?? input.sender;
-  const ctx = buildMailContext({ subject: input.subject, from, body: input.body });
-  const result = await chatComplete(
-    [
-      { role: "system", content: systemForSuggestSplit() },
-      { role: "user", content: ctx },
-    ],
-    { mode: input.mode, requestId: input.requestId }
+  const result = await executeAgentTask(
+    "suggest_split",
+    "请评估邮件紧急程度与重要性，给出推荐分箱（important / other）与理由。",
+    {
+      subject: input.subject,
+      from,
+      body: input.body,
+    },
+    input
   );
 
   if (!result.ok) {
@@ -380,38 +470,29 @@ export async function taskTranslate(input: {
   targetLang?: "zh" | "en";
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
   const cleaned = cleanContext(input.text, 6_000);
   if (!cleaned) {
     return { ok: false, code: "EMPTY", error: "待翻译文本为空" };
   }
   const targetLang = input.targetLang ?? "zh";
-  const system = systemForTranslation(targetLang);
-  return chatComplete(
-    [
-      { role: "system", content: system },
-      { role: "user", content: cleaned },
-    ],
-    { mode: input.mode, requestId: input.requestId }
+  return executeAgentTask(
+    "translate",
+    `请将以下内容准确翻译为${targetLang === "zh" ? "中文" : "英文"}，保持专业商务语调：\n\n${cleaned}`,
+    {
+      body: cleaned,
+      targetLang,
+    },
+    input
   );
 }
-
-export type UserPersonaResult =
-  | {
-      ok: true;
-      personaSummary: string;
-      toneStyle: string;
-      greetingHabit: string;
-      signoffHabit: string;
-      keyTraits: string[];
-      mode: AiMode;
-    }
-  | { ok: false; code: AiErrorCode; error: string };
 
 export async function taskLearnUserTone(input: {
   sentSamples: string[];
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<UserPersonaResult> {
   if (!input.sentSamples || input.sentSamples.length === 0) {
     return { ok: false, code: "EMPTY", error: "发件箱中暂无足够的历史已发邮件供学习" };
@@ -421,15 +502,13 @@ export async function taskLearnUserTone(input: {
     .map((s, idx) => `--- 邮件样本 ${idx + 1} ---\n${cleanContext(s, 1000)}`)
     .join("\n\n");
 
-  const result = await chatComplete(
-    [
-      { role: "system", content: systemForLearnUserTone() },
-      {
-        role: "user",
-        content: `这是我最近发送的部分邮件样本，请分析并提取我的写作习惯与风格画像：\n\n${samplesText}`,
-      },
-    ],
-    { mode: input.mode, requestId: input.requestId }
+  const result = await executeAgentTask(
+    "learn_user_tone",
+    `这是我最近发送的部分邮件样本，请分析并提取我的写作习惯与风格画像：\n\n${samplesText}`,
+    {
+      body: samplesText,
+    },
+    input
   );
 
   if (!result.ok) return result;
@@ -483,17 +562,21 @@ export async function taskAnalyzeAttachment(input: {
   base64Data?: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
   const docName = input.filename || "附件文档";
   const contentSnippet = cleanContext(
     input.textContent || `[附件文件名: ${docName}, 类型: ${input.contentType || "未知"}]`,
     6000
   );
-  return chatComplete(
-    [
-      { role: "system", content: systemForAttachmentAnalysis() },
-      { role: "user", content: `请分析附件《${docName}》的内容并提取要点：\n\n${contentSnippet}` },
-    ],
-    { mode: input.mode, requestId: input.requestId }
+  return executeAgentTask(
+    "analyze_attachment",
+    `请分析附件《${docName}》的内容并提取要点：\n\n${contentSnippet}`,
+    {
+      filename: docName,
+      contentType: input.contentType,
+      body: contentSnippet,
+    },
+    input
   );
 }

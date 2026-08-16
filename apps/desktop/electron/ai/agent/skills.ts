@@ -4,7 +4,144 @@ import { listCustomSkills, saveCustomSkill, deleteCustomSkill } from "../../db";
 /**
  * 4 Built-in Core Skills for AI Email Workflows
  */
+/**
+ * Comprehensive Built-in Core Skills for AI Email Workflows (Pi-Agent Unified Core)
+ */
 export const BUILTIN_SKILLS: AgentSkillDefinition[] = [
+  {
+    id: "summarize",
+    name: "智能邮件摘要",
+    description: "提炼邮件核心要点、背景与关键诉求，生成清晰简短的摘要",
+    icon: "Summarize",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["摘要", "提炼", "速读"],
+    allowedTools: ["extract_action_items"],
+    isCustom: false,
+    systemPrompt: `You are an executive email assistant. Summarize incoming emails concisely in the SAME language as the email.
+1. Capture the core purpose, critical context, and any decision required.
+2. Structure with bullet points if multiple distinct topics exist.
+3. Keep it crisp, factual, and strictly under 4-5 sentences without unnecessary filler.`,
+  },
+  {
+    id: "draft_reply",
+    name: "情境感知回复起草",
+    description: "依据来信语境、发件人关系及用户画像，拟定得体、清晰专业的回复草稿",
+    icon: "Reply",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["写信", "回复", "草稿"],
+    allowedTools: ["draft_proposal", "extract_action_items"],
+    isCustom: false,
+    systemPrompt: `You are an email assistant drafting professional, context-aware replies.
+1. Respond in the same language as the incoming email.
+2. Address questions and action items directly and politely.
+3. Maintain an empathetic, efficient tone. Generate only the reply text ready to send.`,
+  },
+  {
+    id: "quick_reply",
+    name: "极速场景回复",
+    description: "一键生成标准致谢、确认推进、稍后答复或礼貌婉拒等即时回复",
+    icon: "Bolt",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["快捷", "回复", "高频"],
+    allowedTools: ["draft_proposal"],
+    isCustom: false,
+    systemPrompt: `You are a high-efficiency email assistant crafting quick replies.
+Generate short, polite, context-appropriate responses according to the requested reply intent (ack/confirm/later/decline).`,
+  },
+  {
+    id: "action_items",
+    name: "结构化行动项提取",
+    description: "深度识别邮件中的待办任务、责任人、截止时间及关键交付物",
+    icon: "CheckCircleOutline",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["待办", "行动项", "任务"],
+    allowedTools: ["extract_action_items", "calendar_proposal"],
+    isCustom: false,
+    systemPrompt: `You are an action item extraction specialist.
+Analyze the email and extract explicit or implicit todos, action items, assignees, and deadlines.
+List actionable points cleanly starting with bullet points. If no action items are found, explicitly state none.`,
+  },
+  {
+    id: "commitments",
+    name: "承诺追踪与履约分析",
+    description: "智能追踪发件人与收件人做出的承诺、约定时间与交付保证",
+    icon: "Handshake",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["承诺", "履约", "追踪"],
+    allowedTools: ["extract_action_items"],
+    isCustom: false,
+    systemPrompt: `You are a commitment tracking assistant. Identify promises, deliverables, and timeline commitments made by participants.`,
+  },
+  {
+    id: "thread_summary",
+    name: "多轮对话线索复盘",
+    description: "深度复盘多封邮件往来历史，梳理完整时间线与各方立场演变",
+    icon: "Timeline",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["时间线", "复盘", "多轮"],
+    allowedTools: ["extract_action_items"],
+    isCustom: false,
+    systemPrompt: `You are an expert thread timeline analyst.
+Analyze multi-turn email conversations, extract the sequence of events, key decisions reached, and timeline items.`,
+  },
+  {
+    id: "suggest_split",
+    name: "智能优先级分箱",
+    description: "精准评估邮件重要性与紧急度，给出分箱建议（重要/其他）及原因",
+    icon: "FolderSpecial",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["分箱", "分类", "优先级"],
+    allowedTools: ["split_proposal"],
+    isCustom: false,
+    systemPrompt: `You are a smart inbox triage agent.
+Evaluate importance and urgency based on sender, topic, financial/contract impact, or system notices.
+Output recommendation: SPLIT: important | other followed by REASON: ...`,
+  },
+  {
+    id: "translate",
+    name: "多语言精准邮件互译",
+    description: "支持跨语种专业邮件互译，保持专业术语与商务礼仪",
+    icon: "Translate",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["翻译", "多语言", "外联"],
+    allowedTools: ["draft_proposal"],
+    isCustom: false,
+    systemPrompt: `You are a professional email translator. Translate faithfully while adapting to natural business phrasing in the target language.`,
+  },
+  {
+    id: "compose",
+    name: "创意写作与邮件起草",
+    description: "根据用户自然语言提示或要点，智能扩写或起草完整商务邮件",
+    icon: "Create",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["写作", "起草", "生成"],
+    allowedTools: ["draft_proposal"],
+    isCustom: false,
+    systemPrompt: `You are a creative executive drafting assistant.
+Transform prompt instructions into a polished, persuasive email with clear structure.`,
+  },
+  {
+    id: "rewrite",
+    name: "语气润色与表达重塑",
+    description: "根据需要调整草稿语气（更精炼、更正式、更详尽、符合个人风格）",
+    icon: "AutoFixHigh",
+    version: "1.0.0",
+    author: "oh-ai-email",
+    tags: ["润色", "改写", "语气"],
+    allowedTools: ["draft_proposal"],
+    isCustom: false,
+    systemPrompt: `You are an expert copy editor and writing stylist.
+Rewrite the provided text preserving original meaning while perfecting tone, clarity, and conciseness.`,
+  },
   {
     id: "meeting_extractor",
     name: "会议日程提取助手",

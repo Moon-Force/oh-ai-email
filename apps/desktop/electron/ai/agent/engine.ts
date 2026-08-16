@@ -251,8 +251,10 @@ export async function runAgentWorkflow(
       message: "正在综合生成结构化总结与行动提案...",
     });
 
-    const cleanedBody = cleanContext(contextBody, 3000);
-    const systemPrompt = skill?.systemPrompt || `你是一位高效的智能邮件助手。请基于工具提取的数据生成准确、优雅、结构化的建议。`;
+    const cleanedBody = cleanContext(contextBody, 4000);
+    const systemPrompt =
+      skill?.systemPrompt ||
+      `你是一位高效的智能邮件助手。请基于上下文和工具提取的数据生成准确、优雅、结构化的结果。`;
 
     // History & Compaction Handling
     let historyDb: AgentMessageDbRecord[] = [];
@@ -267,9 +269,19 @@ export async function runAgentWorkflow(
       thinkingContent: m.thinkingContent,
     }));
 
+    let userPromptContent = "";
+    if (contextSubject || contextBody) {
+      userPromptContent = `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n用户需求: ${prompt || "执行智能分析"}`;
+      if (toolDataSummary) {
+        userPromptContent += `\n工具收集结果: ${toolDataSummary}`;
+      }
+    } else {
+      userPromptContent = prompt || "请根据系统指令执行任务。";
+    }
+
     messagesToCompact.push({
       role: "user",
-      content: `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n用户需求: ${prompt || "执行智能分析"}\n工具收集结果: ${toolDataSummary}`,
+      content: userPromptContent,
     });
 
     const compactRes = await compactSessionMessages(messagesToCompact);
@@ -284,21 +296,44 @@ export async function runAgentWorkflow(
     const llmMessages = [
       { role: "system" as const, content: systemPrompt },
       ...compactRes.compactedMessages.map((m) => ({
-        role: m.role === "system" ? ("system" as const) : m.role === "user" ? ("user" as const) : ("assistant" as const),
+        role:
+          m.role === "system"
+            ? ("system" as const)
+            : m.role === "user"
+              ? ("user" as const)
+              : ("assistant" as const),
         content: m.content,
       })),
     ];
 
-    const llmResult = await chatComplete(llmMessages);
+    let fullStreamedReasoning = "";
+    let fullStreamedContent = "";
+
+    const llmResult = await chatComplete(llmMessages, {
+      requestId: reqId,
+      onChunk: (chunk) => {
+        if (chunk.reasoningChunk) {
+          fullStreamedReasoning += chunk.reasoningChunk;
+          void loop.emitThinkingToken(chunk.reasoningChunk);
+        }
+        if (chunk.contentChunk) {
+          fullStreamedContent += chunk.contentChunk;
+          void loop.emitContentToken(chunk.contentChunk);
+        }
+      },
+    });
 
     let finalSummary = "";
+    let finalReasoning = "";
     if (llmResult.ok) {
       finalSummary = llmResult.text.trim();
+      finalReasoning = llmResult.reasoningContent || fullStreamedReasoning || thinkingText;
     } else {
-      finalSummary = `已完成分析。\n\n**工具收集概览**：\n${toolDataSummary}\n\n建议核对下方生成的待办提案。`;
+      finalSummary =
+        fullStreamedContent.trim() ||
+        `已完成分析。\n\n**工具收集概览**：\n${toolDataSummary}\n\n建议核对下方生成的待办提案。`;
+      finalReasoning = fullStreamedReasoning || thinkingText;
     }
-
-    await loop.emitContentToken(finalSummary + "\n");
 
     const proposalData: AgentProposalData = {
       title: `${skill?.name || getAgentTypeLabel(agentType)} 提案`,
@@ -316,7 +351,7 @@ export async function runAgentWorkflow(
     const doneEvt: AgentDoneEvent = {
       type: "done",
       summary: finalSummary,
-      thinking: thinkingText,
+      thinking: finalReasoning,
     };
     await loop.dispatchEvent(doneEvt);
 
@@ -335,7 +370,7 @@ export async function runAgentWorkflow(
         sessionId,
         role: "assistant",
         content: finalSummary,
-        thinkingContent: thinkingText,
+        thinkingContent: finalReasoning,
         proposals: JSON.stringify(proposedItems),
         createdAt: Date.now() + 1,
       });
@@ -358,8 +393,32 @@ export async function runAgentWorkflow(
   }
 }
 
-function getAgentTypeLabel(type: AgentType): string {
+export function getAgentTypeLabel(type: AgentType): string {
   switch (type) {
+    case "summarize":
+      return "智能邮件摘要";
+    case "draft_reply":
+      return "情境感知回复起草";
+    case "quick_reply":
+      return "极速场景回复";
+    case "action_items":
+      return "结构化行动项提取";
+    case "commitments":
+      return "承诺追踪与履约分析";
+    case "thread_summary":
+      return "多轮对话线索复盘";
+    case "suggest_split":
+      return "智能优先级分箱";
+    case "translate":
+      return "多语言邮件互译";
+    case "compose":
+      return "创意写作与起草";
+    case "rewrite":
+      return "语气润色与表达重塑";
+    case "analyze_attachment":
+      return "附件深度分析";
+    case "learn_user_tone":
+      return "用户语气画像学习";
     case "daily_briefing":
       return "晨间简报智能体";
     case "meeting_extractor":
