@@ -395,7 +395,7 @@ export default function AgentDrawer() {
             </Paper>
           )}
 
-          {/* Deep Thinking Block (DeepSeek R1 / Reasoning) */}
+          {/* Deep Thinking Block (Reasoning Stream) */}
           {thinkingText && (
             <Paper
               variant="outlined"

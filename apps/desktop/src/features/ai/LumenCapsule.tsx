@@ -99,6 +99,9 @@ export default function LumenCapsule({
 }: Props) {
   const mode = useAiSettings((s) => s.mode);
   const hasCloudApiKey = useAiSettings((s) => s.hasCloudApiKey);
+  const cloudModel = useAiSettings((s) => s.model);
+  const ollamaModel = useAiSettings((s) => s.ollamaModel);
+  const activeModelName = mode === "local" ? ollamaModel : cloudModel;
   const showToast = useToastStore((s) => s.showToast);
   const openCompose = useMailStore((s) => s.openCompose);
   const setView = useMailStore((s) => s.setView);
@@ -1114,7 +1117,7 @@ export default function LumenCapsule({
                 >
                   <PsychologyIcon sx={{ fontSize: 15 }} />
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    AI 深度思考推理流 (DeepSeek-R1 / Reasoning)
+                    AI 深度思考推理流 ({activeModelName})
                   </Typography>
                 </Stack>
                 <Typography
@@ -1654,7 +1657,7 @@ export default function LumenCapsule({
                     <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
                       <PsychologyIcon fontSize="small" color="primary" />
                       <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                        AI 思考过程 (DeepSeek R1)
+                        AI 思考过程 ({activeModelName})
                       </Typography>
                     </Stack>
                     <IconButton size="small">
@@ -1898,6 +1901,9 @@ function AiPopoutModal(props: {
 }) {
   const [showReasoningModal, setShowReasoningModal] = useState(true);
   const showToast = useToastStore((s) => s.showToast);
+  const cloudModel = useAiSettings((s) => s.model);
+  const ollamaModel = useAiSettings((s) => s.ollamaModel);
+  const activeModelName = props.mode === "local" ? ollamaModel : cloudModel;
 
   const titleText =
     props.kind === "summary"
@@ -1983,7 +1989,7 @@ function AiPopoutModal(props: {
               <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                 <PsychologyIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main" }}>
-                  AI 深度思考推理过程 (DeepSeek-R1 / Reasoning)
+                  AI 深度思考推理过程 ({activeModelName})
                 </Typography>
               </Stack>
               <IconButton size="small">
