@@ -7,6 +7,10 @@ import {
   deleteAgentSession,
   insertAgentMessage,
   listAgentMessages,
+  saveCustomSkill,
+  listCustomSkills,
+  getCustomSkill,
+  deleteCustomSkill,
 } from "./db";
 
 describe("Database Agent Sessions and Messages", () => {
@@ -67,5 +71,31 @@ describe("Database Agent Sessions and Messages", () => {
     deleteAgentSession("sess_2");
     expect(getAgentSession("sess_2")).toBeNull();
     expect(listAgentMessages("sess_2").length).toBe(0);
+  });
+
+  it("saves, lists, and deletes custom skills", () => {
+    const now = Date.now();
+    saveCustomSkill({
+      id: "custom_contract_reviewer",
+      name: "商务合同审查助手",
+      description: "快速扫描邮件中的法律风险与商务条款",
+      allowedTools: ["search_messages", "get_thread_context"],
+      systemPrompt: "你是一名资深商务法律顾问，请重点审查违约金与账期。",
+      tags: ["法务", "合同"],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const skill = getCustomSkill("custom_contract_reviewer");
+    expect(skill).toBeDefined();
+    expect(skill?.name).toBe("商务合同审查助手");
+    expect(skill?.allowedTools).toContain("search_messages");
+    expect(skill?.tags).toContain("法务");
+
+    const list = listCustomSkills();
+    expect(list.some((s) => s.id === "custom_contract_reviewer")).toBe(true);
+
+    deleteCustomSkill("custom_contract_reviewer");
+    expect(getCustomSkill("custom_contract_reviewer")).toBeNull();
   });
 });

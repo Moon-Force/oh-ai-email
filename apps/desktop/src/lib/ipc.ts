@@ -161,12 +161,36 @@ type Api = {
     onEvent?: (evt: AgentStreamEvent) => void
   ) => Promise<AgentProposalData>;
   agentAbort: (requestId: string) => Promise<boolean>;
+  agentListSkills?: () => Promise<AgentSkillDefinition[]>;
+  agentSaveSkill?: (skill: Omit<AgentSkillDefinition, "isCustom">) => Promise<AgentSkillDefinition>;
+  agentDeleteSkill?: (id: string) => Promise<{ ok: boolean }>;
+  agentExportSkill?: (id: string) => Promise<string>;
+  agentGetMcpConfig?: () => Promise<{ mcpServers: Record<string, unknown> }>;
+  agentListSessions?: () => Promise<AgentSession[]>;
+  agentListMessages?: (sessionId: string) => Promise<AgentMessageRecord[]>;
+  agentDeleteSession?: (sessionId: string) => Promise<{ ok: boolean }>;
   mailSnooze: (id: string, until: number | null) => Promise<MessageDto | null>;
   mailPin: (id: string, isPinned: boolean) => Promise<MessageDto | null>;
   mailMute: (id: string, isMuted: boolean) => Promise<MessageDto | null>;
   prefsGetAutolaunch: () => Promise<boolean>;
   prefsSetAutolaunch: (enabled: boolean) => Promise<boolean>;
   updaterCheck: () => Promise<UpdateCheckResultDto>;
+};
+
+export type AgentSkillDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  version: string;
+  author?: string;
+  tags?: string[];
+  systemPrompt: string;
+  allowedTools: string[];
+  defaultParameters?: Record<string, unknown>;
+  isCustom?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
 };
 
 export type AiModeDto = "cloud" | "local";
@@ -906,6 +930,49 @@ export async function agentListSkills(): Promise<AgentSkillDefinition[]> {
     ];
   }
   return api.agentListSkills();
+}
+
+export async function agentSaveSkill(
+  skill: Omit<AgentSkillDefinition, "isCustom">
+): Promise<AgentSkillDefinition> {
+  const api = getApi();
+  if (!api?.agentSaveSkill) {
+    return { ...skill, isCustom: true };
+  }
+  return api.agentSaveSkill(skill);
+}
+
+export async function agentDeleteSkill(id: string): Promise<{ ok: boolean }> {
+  const api = getApi();
+  if (!api?.agentDeleteSkill) return { ok: true };
+  return api.agentDeleteSkill(id);
+}
+
+export async function agentExportSkill(id: string): Promise<string> {
+  const api = getApi();
+  if (!api?.agentExportSkill) {
+    return `---
+id: ${id}
+---
+`;
+  }
+  return api.agentExportSkill(id);
+}
+
+export async function agentGetMcpConfig(): Promise<{ mcpServers: Record<string, unknown> }> {
+  const api = getApi();
+  if (!api?.agentGetMcpConfig) {
+    return {
+      mcpServers: {
+        "oh-ai-email": {
+          command: "node",
+          args: ["./dist-electron/mcp.js"],
+          description: "Local email search and draft creation MCP server",
+        },
+      },
+    };
+  }
+  return api.agentGetMcpConfig();
 }
 
 export async function agentListSessions(): Promise<AgentSession[]> {

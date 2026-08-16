@@ -41,6 +41,7 @@ import TerminalIcon from "@mui/icons-material/Terminal";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import TranslateIcon from "@mui/icons-material/Translate";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import { useAgentStore } from "./agentStore";
 import type { AgentProposalItem, AgentType } from "../../lib/ipc";
 
@@ -289,6 +290,22 @@ export default function AgentDrawer() {
                   setAgentType("outreach_translator");
                 }}
               />
+              {skills
+                .filter((s) => s.isCustom)
+                .map((customSkill) => (
+                  <Chip
+                    key={customSkill.id}
+                    icon={<SmartToyIcon fontSize="small" />}
+                    label={customSkill.name}
+                    size="small"
+                    clickable
+                    color={selectedSkillId === customSkill.id ? "primary" : "default"}
+                    onClick={() => {
+                      selectSkill(customSkill.id);
+                      setAgentType("custom");
+                    }}
+                  />
+                ))}
             </Box>
           </Paper>
 

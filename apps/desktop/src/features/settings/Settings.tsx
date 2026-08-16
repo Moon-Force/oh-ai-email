@@ -51,7 +51,9 @@ import {
 } from "../../lib/ipc";
 import { useToastStore } from "../shell/toastStore";
 
-type Tab = "general" | "accounts" | "ai";
+import SkillsTab from "./SkillsTab";
+
+type Tab = "general" | "accounts" | "ai" | "skills";
 
 type Props = {
   onClose?: () => void;
@@ -222,6 +224,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               ["general", "通用"],
               ["accounts", "账号"],
               ["ai", "AI"],
+              ["skills", "技能与 MCP"],
             ] as const
           ).map(([id, label]) => (
             <ListItemButton key={id} selected={tab === id} onClick={() => setTab(id)}>
@@ -877,6 +880,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
             </Box>
           </Stack>
         )}
+
+        {tab === "skills" && <SkillsTab />}
       </Box>
     </Box>
   );

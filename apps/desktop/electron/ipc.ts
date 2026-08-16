@@ -92,9 +92,10 @@ import {
   taskThreadSummary,
   taskTranslate,
 } from "./ai/tasks";
-import type { RewriteTone } from "./ai/prompts";
-import { abortAgentWorkflow, runAgentWorkflow } from "./ai/agent/engine";
-import type { AgentRunParams, AgentStreamEvent } from "./ai/agent/types";
+import path from "node:path";
+import { abortAgentWorkflow, defaultSkillsManager, runAgentWorkflow } from "./ai/agent/engine";
+import { exportSkillMarkdown } from "./ai/agent/skills";
+import type { AgentRunParams, AgentSkillDefinition, AgentStreamEvent } from "./ai/agent/types";
 
 export type AddAccountPayload = {
   email: string;
@@ -688,6 +689,34 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle("agent:skills:list", () => {
     return defaultSkillsManager.listSkills();
+  });
+
+  ipcMain.handle("agent:skills:save", (_e, skill: Omit<AgentSkillDefinition, "isCustom">) => {
+    return defaultSkillsManager.saveCustomSkill(skill);
+  });
+
+  ipcMain.handle("agent:skills:delete", (_e, id: string) => {
+    const success = defaultSkillsManager.deleteCustomSkill(id);
+    return { ok: success };
+  });
+
+  ipcMain.handle("agent:skills:export", (_e, id: string) => {
+    const skill = defaultSkillsManager.getSkill(id);
+    if (!skill) throw new Error(`Skill not found: ${id}`);
+    return exportSkillMarkdown(skill);
+  });
+
+  ipcMain.handle("agent:mcp:getConfig", () => {
+    const appPath = app.getAppPath();
+    return {
+      mcpServers: {
+        "oh-ai-email": {
+          command: "node",
+          args: [path.join(appPath, "dist-electron", "mcp.js")],
+          description: "Local email search, thread analysis, and draft creation MCP server",
+        },
+      },
+    };
   });
 
   ipcMain.handle("agent:sessions:list", () => {

@@ -1,4 +1,5 @@
 import type { AgentSkillDefinition } from "./types";
+import { listCustomSkills, saveCustomSkill, deleteCustomSkill } from "../../db";
 
 /**
  * 4 Built-in Core Skills for AI Email Workflows
@@ -13,6 +14,7 @@ export const BUILTIN_SKILLS: AgentSkillDefinition[] = [
     author: "oh-ai-email",
     tags: ["日程", "会议", "日历"],
     allowedTools: ["calendar_proposal", "extract_action_items"],
+    isCustom: false,
     systemPrompt: `你是一位专业的高管日程助理。你的职责是深度分析用户提供的邮件往来记录，精准识别出：
 1. 会议或活动的主题（Title）
 2. 准确的起止时间（StartTime, EndTime，若未说明年份则默认当前年份，推断时区）
@@ -30,6 +32,7 @@ export const BUILTIN_SKILLS: AgentSkillDefinition[] = [
     author: "oh-ai-email",
     tags: ["财务", "报销", "发票"],
     allowedTools: ["invoice_proposal", "extract_action_items"],
+    isCustom: false,
     systemPrompt: `你是一位严谨的财务报销专家。你的职责是解析邮件及其附件信息中的财务凭据：
 1. 识别发票开具方（Vendor Name / 商户名）
 2. 发票代码与发票号码（Invoice Number）
@@ -47,6 +50,7 @@ export const BUILTIN_SKILLS: AgentSkillDefinition[] = [
     author: "oh-ai-email",
     tags: ["翻译", "商务外联", "润色"],
     allowedTools: ["draft_proposal"],
+    isCustom: false,
     systemPrompt: `你是一位精通跨国商务礼仪的双语外联专家。你的任务是：
 1. 将用户拟定的中文或草稿翻译为地道、得体、专业的商务外语邮件（如英语、日语等）
 2. 适配跨文化沟通礼仪（恰当的问候、客套、清晰有力的 Action Item、得体的结语）
@@ -62,6 +66,7 @@ export const BUILTIN_SKILLS: AgentSkillDefinition[] = [
     author: "oh-ai-email",
     tags: ["分箱", "归档", "整理"],
     allowedTools: ["split_proposal"],
+    isCustom: false,
     systemPrompt: `你是一位敏锐的收件箱整理专家。你的任务是：
 1. 评估邮件的紧急程度与商业重要性（来自关键合作伙伴、领导、合同等标为重要；系统通知、促销、次要订阅标为其他）
 2. 给出清晰合理的判定理由
@@ -83,6 +88,7 @@ export function parseSkillMarkdown(content: string, fallbackId: string): AgentSk
       version: "1.0.0",
       allowedTools: [],
       systemPrompt: content.trim(),
+      isCustom: true,
     };
   }
 
@@ -116,7 +122,29 @@ export function parseSkillMarkdown(content: string, fallbackId: string): AgentSk
     tags,
     allowedTools,
     systemPrompt: body,
+    isCustom: true,
   };
+}
+
+/**
+ * Converts an AgentSkillDefinition into Markdown with YAML frontmatter.
+ */
+export function exportSkillMarkdown(skill: AgentSkillDefinition): string {
+  const lines = [
+    "---",
+    `id: ${skill.id}`,
+    `name: ${skill.name}`,
+    `description: ${skill.description}`,
+    `version: ${skill.version || "1.0.0"}`,
+  ];
+  if (skill.icon) lines.push(`icon: ${skill.icon}`);
+  if (skill.author) lines.push(`author: ${skill.author}`);
+  if (skill.tags && skill.tags.length > 0) lines.push(`tags: ${skill.tags.join(",")}`);
+  if (skill.allowedTools && skill.allowedTools.length > 0) lines.push(`allowedTools: ${skill.allowedTools.join(",")}`);
+  lines.push("---");
+  lines.push("");
+  lines.push(skill.systemPrompt);
+  return lines.join("\n");
 }
 
 /**
@@ -128,7 +156,32 @@ export class SkillsManager {
   constructor() {
     // Register built-in skills by default
     for (const skill of BUILTIN_SKILLS) {
-      this.skills.set(skill.id, skill);
+      this.skills.set(skill.id, { ...skill, isCustom: false });
+    }
+    this.syncFromDb();
+  }
+
+  public syncFromDb(): void {
+    try {
+      const customSkills = listCustomSkills();
+      for (const cs of customSkills) {
+        this.skills.set(cs.id, {
+          id: cs.id,
+          name: cs.name,
+          description: cs.description,
+          icon: "Psychology",
+          version: "1.0.0",
+          author: "User",
+          tags: cs.tags,
+          allowedTools: cs.allowedTools,
+          systemPrompt: cs.systemPrompt,
+          isCustom: true,
+          createdAt: cs.createdAt,
+          updatedAt: cs.updatedAt,
+        });
+      }
+    } catch {
+      // safe fallback if DB not ready
     }
   }
 
@@ -137,6 +190,7 @@ export class SkillsManager {
   }
 
   public listSkills(): AgentSkillDefinition[] {
+    this.syncFromDb();
     return Array.from(this.skills.values());
   }
 
@@ -144,9 +198,41 @@ export class SkillsManager {
     this.skills.set(skill.id, skill);
   }
 
+  public saveCustomSkill(skill: Omit<AgentSkillDefinition, "isCustom">): AgentSkillDefinition {
+    const now = Date.now();
+    const fullSkill: AgentSkillDefinition = {
+      ...skill,
+      isCustom: true,
+      version: skill.version || "1.0.0",
+      createdAt: skill.createdAt || now,
+      updatedAt: now,
+    };
+    saveCustomSkill({
+      id: fullSkill.id,
+      name: fullSkill.name,
+      description: fullSkill.description,
+      allowedTools: fullSkill.allowedTools,
+      systemPrompt: fullSkill.systemPrompt,
+      tags: fullSkill.tags,
+      createdAt: fullSkill.createdAt || now,
+      updatedAt: now,
+    });
+    this.skills.set(fullSkill.id, fullSkill);
+    return fullSkill;
+  }
+
+  public deleteCustomSkill(id: string): boolean {
+    const existing = this.skills.get(id);
+    if (!existing || !existing.isCustom) {
+      return false;
+    }
+    deleteCustomSkill(id);
+    this.skills.delete(id);
+    return true;
+  }
+
   public registerFromMarkdown(content: string, fallbackId: string): AgentSkillDefinition {
     const skill = parseSkillMarkdown(content, fallbackId);
-    this.skills.set(skill.id, skill);
-    return skill;
+    return this.saveCustomSkill(skill);
   }
 }

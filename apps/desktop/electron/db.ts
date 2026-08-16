@@ -170,6 +170,31 @@ function migrate() {
   d.run(`CREATE INDEX IF NOT EXISTS idx_agent_messages_session ON agent_messages(session_id, created_at ASC);`);
 
   d.run(`
+    CREATE TABLE IF NOT EXISTS drafts (
+      id TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL,
+      to_addr TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      reply_to_message_id TEXT,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
+  d.run(`
+    CREATE TABLE IF NOT EXISTS custom_skills (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      allowed_tools TEXT NOT NULL,
+      system_prompt TEXT NOT NULL,
+      tags TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
+  d.run(`
     CREATE TABLE IF NOT EXISTS attachments (
       id TEXT PRIMARY KEY,
       message_id TEXT NOT NULL,
@@ -404,22 +429,36 @@ export function upsertMessage(m: MessageRecord) {
     [
       m.id,
       m.accountId,
-      m.folderId,
-      m.uid,
+      m.folderId || "inbox",
+      m.uid ?? 0,
       m.from,
-      m.fromName,
+      m.fromName ?? "",
       m.subject,
-      m.snippet,
-      m.dateMs,
-      m.dateLabel,
+      m.snippet ?? "",
+      m.dateMs ?? Date.now(),
+      m.dateLabel ?? new Date(m.dateMs || Date.now()).toLocaleDateString(),
       m.unread ? 1 : 0,
-      m.split,
+      m.split || "other",
       m.html ?? null,
       m.snoozedUntil ?? null,
       m.isPinned ? 1 : 0,
       m.isMuted ? 1 : 0,
     ]
   );
+}
+
+export function searchMessagesFts(query: string, accountId?: string): MessageRecord[] {
+  const d = getDb();
+  const pattern = `%${query.trim()}%`;
+  const stmt = accountId
+    ? d.prepare(`SELECT * FROM messages WHERE account_id = ? AND (subject LIKE ? OR snippet LIKE ? OR from_addr LIKE ? OR from_name LIKE ?) ORDER BY date_ms DESC;`)
+    : d.prepare(`SELECT * FROM messages WHERE subject LIKE ? OR snippet LIKE ? OR from_addr LIKE ? OR from_name LIKE ? ORDER BY date_ms DESC;`);
+  if (accountId) {
+    stmt.bind([accountId, pattern, pattern, pattern, pattern]);
+  } else {
+    stmt.bind([pattern, pattern, pattern, pattern]);
+  }
+  return rowsFrom(stmt).map(mapMessage);
 }
 
 export function setMessageUnread(id: string, unread: boolean) {
@@ -665,4 +704,207 @@ export function listAgentMessages(sessionId: string): AgentMessageDbRecord[] {
   stmt.free();
   return rows;
 }
+
+export interface CustomSkillDbRecord {
+  id: string;
+  name: string;
+  description: string;
+  allowedTools: string[];
+  systemPrompt: string;
+  tags?: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export function saveCustomSkill(skill: CustomSkillDbRecord): void {
+  const d = getDb();
+  d.run(
+    `INSERT INTO custom_skills (id, name, description, allowed_tools, system_prompt, tags, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name=excluded.name,
+       description=excluded.description,
+       allowed_tools=excluded.allowed_tools,
+       system_prompt=excluded.system_prompt,
+       tags=excluded.tags,
+       updated_at=excluded.updated_at;`,
+    [
+      skill.id,
+      skill.name,
+      skill.description,
+      JSON.stringify(skill.allowedTools || []),
+      skill.systemPrompt,
+      skill.tags ? JSON.stringify(skill.tags) : null,
+      skill.createdAt,
+      skill.updatedAt,
+    ]
+  );
+  persist();
+}
+
+export function listCustomSkills(): CustomSkillDbRecord[] {
+  const d = getDb();
+  const stmt = d.prepare(`SELECT id, name, description, allowed_tools, system_prompt, tags, created_at, updated_at FROM custom_skills ORDER BY updated_at DESC;`);
+  const rows: CustomSkillDbRecord[] = [];
+  while (stmt.step()) {
+    const r = stmt.getAsObject();
+    let allowedTools: string[] = [];
+    try {
+      allowedTools = JSON.parse(String(r.allowed_tools || "[]"));
+    } catch {
+      allowedTools = [];
+    }
+    let tags: string[] | undefined;
+    if (r.tags) {
+      try {
+        tags = JSON.parse(String(r.tags));
+      } catch {
+        tags = undefined;
+      }
+    }
+    rows.push({
+      id: String(r.id),
+      name: String(r.name),
+      description: String(r.description),
+      allowedTools,
+      systemPrompt: String(r.system_prompt),
+      tags,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at),
+    });
+  }
+  stmt.free();
+  return rows;
+}
+
+export function getCustomSkill(id: string): CustomSkillDbRecord | null {
+  const d = getDb();
+  const stmt = d.prepare(`SELECT id, name, description, allowed_tools, system_prompt, tags, created_at, updated_at FROM custom_skills WHERE id = ?;`);
+  stmt.bind([id]);
+  if (!stmt.step()) {
+    stmt.free();
+    return null;
+  }
+  const r = stmt.getAsObject();
+  stmt.free();
+  let allowedTools: string[] = [];
+  try {
+    allowedTools = JSON.parse(String(r.allowed_tools || "[]"));
+  } catch {
+    allowedTools = [];
+  }
+  let tags: string[] | undefined;
+  if (r.tags) {
+    try {
+      tags = JSON.parse(String(r.tags));
+    } catch {
+      tags = undefined;
+    }
+  }
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    description: String(r.description),
+    allowedTools,
+    systemPrompt: String(r.system_prompt),
+    tags,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+  };
+}
+
+export function deleteCustomSkill(id: string): void {
+  const d = getDb();
+  d.run(`DELETE FROM custom_skills WHERE id = ?;`, [id]);
+  persist();
+}
+
+export interface DraftRecord {
+  id: string;
+  accountId: string;
+  to: string;
+  subject: string;
+  body: string;
+  replyToMessageId?: string;
+  updatedAt: number;
+}
+
+export function upsertDraft(draft: DraftRecord): void {
+  const d = getDb();
+  d.run(
+    `INSERT INTO drafts (id, account_id, to_addr, subject, body, reply_to_message_id, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       account_id=excluded.account_id,
+       to_addr=excluded.to_addr,
+       subject=excluded.subject,
+       body=excluded.body,
+       reply_to_message_id=excluded.reply_to_message_id,
+       updated_at=excluded.updated_at;`,
+    [
+      draft.id,
+      draft.accountId,
+      draft.to,
+      draft.subject,
+      draft.body,
+      draft.replyToMessageId ?? null,
+      draft.updatedAt,
+    ]
+  );
+  persist();
+}
+
+export function getDraft(id: string): DraftRecord | null {
+  const d = getDb();
+  const stmt = d.prepare(`SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts WHERE id = ?;`);
+  stmt.bind([id]);
+  if (!stmt.step()) {
+    stmt.free();
+    return null;
+  }
+  const r = stmt.getAsObject();
+  stmt.free();
+  return {
+    id: String(r.id),
+    accountId: String(r.account_id),
+    to: String(r.to_addr),
+    subject: String(r.subject),
+    body: String(r.body),
+    replyToMessageId: r.reply_to_message_id != null ? String(r.reply_to_message_id) : undefined,
+    updatedAt: Number(r.updated_at),
+  };
+}
+
+export function listDrafts(accountId?: string): DraftRecord[] {
+  const d = getDb();
+  const stmt = accountId
+    ? d.prepare(`SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts WHERE account_id = ? ORDER BY updated_at DESC;`)
+    : d.prepare(`SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts ORDER BY updated_at DESC;`);
+  if (accountId) {
+    stmt.bind([accountId]);
+  }
+  const rows: DraftRecord[] = [];
+  while (stmt.step()) {
+    const r = stmt.getAsObject();
+    rows.push({
+      id: String(r.id),
+      accountId: String(r.account_id),
+      to: String(r.to_addr),
+      subject: String(r.subject),
+      body: String(r.body),
+      replyToMessageId: r.reply_to_message_id != null ? String(r.reply_to_message_id) : undefined,
+      updatedAt: Number(r.updated_at),
+    });
+  }
+  stmt.free();
+  return rows;
+}
+
+export function deleteDraft(id: string): void {
+  const d = getDb();
+  d.run(`DELETE FROM drafts WHERE id = ?;`, [id]);
+  persist();
+}
+
+
 

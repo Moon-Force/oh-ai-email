@@ -170,6 +170,9 @@ export type AgentSkillDefinition = {
   systemPrompt: string;
   allowedTools: string[];
   defaultParameters?: Record<string, unknown>;
+  isCustom?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
 };
 
 export type AgentSession = {
