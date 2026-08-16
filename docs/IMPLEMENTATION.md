@@ -132,8 +132,12 @@
 | 5.17 | **DeepSeek & 小米 MiMo 预设** (W3-11/12)    | R1 思考流提取与高性价比通道  | [x]  |
 | 5.18 | **动态模型拉取与余额查询** (W3-13 / W3-14)  | 一键刷新列表 + DeepSeek 余额 | [x]  |
 | 5.19 | **语音听写 (STT) 与朗读 (TTS)** (W3-15)     | Web Speech + MiMo TTS 双引擎 | [x]  |
+| 5.20 | **pi 事件驱动循环引擎** (AgentLoop)         | 细粒度事件流与安全沙箱拦截   | [x]  |
+| 5.21 | **场景专属技能系统** (Skills System)        | 会议/发票/外联/分箱 4 大技能 | [x]  |
+| 5.22 | **长上下文自适应压缩** (Compaction)         | Token 预算估算与分段摘要快照 | [x]  |
+| 5.23 | **智能体多轮会话持久化** (SQLite Storage)   | `agent_sessions` 关系表落盘  | [x]  |
 
-**阶段 5 完成标准**：云端下摘要+草稿稳定；支持多 Provider（DeepSeek / MiMo / Ollama）；HITL Agent 智能体工作流与语音能力就绪。全部 19 项任务已实现并经 129 个单测验证。
+**阶段 5 完成标准**：云端下摘要+草稿稳定；支持多 Provider（DeepSeek / MiMo / Ollama）；融入 pi 架构的 AgentLoop 智能体工作流、Skills 插件、长上下文治理与语音交互全部就绪。全部 23 项任务已实现并经 168 个单测验证通过。
 
 ---
 

@@ -8,7 +8,7 @@
 | UI         | **React + TypeScript + MUI**                  | 列表、读信、写信、设置、AI 胶囊与抽屉；视觉见 [DESIGN.md](./DESIGN.md)（Material UI） |
 | 产品官网   | **Vite + 响应式现代 Web (apps/web)**          | 官方介绍页、交互式 AI 模拟器、下载矩阵、GitHub Pages 自动发布                         |
 | 主进程核心 | **Node.js / TypeScript (Electron)**           | IMAP/SMTP 协议管理、IMAP IDLE 实时推信、safeStorage 存储、AI 路由与 Agent 引擎        |
-| 本地库     | **SQLite**（敏感字段加密 / safeStorage 加密） | 邮件元数据、正文缓存、账号配置、Snooze/Pin/Mute 标记                                  |
+| 本地库     | **SQLite**（敏感字段加密 / safeStorage 加密） | 邮件元数据、正文缓存、账号配置、Snooze/Pin/Mute 标记、智能体会话与历史持久化          |
 | 云端 AI    | 多厂商预设与 OpenAI 兼容代理通道              | DeepSeek (`deepseek-chat`, `deepseek-reasoner`), 小米 MiMo, 自定义兼容端点            |
 | 本地 AI    | **Ollama** HTTP API                           | 用户可选（`127.0.0.1:11434`），邮件内容不经云                                         |
 | 语音交互   | **Web Speech API + MiMo TTS**                 | 语音听写 (STT) + 邮件/摘要朗读 (TTS)                                                  |
@@ -122,50 +122,57 @@ UI 触发（Capsule 摘要 / 润色 / 快速回复 / 意图识别）
     → UI 渲染可编辑草稿，人类确认后插入/发送
 ```
 
-### 5.2 多步骤智能体工作流流水线（Wave-3 Agentic Workflow）
+### 5.2 多步骤智能体工作流流水线（Wave-3 Agentic Workflow - 融合 pi 架构）
 
-对于多轮规划、批量分箱整理、会议日程提取及每日简报等复合任务，系统采用**受控智能体管道（Controlled Agentic Pipeline）**：
+对于多轮规划、批量分箱整理、会议日程提取及财务发票整理等复合任务，系统采用**受控智能体管道（Controlled Agentic Pipeline）**：
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                              1. 渲染进程 (UI: React + MUI)                             │
-│  用户触发指令 / 快捷工作流                                                             │
+│  用户触发指令 / 快捷技能 (Skills: 会议/发票/外联/分箱)                                 │
 │       │                                                                                │
-│  agentRun({ workflowId, context }) ───┐                                                │
-│       ▲                               │                                                │
-│       │ 监听双层流事件 (ai:agent:event)│                                                │
-│       ├─ Step Stream: 步进进度 (Stepper)                                               │
-│       ├─ Token Stream: 实时打字机思考摘要                                             │
-│       └─ Proposal Stream: 结构化提议清单                                               │
+│  agentRun({ agentType, skillId, context }) ──┐                                         │
+│       ▲                                      │                                         │
+│       │ 监听流式事件 (ai:agent:stream)       │                                         │
+│       ├─ Thinking Stream: 实时折叠推理流 (DeepSeek R1 / CoT)                           │
+│       ├─ Step & Token Stream: 实时打字机与工具进度                                     │
+│       ├─ Compaction Notification: 自动长上下文压缩提示                                 │
+│       └─ Proposal Stream: 结构化提议清单 (日历/草稿/分箱/发票)                          │
 │       │                                                                                │
-│  [HITL 审查区] 用户勾选/编辑提议 ──> agentApplyProposal({ proposalId, approved: true })│
-└───────┼───────────────────────────────┬────────────────────────────────────────────────┘
-        │                               │
-        ▼ (IPC Bridge)                  ▼ (IPC Bridge)
+│  [HITL 审查区] 用户勾选/编辑提议 ──> acceptSelected() / acceptAll()                    │
+└───────┼──────────────────────────────────────┬─────────────────────────────────────────┘
+        │                                      │
+        ▼ (IPC Bridge)                         ▼ (IPC Bridge)
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        2. Electron 主进程 Agent 协调器 (Main Process)                   │
+│                        2. Electron 主进程 Agent 协调器 (Inspired by pi)                 │
 │                                                                                        │
 │   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ AgentSessionCoordinator & Planner                                              │   │
-│   │  ├─ 维护会话生命周期: Idle -> Planning -> ToolExecuting -> ProposalReview     │   │
-│   │  └─ 负责超时控制 (60s)、最大步数截断 (Max 8 Steps) 与 AbortController 管理      │   │
+│   │ AgentLoop 事件流循环引擎 (electron/ai/agent/loop.ts)                            │   │
+│   │  ├─ 细粒度事件流: step -> thinking_token -> token -> tool_start/end -> proposal│   │
+│   │  ├─ 生命周期拦截沙箱: beforeToolCall (安全策略/HITL阻断) & afterToolCall (脱敏) │   │
+│   │  ├─ 场景专属技能管理: SkillsManager (内置4大技能 + 支持 .skills/ 动态加载)     │   │
+│   │  ├─ 上下文自适应压缩: Compaction (Token预算估算 + 历史分段摘要快照)            │   │
+│   │  └─ 负责超时控制 (60s)、最大轮次截断与 AbortController 实时中断取消           │   │
 │   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
 │                                          │                                             │
 │                     ┌────────────────────┴────────────────────┐                        │
 │                     ▼                                         ▼                        │
 │   ┌───────────────────────────────────┐     ┌──────────────────────────────────────┐   │
 │   │ Read-Only Tools (只读执行沙箱)    │     │ Mutation Proposals (变更提议生成器)  │   │
-│   │ ├─ search_messages (FTS 检索)     │     │ ├─ propose_draft_reply               │   │
-│   │ ├─ get_thread_context (会话清洗)  │     │ ├─ propose_split_change              │   │
-│   │ ├─ get_folder_stats (统计指标)    │     │ ├─ propose_calendar_event (RFC 5545) │   │
-│   │ ├─ extract_action_items (抽取待办)│     │ └─ propose_batch_archive (整理清单)  │   │
-│   │ └─ check_calendar_conflicts       │     │                                      │   │
-│   │    (本地日历冲突对比)             │     │ [严禁直接落库，必须生成 ProposalRecord]│   │
+│   │ ├─ search_messages (FTS 检索)     │     │ ├─ propose_draft_reply (草稿提案)    │   │
+│   │ ├─ extract_meeting_details (会议) │     │ ├─ propose_calendar_event (RFC 5545) │   │
+│   │ ├─ extract_invoice_entries (发票) │     │ ├─ propose_invoice_entry (报销提案)  │   │
+│   │ ├─ extract_commitments (待办提取) │     │ ├─ propose_split_change (分箱调整)   │   │
+│   │ └─ extract_triage_suggestions     │     │ └─ propose_batch_archive (整理清单)  │   │
+│   │    (重要度与紧急度评估)           │     │ [严禁直接落库，必须生成 ProposalRecord]│   │
 │   └───────────────────────────────────┘     └──────────────────────────────────────┘   │
 │                                                                                        │
 │   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+│   │ SQLite 本地多轮会话持久化 (agent_sessions & agent_messages)                      │   │
+│   │ 完整持久化会话上下文、思维链 (Thinking Stream)、工具调用与 HITL 待执行提议     │   │
+│   ├────────────────────────────────────────────────────────────────────────────────┤   │
 │   │ 3. 受控执行引擎 (Controlled Execution Engine)                                   │   │
-│   │ 仅在收到用户批准 (agentApplyProposal) 后，以原子事务更新 SQLite 与触发增量同步   │   │
+│   │ 仅在收到用户批准 (acceptSelected / acceptAll) 后，以原子事务更新 SQLite / 草稿箱 │   │
 │   └────────────────────────────────────────────────────────────────────────────────┘   │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```

@@ -115,8 +115,11 @@
 | W3-11 | DeepSeek 预设与 R1 思考流 | `https://api.deepseek.com` · `deepseek-chat` / `deepseek-reasoner` · `reasoning_content` 提取 | [x]  |
 | W3-12 | 小米 MiMo 预设与多模态    | `https://api.xiaomimimo.com/v1` · `mimo-v2.5` / `mimo-v2.5-pro` / `mimo-v2.5-tts`             | [x]  |
 | W3-13 | 动态模型拉取              | 远程 `GET /models` & 本地 Ollama `GET /api/tags` 一键同步下拉                                 | [x]  |
-| W3-14 | 账户余额/额度查询         | DeepSeek `GET /user/balance` 实时查询余额与可用性                                             | [x]  |
 | W3-15 | 语音听写与朗读能力        | Composer 语音输入 (STT) + Capsule 邮件/摘要朗读 (Web Speech / MiMo TTS)                       | [x]  |
+| W3-16 | pi 事件流循环引擎 (AgentLoop) | 细粒度事件派发通道 (`thinking_token`, `token`, `tool_start/end`, `proposal`) + 沙箱拦截      | [x]  |
+| W3-17 | 场景专属技能包系统 (Skills)   | Markdown + YAML Frontmatter 动态加载，内置会议提取、发票报销、商务外联、智能分箱 4 大技能     | [x]  |
+| W3-18 | 上下文自适应压缩 (Compaction) | 中英混合字符精准 Token 估算 + 历史分段摘要快照，防止长对话溢出                                | [x]  |
+| W3-19 | 智能体会话持久化 (SQLite)     | `agent_sessions` & `agent_messages` 本地持久化，完整记录思维链、工具调用与提案               | [x]  |
 
 ### Wave-3 重点任务执行步骤细化
 
@@ -255,3 +258,4 @@
 | 日期    | 变更                                                                               |
 | ------- | ---------------------------------------------------------------------------------- |
 | 2026-03 | 初版：grill-me 冻结 Wave-1；头脑风暴写入 Wave-2/3/灵感池；代码骨架落地于 `feat/ai` |
+| 2026-08 | 落地多 Provider、模型发现、余额查询与语音交互；融合 `pi` 智能体循环架构与专属技能包 |
