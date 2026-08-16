@@ -122,6 +122,10 @@ export async function runAgentWorkflow(
     const contextMessageId = typeof context.messageId === "string" ? context.messageId : "";
     const cleanedBody = cleanContext(contextBody, 4000);
 
+    // Stream initial thinking token
+    const initialThinking = `【思考分析】任务类型: ${skill?.name || getAgentTypeLabel(agentType)}\n正在加载邮件主题「${contextSubject ? contextSubject.slice(0, 30) : "未命名邮件"}」与语境...\n`;
+    await loop.emitThinkingToken(initialThinking);
+
     // ── Step 2: Tool Execution & Specialization ───────────────────
     checkAborted();
     await loop.dispatchEvent({
