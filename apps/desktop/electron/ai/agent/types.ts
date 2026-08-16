@@ -1,8 +1,22 @@
 export type AgentType =
-  "daily_briefing" | "meeting_extractor" | "batch_triage" | "followup_sequence" | "custom";
+  | "daily_briefing"
+  | "meeting_extractor"
+  | "batch_triage"
+  | "followup_sequence"
+  | "invoice_scanner"
+  | "outreach_translator"
+  | "smart_sorter"
+  | "custom";
 
 export type AgentStatus =
-  "idle" | "planning" | "executing_tools" | "review_pending" | "completed" | "cancelled" | "error";
+  | "idle"
+  | "thinking"
+  | "planning"
+  | "executing_tools"
+  | "review_pending"
+  | "completed"
+  | "cancelled"
+  | "error";
 
 export type AgentStepEvent = {
   type: "step";
@@ -11,9 +25,44 @@ export type AgentStepEvent = {
   message: string;
 };
 
+export type AgentThinkingTokenEvent = {
+  type: "thinking_token";
+  textChunk: string;
+};
+
 export type AgentTokenEvent = {
   type: "token";
   textChunk: string;
+};
+
+export type AgentToolStartEvent = {
+  type: "tool_start";
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+};
+
+export type AgentToolUpdateEvent = {
+  type: "tool_update";
+  toolCallId: string;
+  toolName: string;
+  progressMessage: string;
+};
+
+export type AgentToolEndEvent = {
+  type: "tool_end";
+  toolCallId: string;
+  toolName: string;
+  success: boolean;
+  result?: unknown;
+  error?: string;
+  durationMs: number;
+};
+
+export type AgentCompactionEvent = {
+  type: "compaction";
+  compactedTokens: number;
+  summary: string;
 };
 
 export type AgentProposalCalendarItem = {
@@ -47,8 +96,23 @@ export type AgentProposalSplitItem = {
   selected: boolean;
 };
 
+export type AgentProposalInvoiceItem = {
+  id: string;
+  kind: "invoice_entry";
+  invoiceNumber?: string;
+  vendorName: string;
+  amount: number;
+  currency: string;
+  category: string;
+  date?: string;
+  selected: boolean;
+};
+
 export type AgentProposalItem =
-  AgentProposalCalendarItem | AgentProposalDraftItem | AgentProposalSplitItem;
+  | AgentProposalCalendarItem
+  | AgentProposalDraftItem
+  | AgentProposalSplitItem
+  | AgentProposalInvoiceItem;
 
 export type AgentProposalData = {
   title: string;
@@ -65,6 +129,7 @@ export type AgentProposalEvent = {
 export type AgentDoneEvent = {
   type: "done";
   summary: string;
+  thinking?: string;
 };
 
 export type AgentErrorEvent = {
@@ -74,11 +139,68 @@ export type AgentErrorEvent = {
 };
 
 export type AgentStreamEvent =
-  AgentStepEvent | AgentTokenEvent | AgentProposalEvent | AgentDoneEvent | AgentErrorEvent;
+  | AgentStepEvent
+  | AgentThinkingTokenEvent
+  | AgentTokenEvent
+  | AgentToolStartEvent
+  | AgentToolUpdateEvent
+  | AgentToolEndEvent
+  | AgentCompactionEvent
+  | AgentProposalEvent
+  | AgentDoneEvent
+  | AgentErrorEvent;
 
 export type AgentRunParams = {
   agentType: AgentType;
   prompt?: string;
   context?: Record<string, unknown>;
   requestId?: string;
+  sessionId?: string;
+  skillId?: string;
 };
+
+export type AgentSkillDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  version: string;
+  author?: string;
+  tags?: string[];
+  systemPrompt: string;
+  allowedTools: string[];
+  defaultParameters?: Record<string, unknown>;
+};
+
+export type AgentSession = {
+  id: string;
+  title: string;
+  skillId?: string;
+  createdAt: number;
+  updatedAt: number;
+  compactedSummary?: string;
+};
+
+export type AgentMessageRecord = {
+  id: string;
+  sessionId: string;
+  role: "user" | "assistant" | "system" | "tool";
+  content: string;
+  thinkingContent?: string;
+  toolCalls?: string;
+  proposals?: string;
+  createdAt: number;
+};
+
+export interface BeforeToolCallResult {
+  block?: boolean;
+  reason?: string;
+  terminate?: boolean;
+}
+
+export interface AfterToolCallResult {
+  content?: string;
+  details?: unknown;
+  isError?: boolean;
+  terminate?: boolean;
+}

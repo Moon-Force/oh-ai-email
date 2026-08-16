@@ -213,6 +213,27 @@ describe("Agent Workflow Engine", () => {
     expect(calEvent?.title).toContain("今日工作规划");
   });
 
+  it("runs invoice_scanner skill workflow and extracts financial entries", async () => {
+    const events: AgentStreamEvent[] = [];
+    const proposal = await runAgentWorkflow({
+      agentType: "invoice_scanner",
+      context: {
+        subject: "阿里云电子发票开具通知",
+        from: "billing@service.aliyun.com",
+        body: "您的云服务器消费发票已开具，金额 899.00 CNY。",
+      },
+      onEvent: (evt) => events.push(evt),
+    });
+
+    expect(proposal.items.length).toBeGreaterThan(0);
+    const invItem = proposal.items.find((i) => i.kind === "invoice_entry");
+    expect(invItem).toBeDefined();
+    if (invItem && invItem.kind === "invoice_entry") {
+      expect(invItem.amount).toBe(899.0);
+      expect(invItem.currency).toBe("CNY");
+    }
+  });
+
   it("handles workflow abort correctly", async () => {
     const reqId = "test_req_abort";
     const events: AgentStreamEvent[] = [];

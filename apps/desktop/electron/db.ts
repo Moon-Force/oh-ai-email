@@ -145,6 +145,31 @@ function migrate() {
   d.run(`CREATE INDEX IF NOT EXISTS idx_messages_snooze ON messages(snoozed_until);`);
 
   d.run(`
+    CREATE TABLE IF NOT EXISTS agent_sessions (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      skill_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      compacted_summary TEXT
+    );
+  `);
+
+  d.run(`
+    CREATE TABLE IF NOT EXISTS agent_messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      thinking_content TEXT,
+      tool_calls TEXT,
+      proposals TEXT,
+      created_at INTEGER NOT NULL
+    );
+  `);
+  d.run(`CREATE INDEX IF NOT EXISTS idx_agent_messages_session ON agent_messages(session_id, created_at ASC);`);
+
+  d.run(`
     CREATE TABLE IF NOT EXISTS attachments (
       id TEXT PRIMARY KEY,
       message_id TEXT NOT NULL,
@@ -516,3 +541,128 @@ function mapMessage(r: Record<string, unknown>): MessageRecord {
     isMuted: Number(r.is_muted) === 1,
   };
 }
+
+export interface AgentSessionRecord {
+  id: string;
+  title: string;
+  skillId?: string;
+  createdAt: number;
+  updatedAt: number;
+  compactedSummary?: string;
+}
+
+export interface AgentMessageDbRecord {
+  id: string;
+  sessionId: string;
+  role: "user" | "assistant" | "system" | "tool";
+  content: string;
+  thinkingContent?: string;
+  toolCalls?: string;
+  proposals?: string;
+  createdAt: number;
+}
+
+export function createAgentSession(session: AgentSessionRecord): void {
+  const d = getDb();
+  d.run(
+    `INSERT OR REPLACE INTO agent_sessions (id, title, skill_id, created_at, updated_at, compacted_summary)
+     VALUES (?, ?, ?, ?, ?, ?);`,
+    [
+      session.id,
+      session.title,
+      session.skillId ?? null,
+      session.createdAt,
+      session.updatedAt,
+      session.compactedSummary ?? null,
+    ]
+  );
+  persist();
+}
+
+export function listAgentSessions(): AgentSessionRecord[] {
+  const d = getDb();
+  const rows = rowsFrom(
+    d.prepare(`SELECT id, title, skill_id, created_at, updated_at, compacted_summary FROM agent_sessions ORDER BY updated_at DESC;`)
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    title: String(r.title),
+    skillId: r.skill_id != null ? String(r.skill_id) : undefined,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+    compactedSummary: r.compacted_summary != null ? String(r.compacted_summary) : undefined,
+  }));
+}
+
+export function getAgentSession(id: string): AgentSessionRecord | null {
+  const d = getDb();
+  const stmt = d.prepare(`SELECT id, title, skill_id, created_at, updated_at, compacted_summary FROM agent_sessions WHERE id = ?;`);
+  stmt.bind([id]);
+  if (!stmt.step()) {
+    stmt.free();
+    return null;
+  }
+  const r = stmt.getAsObject();
+  stmt.free();
+  return {
+    id: String(r.id),
+    title: String(r.title),
+    skillId: r.skill_id != null ? String(r.skill_id) : undefined,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+    compactedSummary: r.compacted_summary != null ? String(r.compacted_summary) : undefined,
+  };
+}
+
+export function deleteAgentSession(id: string): void {
+  const d = getDb();
+  d.run(`DELETE FROM agent_messages WHERE session_id = ?;`, [id]);
+  d.run(`DELETE FROM agent_sessions WHERE id = ?;`, [id]);
+  persist();
+}
+
+export function insertAgentMessage(msg: AgentMessageDbRecord): void {
+  const d = getDb();
+  d.run(
+    `INSERT INTO agent_messages (id, session_id, role, content, thinking_content, tool_calls, proposals, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+    [
+      msg.id,
+      msg.sessionId,
+      msg.role,
+      msg.content,
+      msg.thinkingContent ?? null,
+      msg.toolCalls ?? null,
+      msg.proposals ?? null,
+      msg.createdAt,
+    ]
+  );
+  d.run(`UPDATE agent_sessions SET updated_at = ? WHERE id = ?;`, [msg.createdAt, msg.sessionId]);
+  persist();
+}
+
+export function listAgentMessages(sessionId: string): AgentMessageDbRecord[] {
+  const d = getDb();
+  const stmt = d.prepare(
+    `SELECT id, session_id, role, content, thinking_content, tool_calls, proposals, created_at
+     FROM agent_messages WHERE session_id = ? ORDER BY created_at ASC;`
+  );
+  stmt.bind([sessionId]);
+  const rows: AgentMessageDbRecord[] = [];
+  while (stmt.step()) {
+    const r = stmt.getAsObject();
+    rows.push({
+      id: String(r.id),
+      sessionId: String(r.session_id),
+      role: String(r.role) as AgentMessageDbRecord["role"],
+      content: String(r.content),
+      thinkingContent: r.thinking_content != null ? String(r.thinking_content) : undefined,
+      toolCalls: r.tool_calls != null ? String(r.tool_calls) : undefined,
+      proposals: r.proposals != null ? String(r.proposals) : undefined,
+      createdAt: Number(r.created_at),
+    });
+  }
+  stmt.free();
+  return rows;
+}
+

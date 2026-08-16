@@ -858,3 +858,70 @@ export async function agentAbort(requestId: string): Promise<boolean> {
   if (!api?.agentAbort) return true;
   return api.agentAbort(requestId);
 }
+
+export async function agentListSkills(): Promise<AgentSkillDefinition[]> {
+  const api = getApi();
+  if (!api?.agentListSkills) {
+    return [
+      {
+        id: "meeting_extractor",
+        name: "会议日程提取助手",
+        description: "自动识别邮件中的会议时间、地点、参会人及议程要点，并生成标准日历日程提案",
+        icon: "EventAvailable",
+        version: "1.0.0",
+        tags: ["日程", "会议", "日历"],
+        allowedTools: ["calendar_proposal"],
+        systemPrompt: "",
+      },
+      {
+        id: "invoice_scanner",
+        name: "财务发票与报销整理",
+        description: "精准抽取发票与账单邮件中的开票方、发票号、金额、税率及报销类别",
+        icon: "ReceiptLong",
+        version: "1.0.0",
+        tags: ["财务", "报销", "发票"],
+        allowedTools: ["invoice_proposal"],
+        systemPrompt: "",
+      },
+      {
+        id: "outreach_translator",
+        name: "跨语种商务邮件外联",
+        description: "支持中/英/日/德等跨语种商务邮件互译与得体商务语气润色",
+        icon: "Translate",
+        version: "1.0.0",
+        tags: ["翻译", "商务外联", "润色"],
+        allowedTools: ["draft_proposal"],
+        systemPrompt: "",
+      },
+      {
+        id: "smart_sorter",
+        name: "智能分箱与批量归档",
+        description: "基于发件人画像与内容紧急度，智能划分「重要/其他」分箱并推荐归档策略",
+        icon: "FolderSpecial",
+        version: "1.0.0",
+        tags: ["分箱", "归档", "整理"],
+        allowedTools: ["split_proposal"],
+        systemPrompt: "",
+      },
+    ];
+  }
+  return api.agentListSkills();
+}
+
+export async function agentListSessions(): Promise<AgentSession[]> {
+  const api = getApi();
+  if (!api?.agentListSessions) return [];
+  return api.agentListSessions();
+}
+
+export async function agentListMessages(sessionId: string): Promise<AgentMessageRecord[]> {
+  const api = getApi();
+  if (!api?.agentListMessages) return [];
+  return api.agentListMessages(sessionId);
+}
+
+export async function agentDeleteSession(sessionId: string): Promise<{ ok: boolean }> {
+  const api = getApi();
+  if (!api?.agentDeleteSession) return { ok: true };
+  return api.agentDeleteSession(sessionId);
+}

@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import {
   agentAbort,
+  agentListSkills,
   agentRun,
   mailSaveDraft,
   type AgentProposalCalendarItem,
   type AgentProposalData,
   type AgentProposalDraftItem,
+  type AgentProposalInvoiceItem,
   type AgentProposalSplitItem,
+  type AgentSkillDefinition,
   type AgentStatus,
   type AgentStepEvent,
   type AgentStreamEvent,
@@ -21,6 +24,7 @@ export interface AgentStoreState {
   status: AgentStatus;
   steps: AgentStepEvent[];
   currentStepIndex: number;
+  thinkingText: string;
   streamText: string;
   proposal: AgentProposalData | null;
   activeReqId: string | null;
@@ -28,11 +32,17 @@ export interface AgentStoreState {
   prompt: string;
   context: Record<string, unknown>;
 
+  // Skills
+  skills: AgentSkillDefinition[];
+  selectedSkillId: string | null;
+
   // Actions
   openDrawer: (agentType?: AgentType, context?: Record<string, unknown>, prompt?: string) => void;
   closeDrawer: () => void;
   setAgentType: (type: AgentType) => void;
   setPrompt: (p: string) => void;
+  loadSkills: () => Promise<void>;
+  selectSkill: (skillId: string) => void;
   runWorkflow: (
     agentType?: AgentType,
     prompt?: string,
@@ -46,12 +56,14 @@ export interface AgentStoreState {
     drafts: AgentProposalDraftItem[];
     calendarEvents: AgentProposalCalendarItem[];
     splitChanges: AgentProposalSplitItem[];
+    invoices: AgentProposalInvoiceItem[];
   }>;
   acceptAll: () => Promise<{
     acceptedCount: number;
     drafts: AgentProposalDraftItem[];
     calendarEvents: AgentProposalCalendarItem[];
     splitChanges: AgentProposalSplitItem[];
+    invoices: AgentProposalInvoiceItem[];
   }>;
   dismiss: () => void;
   reset: () => void;
@@ -63,20 +75,25 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
   status: "idle",
   steps: [],
   currentStepIndex: 0,
+  thinkingText: "",
   streamText: "",
   proposal: null,
   activeReqId: null,
   error: null,
   prompt: "",
   context: {},
+  skills: [],
+  selectedSkillId: "meeting_extractor",
 
   openDrawer: (agentType, context, prompt) => {
     set((s) => ({
       open: true,
       agentType: agentType ?? s.agentType,
+      selectedSkillId: agentType ?? s.selectedSkillId,
       context: context ?? s.context,
       prompt: prompt !== undefined ? prompt : s.prompt,
     }));
+    get().loadSkills();
   },
 
   closeDrawer: () => {
@@ -84,11 +101,29 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
   },
 
   setAgentType: (agentType) => {
-    set({ agentType });
+    set({ agentType, selectedSkillId: agentType });
   },
 
   setPrompt: (prompt) => {
     set({ prompt });
+  },
+
+  loadSkills: async () => {
+    try {
+      const skills = await agentListSkills();
+      if (skills && skills.length > 0) {
+        set({ skills });
+      }
+    } catch {
+      // ignore
+    }
+  },
+
+  selectSkill: (skillId) => {
+    set({
+      selectedSkillId: skillId,
+      agentType: (skillId as AgentType) || "custom",
+    });
   },
 
   runWorkflow: async (agentType, prompt, context) => {
@@ -99,51 +134,72 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     const startTime = Date.now();
 
     set({
-      agentType: targetType,
-      prompt: targetPrompt,
-      context: targetContext,
       status: "planning",
+      error: null,
       steps: [],
       currentStepIndex: 0,
+      thinkingText: "",
       streamText: "",
       proposal: null,
       activeReqId: requestId,
-      error: null,
+      agentType: targetType,
+      prompt: targetPrompt,
+      context: targetContext,
     });
 
     try {
       const proposal = await agentRun(
         {
           agentType: targetType,
+          skillId: get().selectedSkillId || undefined,
           prompt: targetPrompt,
           context: targetContext,
           requestId,
         },
         (evt: AgentStreamEvent) => {
-          if (evt.type === "step") {
-            set((s) => ({
-              steps: [...s.steps.filter((st) => st.stepIndex !== evt.stepIndex), evt],
-              currentStepIndex: evt.stepIndex,
-              status:
-                evt.stepIndex === 1
-                  ? "planning"
-                  : evt.stepIndex === 2
-                    ? "executing_tools"
-                    : "review_pending",
-            }));
-          } else if (evt.type === "token") {
-            set((s) => ({ streamText: s.streamText + evt.textChunk }));
-          } else if (evt.type === "proposal") {
-            set({ proposal: evt.data, status: "review_pending" });
-          } else if (evt.type === "done") {
-            set((s) => ({
-              status: s.proposal ? "review_pending" : "completed",
-            }));
-          } else if (evt.type === "error") {
-            set({
-              status: evt.code === "ABORTED" ? "cancelled" : "error",
-              error: evt.message,
-            });
+          if (get().activeReqId !== requestId) return;
+
+          switch (evt.type) {
+            case "step":
+              set((s) => ({
+                steps: [...s.steps.filter((st) => st.stepIndex !== evt.stepIndex), evt],
+                currentStepIndex: evt.stepIndex,
+                status: evt.stepIndex === 2 ? "executing_tools" : "planning",
+              }));
+              break;
+            case "thinking_token":
+              set((s) => ({
+                thinkingText: s.thinkingText + evt.textChunk,
+                status: "thinking",
+              }));
+              break;
+            case "token":
+              set((s) => ({
+                streamText: s.streamText + evt.textChunk,
+              }));
+              break;
+            case "compaction":
+              set((s) => ({
+                streamText: s.streamText + `\n[系统] 已自动压缩前序历史对话 (${evt.compactedTokens} tokens)\n`,
+              }));
+              break;
+            case "proposal":
+              set({
+                proposal: evt.data,
+                status: "review_pending",
+              });
+              break;
+            case "done":
+              set((s) => ({
+                status: s.proposal ? "review_pending" : "completed",
+              }));
+              break;
+            case "error":
+              set({
+                status: evt.code === "ABORTED" ? "cancelled" : "error",
+                error: evt.message,
+              });
+              break;
           }
         }
       );
@@ -154,30 +210,32 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
         activeReqId: null,
       });
 
-      useAiAuditStore.getState().recordCall({
-        mode: "cloud",
-        task: `agent:${targetType}`,
-        charCount: targetPrompt.length + (proposal?.summary?.length ?? 0),
-        durationMs: Date.now() - startTime,
+      useAiAuditStore.getState().recordLog({
+        feature: `agent:${targetType}`,
+        promptLength: targetPrompt.length,
+        responseLength: proposal.summary.length,
         status: "success",
-      });
-    } catch (err) {
-      const isAbort =
-        err instanceof Error && (err.name === "AbortError" || err.message.includes("已取消"));
-
-      set({
-        status: isAbort ? "cancelled" : "error",
-        error: err instanceof Error ? err.message : String(err),
-        activeReqId: null,
-      });
-
-      useAiAuditStore.getState().recordCall({
-        mode: "cloud",
-        task: `agent:${targetType}`,
-        charCount: targetPrompt.length,
         durationMs: Date.now() - startTime,
-        status: isAbort ? "aborted" : "error",
+        isSensitive: false,
       });
+    } catch (err: unknown) {
+      if (get().activeReqId === requestId) {
+        const isAbort = err instanceof Error && err.name === "AbortError";
+        set({
+          status: isAbort ? "cancelled" : "error",
+          error: err instanceof Error ? err.message : String(err),
+          activeReqId: null,
+        });
+
+        useAiAuditStore.getState().recordLog({
+          feature: `agent:${targetType}`,
+          promptLength: targetPrompt.length,
+          responseLength: 0,
+          status: isAbort ? "cancelled" : "error",
+          durationMs: Date.now() - startTime,
+          isSensitive: false,
+        });
+      }
     }
   },
 
@@ -185,94 +243,75 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     const reqId = get().activeReqId;
     if (reqId) {
       await agentAbort(reqId);
+      set({
+        status: "cancelled",
+        activeReqId: null,
+      });
     }
-    set({
-      status: "cancelled",
-      error: "任务已手动取消",
-      activeReqId: null,
+  },
+
+  toggleItemSelection: (id) => {
+    set((s) => {
+      if (!s.proposal) return s;
+      return {
+        proposal: {
+          ...s.proposal,
+          items: s.proposal.items.map((it) => (it.id === id ? { ...it, selected: !it.selected } : it)),
+        },
+      };
     });
   },
 
-  toggleItemSelection: (id: string) => {
-    const proposal = get().proposal;
-    if (!proposal) return;
-
-    const nextItems = proposal.items.map((item) =>
-      item.id === id ? { ...item, selected: !item.selected } : item
-    );
-
-    set({
-      proposal: {
-        ...proposal,
-        items: nextItems,
-      },
-    });
-  },
-
-  selectAllItems: (selected: boolean) => {
-    const proposal = get().proposal;
-    if (!proposal) return;
-
-    const nextItems = proposal.items.map((item) => ({ ...item, selected }));
-
-    set({
-      proposal: {
-        ...proposal,
-        items: nextItems,
-      },
+  selectAllItems: (selected) => {
+    set((s) => {
+      if (!s.proposal) return s;
+      return {
+        proposal: {
+          ...s.proposal,
+          items: s.proposal.items.map((it) => ({ ...it, selected })),
+        },
+      };
     });
   },
 
   acceptSelected: async () => {
     const proposal = get().proposal;
     if (!proposal) {
-      return { acceptedCount: 0, drafts: [], calendarEvents: [], splitChanges: [] };
+      return { acceptedCount: 0, drafts: [], calendarEvents: [], splitChanges: [], invoices: [] };
     }
 
-    const selectedItems = proposal.items.filter((i) => i.selected);
+    const selectedItems = proposal.items.filter((it) => it.selected);
     const drafts: AgentProposalDraftItem[] = [];
     const calendarEvents: AgentProposalCalendarItem[] = [];
     const splitChanges: AgentProposalSplitItem[] = [];
+    const invoices: AgentProposalInvoiceItem[] = [];
+
+    const mailStore = useMailStore.getState();
 
     for (const item of selectedItems) {
-      if (item.kind === "split_change") {
-        splitChanges.push(item);
-        if (item.messageId && (item.targetSplit === "important" || item.targetSplit === "other")) {
-          useMailStore.getState().setMessageSplit(item.messageId, item.targetSplit);
-        }
-      } else if (item.kind === "draft_reply") {
+      if (item.kind === "draft_reply") {
         drafts.push(item);
-        void mailSaveDraft({
-          to: item.targetTo,
-          subject: item.subject,
-          body: item.body,
-        });
+        try {
+          await mailSaveDraft({
+            to: [item.targetTo],
+            subject: item.subject,
+            body: item.body,
+          });
+        } catch {
+          // ignore draft saving error
+        }
       } else if (item.kind === "calendar_event") {
         calendarEvents.push(item);
-        if (item.icsContent && typeof window !== "undefined") {
-          try {
-            const blob = new Blob([item.icsContent], { type: "text/calendar;charset=utf-8" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${item.title.replace(/[^\w\u4e00-\u9fa5-_]+/g, "_")}.ics`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          } catch {
-            // Ignore download error in non-browser context
-          }
-        }
+      } else if (item.kind === "split_change") {
+        splitChanges.push(item);
+        mailStore.setMessageSplit(item.messageId, item.targetSplit);
+      } else if (item.kind === "invoice_entry") {
+        invoices.push(item);
       }
     }
 
     set({
       status: "completed",
-      proposal: {
-        ...proposal,
-        summary: `已成功采纳 ${selectedItems.length} 项操作（草稿 ${drafts.length} 封，日程 ${calendarEvents.length} 项，分箱 ${splitChanges.length} 条）。`,
-      },
     });
 
     return {
@@ -280,6 +319,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
       drafts,
       calendarEvents,
       splitChanges,
+      invoices,
     };
   },
 
@@ -292,22 +332,28 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     set({
       proposal: null,
       status: "idle",
-      streamText: "",
       steps: [],
+      currentStepIndex: 0,
+      thinkingText: "",
+      streamText: "",
       error: null,
     });
   },
 
   reset: () => {
     set({
+      open: false,
+      agentType: "daily_briefing",
       status: "idle",
       steps: [],
       currentStepIndex: 0,
+      thinkingText: "",
       streamText: "",
       proposal: null,
       activeReqId: null,
       error: null,
       prompt: "",
+      context: {},
     });
   },
 }));

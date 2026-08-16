@@ -13,10 +13,10 @@ describe("AgentDrawer Component", () => {
   it("renders closed when open is false", () => {
     useAgentStore.setState({ open: false });
     render(wrap(<AgentDrawer />));
-    expect(screen.queryByText("AI 智能工作流")).not.toBeInTheDocument();
+    expect(screen.queryByText("AI 智能体工作流")).not.toBeInTheDocument();
   });
 
-  it("renders correctly when open with proposal cards", () => {
+  it("renders correctly when open with proposal cards and thinking stream", () => {
     const mockProposal: AgentProposalData = {
       title: "每日简报建议",
       summary: "已生成 1 项会议日程与 1 封回复草稿",
@@ -46,19 +46,21 @@ describe("AgentDrawer Component", () => {
       open: true,
       status: "review_pending",
       proposal: mockProposal,
+      thinkingText: "深度思考过程：已识别关键时间点...",
       streamText: "正在分析数据并生成提议...",
     });
 
     render(wrap(<AgentDrawer />));
 
-    expect(screen.getByText("AI 智能工作流")).toBeInTheDocument();
+    expect(screen.getByText("AI 智能体工作流")).toBeInTheDocument();
     expect(screen.getByText("每日简报建议")).toBeInTheDocument();
     expect(screen.getByText("产品评审会")).toBeInTheDocument();
     expect(screen.getByText("Re: 进度汇报")).toBeInTheDocument();
+    expect(screen.getByText("深度思考过程 (Thinking Stream)")).toBeInTheDocument();
 
     // Check action buttons
-    expect(screen.getByRole("button", { name: "确认采纳所选项" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "一键全部采纳" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /采纳已选/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "全部采纳" })).toBeInTheDocument();
   });
 
   it("toggles item checkbox on click", () => {
@@ -86,11 +88,12 @@ describe("AgentDrawer Component", () => {
 
     render(wrap(<AgentDrawer />));
 
-    const checkbox = screen.getByRole("checkbox", { name: "" });
+    const checkboxes = screen.getAllByRole("checkbox");
+    // Find the item checkbox
+    const itemCheckbox = checkboxes[checkboxes.length - 1];
+    expect(itemCheckbox).toBeChecked();
 
-    expect(checkbox).toBeChecked();
-
-    fireEvent.click(checkbox);
+    fireEvent.click(itemCheckbox);
     expect(useAgentStore.getState().proposal?.items[0].selected).toBe(false);
   });
 
@@ -106,16 +109,21 @@ describe("AgentDrawer Component", () => {
     const dailyBtn = screen.getByTestId("quick-agent-daily-briefing");
     const followupBtn = screen.getByTestId("quick-agent-followup");
     const triageBtn = screen.getByTestId("quick-agent-triage");
+    const invoiceBtn = screen.getByTestId("quick-agent-invoice");
 
     expect(dailyBtn).toBeInTheDocument();
     expect(followupBtn).toBeInTheDocument();
     expect(triageBtn).toBeInTheDocument();
+    expect(invoiceBtn).toBeInTheDocument();
 
     fireEvent.click(followupBtn);
     expect(useAgentStore.getState().agentType).toBe("followup_sequence");
 
     fireEvent.click(triageBtn);
-    expect(useAgentStore.getState().agentType).toBe("batch_triage");
+    expect(useAgentStore.getState().agentType).toBe("smart_sorter");
+
+    fireEvent.click(invoiceBtn);
+    expect(useAgentStore.getState().agentType).toBe("invoice_scanner");
 
     fireEvent.click(dailyBtn);
     expect(useAgentStore.getState().agentType).toBe("daily_briefing");

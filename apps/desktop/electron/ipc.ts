@@ -686,6 +686,23 @@ export async function registerIpc(): Promise<void> {
     return abortAgentWorkflow(requestId);
   });
 
+  ipcMain.handle("agent:skills:list", () => {
+    return defaultSkillsManager.listSkills();
+  });
+
+  ipcMain.handle("agent:sessions:list", () => {
+    return listAgentSessions();
+  });
+
+  ipcMain.handle("agent:sessions:messages", (_e, sessionId: string) => {
+    return listAgentMessages(sessionId);
+  });
+
+  ipcMain.handle("agent:sessions:delete", (_e, sessionId: string) => {
+    deleteAgentSession(sessionId);
+    return { ok: true };
+  });
+
   // Check snoozed messages every 15s
   setInterval(() => {
     try {

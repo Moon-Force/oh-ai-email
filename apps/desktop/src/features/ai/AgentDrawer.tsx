@@ -38,6 +38,9 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import PsychologyIcon from "@mui/icons-material/Psychology";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import TranslateIcon from "@mui/icons-material/Translate";
 import { useAgentStore } from "./agentStore";
 import type { AgentProposalItem, AgentType } from "../../lib/ipc";
 
@@ -53,7 +56,17 @@ const AGENT_OPTIONS: { type: AgentType; label: string; description: string }[] =
     description: "提取邮件中的会议时间、地点与参会人并生成 ICS 日历文件",
   },
   {
-    type: "batch_triage",
+    type: "invoice_scanner",
+    label: "财务发票与报销整理",
+    description: "精准抽取发票与账单邮件中的开票方、发票号、金额及报销类别",
+  },
+  {
+    type: "outreach_translator",
+    label: "跨语种商务邮件外联",
+    description: "支持中/英/日/德等商务外语邮件互译与得体语气润色",
+  },
+  {
+    type: "smart_sorter",
     label: "批量分箱智能归类",
     description: "根据邮件特征自动评估重要与其它分箱建议",
   },
@@ -80,6 +93,7 @@ export default function AgentDrawer() {
     status,
     steps,
     currentStepIndex,
+    thinkingText,
     streamText,
     proposal,
     error,
@@ -92,12 +106,16 @@ export default function AgentDrawer() {
     acceptSelected,
     acceptAll,
     dismiss,
+    skills,
+    selectedSkillId,
+    selectSkill,
   } = useAgentStore();
 
+  const [showThinking, setShowThinking] = useState(true);
   const [showLog, setShowLog] = useState(true);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const isRunning = status === "planning" || status === "executing_tools";
+  const isRunning = status === "planning" || status === "executing_tools" || status === "thinking";
 
   const allSelected = Boolean(
     proposal && proposal.items.length > 0 && proposal.items.every((i) => i.selected)
@@ -150,7 +168,7 @@ export default function AgentDrawer() {
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <AutoAwesomeIcon color="primary" fontSize="small" />
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            AI 智能工作流
+            AI 智能体工作流
           </Typography>
           <Chip
             size="small"
@@ -158,7 +176,7 @@ export default function AgentDrawer() {
               status === "idle"
                 ? "就绪"
                 : isRunning
-                  ? "运行中"
+                  ? "思考与执行中"
                   : status === "review_pending"
                     ? "待审阅"
                     : status === "completed"
@@ -189,171 +207,186 @@ export default function AgentDrawer() {
       {/* Body Content */}
       <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
         <Stack spacing={2.5}>
-          {/* Quick Agent Shortcuts */}
+          {/* Quick Agent Skills Shortcuts */}
           <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "action.hover" }}>
             <Typography
               variant="caption"
               color="text.secondary"
               sx={{ fontWeight: 600, mb: 1, display: "block" }}
             >
-              快捷智能助手
+              场景专属技能 (Skills)
             </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 0.75 }}>
-              <Button
-                size="small"
-                variant={agentType === "daily_briefing" ? "contained" : "outlined"}
-                disabled={isRunning}
-                onClick={() => {
-                  setAgentType("daily_briefing");
-                  setSuccessToast(null);
-                  void runWorkflow("daily_briefing");
-                }}
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              <Chip
                 data-testid="quick-agent-daily-briefing"
-              >
-                今日晨报 (Daily Briefing)
-              </Button>
-              <Button
+                icon={<StarIcon fontSize="small" />}
+                label="每日简报"
                 size="small"
-                variant={agentType === "followup_sequence" ? "contained" : "outlined"}
-                disabled={isRunning}
+                clickable
+                color={selectedSkillId === "daily_briefing" ? "primary" : "default"}
                 onClick={() => {
-                  setAgentType("followup_sequence");
-                  setSuccessToast(null);
-                  void runWorkflow("followup_sequence");
+                  selectSkill("daily_briefing");
+                  setAgentType("daily_briefing");
                 }}
+              />
+              <Chip
+                data-testid="quick-agent-meeting"
+                icon={<EventIcon fontSize="small" />}
+                label="会议提取"
+                size="small"
+                clickable
+                color={selectedSkillId === "meeting_extractor" ? "primary" : "default"}
+                onClick={() => {
+                  selectSkill("meeting_extractor");
+                  setAgentType("meeting_extractor");
+                }}
+              />
+              <Chip
                 data-testid="quick-agent-followup"
-              >
-                未回跟进 (Follow-up)
-              </Button>
-              <Button
+                icon={<ReplyIcon fontSize="small" />}
+                label="跟进草稿"
                 size="small"
-                variant={agentType === "batch_triage" ? "contained" : "outlined"}
-                disabled={isRunning}
+                clickable
+                color={selectedSkillId === "followup_sequence" ? "primary" : "default"}
                 onClick={() => {
-                  setAgentType("batch_triage");
-                  setSuccessToast(null);
-                  void runWorkflow("batch_triage");
+                  selectSkill("followup_sequence");
+                  setAgentType("followup_sequence");
                 }}
+              />
+              <Chip
                 data-testid="quick-agent-triage"
-              >
-                收件箱分拣 (Triage)
-              </Button>
-            </Stack>
+                icon={<LabelIcon fontSize="small" />}
+                label="智能分箱"
+                size="small"
+                clickable
+                color={selectedSkillId === "smart_sorter" || selectedSkillId === "batch_triage" ? "primary" : "default"}
+                onClick={() => {
+                  selectSkill("smart_sorter");
+                  setAgentType("smart_sorter");
+                }}
+              />
+              <Chip
+                data-testid="quick-agent-invoice"
+                icon={<ReceiptLongIcon fontSize="small" />}
+                label="发票报销"
+                size="small"
+                clickable
+                color={selectedSkillId === "invoice_scanner" ? "primary" : "default"}
+                onClick={() => {
+                  selectSkill("invoice_scanner");
+                  setAgentType("invoice_scanner");
+                }}
+              />
+              <Chip
+                data-testid="quick-agent-translator"
+                icon={<TranslateIcon fontSize="small" />}
+                label="商务外联"
+                size="small"
+                clickable
+                color={selectedSkillId === "outreach_translator" ? "primary" : "default"}
+                onClick={() => {
+                  selectSkill("outreach_translator");
+                  setAgentType("outreach_translator");
+                }}
+              />
+            </Box>
           </Paper>
 
-          {/* Agent Type Selector */}
+          {/* Workflow Configuration Form */}
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-            <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
-              <InputLabel id="agent-type-select-label">选择工作流类型</InputLabel>
+            <Stack spacing={2}>
+              <FormControl size="small" fullWidth>
+                <InputLabel id="agent-type-select-label">工作流类型</InputLabel>
+                <Select
+                  labelId="agent-type-select-label"
+                  value={agentType}
+                  label="工作流类型"
+                  onChange={(e) => setAgentType(e.target.value as AgentType)}
+                  disabled={isRunning}
+                >
+                  {AGENT_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.type} value={opt.type}>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {opt.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {opt.description}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-              <Select
-                labelId="agent-type-select-label"
-                value={agentType}
-                label="选择工作流类型"
-                disabled={isRunning}
-                onChange={(e) => setAgentType(e.target.value as AgentType)}
-              >
-                {AGENT_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.type} value={opt.type}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-              {AGENT_OPTIONS.find((o) => o.type === agentType)?.description}
-            </Typography>
-
-            {agentType === "custom" && (
               <TextField
-                fullWidth
                 size="small"
-                multiline
-                rows={2}
-                label="自定义指令 Prompt"
-                placeholder="例如：提取邮件中的行动项并撰写感谢回复..."
+                label="自定义指令或补充需求 (可选)"
+                placeholder="例如：重点提取明天的项目对接会时间，并草拟中文确认邮件..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isRunning}
-                sx={{ mb: 1.5 }}
+                multiline
+                rows={2}
+                fullWidth
               />
-            )}
 
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={
-                isRunning ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />
-              }
-              disabled={isRunning}
-              onClick={handleStart}
-            >
-              {isRunning ? "正在执行智能工作流..." : "运行工作流"}
-            </Button>
+              <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
+                {isRunning ? (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<StopIcon />}
+                    onClick={() => void abortWorkflow()}
+                  >
+                    停止执行
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={handleStart}
+                  >
+                    开始运行
+                  </Button>
+                )}
+              </Stack>
+            </Stack>
           </Paper>
 
           {/* Stepper Progress */}
-          {(isRunning || status === "review_pending" || status === "completed") && (
+          {(isRunning || steps.length > 0) && (
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontWeight: 600, mb: 1.5, display: "block" }}
-              >
-                执行流程进度
-              </Typography>
-              <Stepper activeStep={Math.max(0, currentStepIndex - 1)} alternativeLabel>
+              <Stepper activeStep={currentStepIndex - 1} alternativeLabel size="small">
                 {STEPS.map((label, idx) => (
-                  <Step
-                    key={label}
-                    completed={
-                      currentStepIndex > idx + 1 ||
-                      status === "completed" ||
-                      status === "review_pending"
-                    }
-                  >
+                  <Step key={label} completed={currentStepIndex > idx + 1}>
                     <StepLabel>{label}</StepLabel>
                   </Step>
                 ))}
               </Stepper>
 
-              {steps.length > 0 && (
-                <Box sx={{ mt: 1.5, pt: 1, borderTop: 1, borderColor: "divider" }}>
-                  <Typography variant="caption" color="primary.main" sx={{ fontWeight: 500 }}>
-                    {steps[steps.length - 1]?.message}
+              {isRunning && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 2 }}>
+                  <CircularProgress size={16} />
+                  <Typography variant="caption" color="text.secondary">
+                    {steps[steps.length - 1]?.message || "正在执行工作流..."}
                   </Typography>
                 </Box>
               )}
             </Paper>
           )}
 
-          {/* Error Message */}
-          {error && (
-            <Alert severity="error" onClose={() => dismiss()}>
-              {error}
-            </Alert>
-          )}
-
-          {/* Success Message */}
-          {successToast && (
-            <Alert
-              severity="success"
-              icon={<CheckCircleIcon fontSize="inherit" />}
-              onClose={() => setSuccessToast(null)}
-            >
-              {successToast}
-            </Alert>
-          )}
-
-          {/* Stream Log / Reasoning Output */}
-          {streamText && (
+          {/* Deep Thinking Block (DeepSeek R1 / Reasoning) */}
+          {thinkingText && (
             <Paper
               variant="outlined"
               sx={{
                 p: 1.5,
                 borderRadius: 2,
-                bgcolor: "action.hover",
+                bgcolor: "background.default",
+                borderStyle: "dashed",
               }}
             >
               <Box
@@ -363,38 +396,75 @@ export default function AgentDrawer() {
                   justifyContent: "space-between",
                   cursor: "pointer",
                 }}
-                onClick={() => setShowLog(!showLog)}
+                onClick={() => setShowThinking((v) => !v)}
+              >
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  <PsychologyIcon fontSize="small" color="primary" />
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    深度思考过程 (Thinking Stream)
+                  </Typography>
+                </Stack>
+                <IconButton size="small">
+                  {showThinking ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                </IconButton>
+              </Box>
+
+              <Collapse in={showThinking}>
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    p: 1.5,
+                    bgcolor: "action.hover",
+                    borderRadius: 1.5,
+                    fontFamily: "monospace",
+                    fontSize: "0.75rem",
+                    whiteSpace: "pre-wrap",
+                    color: "text.secondary",
+                    maxHeight: 200,
+                    overflowY: "auto",
+                  }}
+                >
+                  {thinkingText}
+                </Box>
+              </Collapse>
+            </Paper>
+          )}
+
+          {/* Execution Log & Stream output */}
+          {streamText && (
+            <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowLog((v) => !v)}
               >
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                   <TerminalIcon fontSize="small" color="action" />
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    推理与工具执行日志
+                    工作流执行流
                   </Typography>
                 </Stack>
                 <IconButton size="small">
-                  {showLog ? (
-                    <ExpandLessIcon fontSize="small" />
-                  ) : (
-                    <ExpandMoreIcon fontSize="small" />
-                  )}
+                  {showLog ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                 </IconButton>
               </Box>
+
               <Collapse in={showLog}>
                 <Box
-                  component="pre"
                   sx={{
-                    mt: 1,
-                    p: 1,
-                    maxHeight: 180,
-                    overflowY: "auto",
+                    mt: 1.5,
+                    p: 1.5,
+                    bgcolor: "action.hover",
+                    borderRadius: 1.5,
                     fontFamily: "monospace",
                     fontSize: "0.75rem",
                     whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    bgcolor: "background.paper",
-                    borderRadius: 1,
-                    border: 1,
-                    borderColor: "divider",
+                    maxHeight: 180,
+                    overflowY: "auto",
                   }}
                 >
                   {streamText}
@@ -403,20 +473,36 @@ export default function AgentDrawer() {
             </Paper>
           )}
 
-          {/* Proposal Review Section */}
+          {/* Error Message */}
+          {error && <Alert severity="error">{error}</Alert>}
+
+          {/* Success Toast */}
+          {successToast && (
+            <Alert
+              severity="success"
+              onClose={() => setSuccessToast(null)}
+              icon={<CheckCircleIcon fontSize="inherit" />}
+            >
+              {successToast}
+            </Alert>
+          )}
+
+          {/* Proposal Review Section (HITL Gate) */}
           {proposal && (
-            <Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  mb: 1.5,
-                }}
-              >
+            <Stack spacing={2} data-testid="agent-proposal-section">
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   {proposal.title}
                 </Typography>
+                <Chip size="small" label={`${proposal.items.length} 项提议`} color="primary" />
+              </Box>
+
+              <Typography variant="body2" color="text.secondary">
+                {proposal.summary}
+              </Typography>
+
+              {/* Select All Checkbox */}
+              {proposal.items.length > 0 && (
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -424,84 +510,49 @@ export default function AgentDrawer() {
                       checked={allSelected}
                       indeterminate={someSelected}
                       onChange={(e) => selectAllItems(e.target.checked)}
-                      disabled={status === "completed"}
                     />
                   }
                   label={
-                    <Typography variant="caption">{allSelected ? "取消全选" : "全选"}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                      全选 / 取消全选待执行项
+                    </Typography>
                   }
                 />
-              </Box>
+              )}
 
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {proposal.summary}
-              </Typography>
-
+              {/* Proposal Items List */}
               <Stack spacing={1.5}>
                 {proposal.items.map((item) => (
                   <ProposalItemCard
                     key={item.id}
                     item={item}
-                    disabled={status === "completed"}
                     onToggle={() => toggleItemSelection(item.id)}
                   />
                 ))}
               </Stack>
-            </Box>
+
+              {/* Bottom Actions */}
+              <Stack direction="row" spacing={1} sx={{ pt: 1, justifyContent: "space-between" }}>
+                <Button size="small" color="inherit" onClick={dismiss}>
+                  忽略放弃
+                </Button>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleAcceptSelected}
+                    disabled={!proposal.items.some((i) => i.selected)}
+                  >
+                    采纳已选 ({proposal.items.filter((i) => i.selected).length})
+                  </Button>
+                  <Button size="small" variant="contained" onClick={handleAcceptAll}>
+                    全部采纳
+                  </Button>
+                </Stack>
+              </Stack>
+            </Stack>
           )}
         </Stack>
-      </Box>
-
-      {/* Footer Actions */}
-      <Box
-        sx={{
-          p: 2,
-          borderTop: 1,
-          borderColor: "divider",
-          bgcolor: "background.paper",
-        }}
-      >
-        {isRunning ? (
-          <Button
-            fullWidth
-            variant="outlined"
-            color="error"
-            startIcon={<StopIcon />}
-            onClick={() => void abortWorkflow()}
-          >
-            取消任务
-          </Button>
-        ) : proposal ? (
-          <Stack spacing={1}>
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                fullWidth
-                size="small"
-                onClick={handleAcceptAll}
-                disabled={status === "completed"}
-              >
-                一键全部采纳
-              </Button>
-              <Button
-                variant="contained"
-                fullWidth
-                size="small"
-                onClick={handleAcceptSelected}
-                disabled={status === "completed" || !proposal.items.some((i) => i.selected)}
-              >
-                确认采纳所选项
-              </Button>
-            </Stack>
-            <Button variant="text" fullWidth size="small" color="inherit" onClick={dismiss}>
-              放弃 / 清空
-            </Button>
-          </Stack>
-        ) : (
-          <Button fullWidth variant="outlined" size="small" onClick={closeDrawer}>
-            关闭
-          </Button>
-        )}
       </Box>
     </Drawer>
   );
@@ -509,77 +560,72 @@ export default function AgentDrawer() {
 
 function ProposalItemCard({
   item,
-  disabled,
   onToggle,
 }: {
   item: AgentProposalItem;
-  disabled: boolean;
   onToggle: () => void;
 }) {
   if (item.kind === "calendar_event") {
     return (
-      <Card
-        variant="outlined"
-        sx={{
-          borderColor: item.selected ? "primary.main" : "divider",
-          borderWidth: item.selected ? 2 : 1,
-          transition: "border-color 0.2s",
-        }}
-      >
+      <Card variant="outlined" sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
             <Checkbox
               size="small"
               checked={item.selected}
-              disabled={disabled}
               onChange={onToggle}
-              sx={{ p: 0.5, mt: 0.25 }}
+              sx={{ p: 0.5, mt: 0.2 }}
             />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ flex: 1 }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
                 <EventIcon fontSize="small" color="primary" />
-                <Chip size="small" label="日历日程" color="primary" variant="outlined" />
-                <Typography variant="body2" noWrap sx={{ flex: 1, fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {item.title}
                 </Typography>
+                <Chip size="small" label="日历日程" color="info" variant="outlined" />
               </Stack>
-
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                时间：{item.startTime} {item.endTime ? `~ ${item.endTime}` : ""}
+              <Typography variant="caption" color="text.secondary" display="block">
+                时间: {item.startTime} {item.endTime ? `~ ${item.endTime}` : ""}
               </Typography>
               {item.location && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                  地点：{item.location}
+                <Typography variant="caption" color="text.secondary" display="block">
+                  地点: {item.location}
                 </Typography>
               )}
-              {item.attendees && item.attendees.length > 0 && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                  参会人：{item.attendees.join(", ")}
-                </Typography>
-              )}
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+    );
+  }
 
-              {item.icsContent && (
-                <Tooltip title="下载 .ics 日历文件">
-                  <IconButton
-                    size="small"
-                    sx={{ mt: 0.5 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const blob = new Blob([item.icsContent || ""], {
-                        type: "text/calendar;charset=utf-8",
-                      });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `${item.title}.ics`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                  >
-                    <DownloadIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
+  if (item.kind === "invoice_entry") {
+    return (
+      <Card variant="outlined" sx={{ borderRadius: 2 }}>
+        <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+            <Checkbox
+              size="small"
+              checked={item.selected}
+              onChange={onToggle}
+              sx={{ p: 0.5, mt: 0.2 }}
+            />
+            <Box sx={{ flex: 1 }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
+                <ReceiptLongIcon fontSize="small" color="warning" />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {item.vendorName}
+                </Typography>
+                <Chip
+                  size="small"
+                  label={`¥${item.amount.toFixed(2)} (${item.currency})`}
+                  color="warning"
+                  variant="outlined"
+                />
+              </Stack>
+              <Typography variant="caption" color="text.secondary" display="block">
+                报销类别: {item.category} | 日期: {item.date || "近期"}
+              </Typography>
             </Box>
           </Stack>
         </CardContent>
@@ -589,50 +635,35 @@ function ProposalItemCard({
 
   if (item.kind === "draft_reply") {
     return (
-      <Card
-        variant="outlined"
-        sx={{
-          borderColor: item.selected ? "primary.main" : "divider",
-          borderWidth: item.selected ? 2 : 1,
-          transition: "border-color 0.2s",
-        }}
-      >
+      <Card variant="outlined" sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
             <Checkbox
               size="small"
               checked={item.selected}
-              disabled={disabled}
               onChange={onToggle}
-              sx={{ p: 0.5, mt: 0.25 }}
+              sx={{ p: 0.5, mt: 0.2 }}
             />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ flex: 1 }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
-                <ReplyIcon fontSize="small" color="secondary" />
-                <Chip size="small" label="回复草稿" color="secondary" variant="outlined" />
-                <Typography variant="body2" noWrap sx={{ flex: 1, fontWeight: 600 }}>
+                <ReplyIcon fontSize="small" color="primary" />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {item.subject}
                 </Typography>
+                <Chip size="small" label="回复草稿" color="success" variant="outlined" />
               </Stack>
               <Typography
                 variant="caption"
                 color="text.secondary"
-                sx={{ display: "block", mb: 0.5 }}
-              >
-                收件人：{item.targetTo}
-              </Typography>
-              <Box
                 sx={{
-                  p: 1,
-                  bgcolor: "action.hover",
-                  borderRadius: 1,
-                  fontFamily: "inherit",
-                  fontSize: "0.8rem",
-                  whiteSpace: "pre-wrap",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
                 }}
               >
                 {item.body}
-              </Box>
+              </Typography>
             </Box>
           </Stack>
         </CardContent>
@@ -642,42 +673,24 @@ function ProposalItemCard({
 
   if (item.kind === "split_change") {
     return (
-      <Card
-        variant="outlined"
-        sx={{
-          borderColor: item.selected ? "primary.main" : "divider",
-          borderWidth: item.selected ? 2 : 1,
-          transition: "border-color 0.2s",
-        }}
-      >
+      <Card variant="outlined" sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
             <Checkbox
               size="small"
               checked={item.selected}
-              disabled={disabled}
               onChange={onToggle}
-              sx={{ p: 0.5, mt: 0.25 }}
+              sx={{ p: 0.5, mt: 0.2 }}
             />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ flex: 1 }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
-                {item.targetSplit === "important" ? (
-                  <StarIcon fontSize="small" color="warning" />
-                ) : (
-                  <LabelIcon fontSize="small" color="action" />
-                )}
-                <Chip
-                  size="small"
-                  label={`调整至：${item.targetSplit === "important" ? "重要分箱" : "其他分箱"}`}
-                  color={item.targetSplit === "important" ? "warning" : "default"}
-                  variant="outlined"
-                />
+                <LabelIcon fontSize="small" color="action" />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  调整为「{item.targetSplit === "important" ? "重要" : "其它"}」
+                </Typography>
               </Stack>
-              <Typography variant="body2" noWrap sx={{ mb: 0.25, fontWeight: 600 }}>
-                {item.subject || "邮件分箱调整"}
-              </Typography>
               <Typography variant="caption" color="text.secondary">
-                理由：{item.reason}
+                {item.reason}
               </Typography>
             </Box>
           </Stack>

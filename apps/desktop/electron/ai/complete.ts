@@ -43,7 +43,16 @@ export async function chatComplete(
   }
 
   const timeoutSignal = withTimeout(timeoutMs);
-  const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal]);
+  let combinedSignal = controller.signal;
+  if (typeof AbortSignal.any === "function") {
+    combinedSignal = AbortSignal.any([controller.signal, timeoutSignal]);
+  } else {
+    const comb = new AbortController();
+    const abortHandler = () => comb.abort();
+    controller.signal.addEventListener("abort", abortHandler, { once: true });
+    timeoutSignal.addEventListener("abort", abortHandler, { once: true });
+    combinedSignal = comb.signal;
+  }
 
   try {
     if (mode === "local") {
