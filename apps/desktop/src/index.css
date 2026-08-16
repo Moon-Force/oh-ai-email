@@ -10,6 +10,28 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Universal sleek micro-scrollbar */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(120, 130, 145, 0.22);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 130, 145, 0.38);
+}
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Mail HTML iframe — fills flex parent; theme colors come from srcDoc */
 .mail-body-frame {
   min-height: 0;

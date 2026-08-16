@@ -15,6 +15,7 @@ import {
   Typography,
   Collapse,
   IconButton,
+  Tooltip,
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import MailIcon from "@mui/icons-material/Mail";
@@ -23,6 +24,10 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import CloseIcon from "@mui/icons-material/Close";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import SendIcon from "@mui/icons-material/Send";
 import {
   AiRequestError,
   ackCloudPrivacy,
@@ -107,6 +112,7 @@ export default function LumenCapsule({
   const [kind, setKind] = useState<ResultKind>("summary");
   const [reasoningContent, setReasoningContent] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
+  const [popoutOpen, setPopoutOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
@@ -973,6 +979,17 @@ export default function LumenCapsule({
               variant="outlined"
               sx={{ ml: "auto", height: 22 }}
             />
+            <Tooltip title="在独立小窗中展开">
+              <IconButton
+                size="small"
+                onClick={() => setPopoutOpen(true)}
+                data-testid="popout-ai-modal-button"
+                sx={{ p: 0.5, color: "text.secondary", "&:hover": { color: "primary.main" } }}
+                aria-label="在独立小窗中展开"
+              >
+                <OpenInNewIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
           </Stack>
 
           {kind === "suggestSplit" ? (
@@ -1477,7 +1494,305 @@ export default function LumenCapsule({
         }}
         onAccept={() => void acceptPrivacy()}
       />
+      <AiPopoutModal
+        open={popoutOpen}
+        onClose={() => setPopoutOpen(false)}
+        subject={subject ?? ""}
+        kind={kind}
+        text={text}
+        reasoningContent={reasoningContent}
+        mode={mode}
+        actionItemsData={actionItemsData}
+        threadSummaryData={threadSummaryData}
+        suggestSplitData={suggestSplitData}
+        commitmentsData={commitmentsData}
+        checkedItems={checkedItems}
+        setCheckedItems={setCheckedItems}
+        onTone={(tone) => void runTone(tone)}
+        onInsertDraft={onInsertDraft ? insertDraft : undefined}
+        onApplySplit={onApplySplit ? (s) => onApplySplit(s) : undefined}
+        isSpeaking={isSpeaking}
+        onToggleSpeech={() => {
+          if (isSpeaking) {
+            stopSpeaking();
+            setIsSpeaking(false);
+          } else {
+            setIsSpeaking(true);
+            speakText(
+              text || body,
+              () => setIsSpeaking(false),
+              () => setIsSpeaking(false)
+            );
+          }
+        }}
+      />
     </>
+  );
+}
+
+function AiPopoutModal(props: {
+  open: boolean;
+  onClose: () => void;
+  subject: string;
+  kind: ResultKind;
+  text: string;
+  reasoningContent: string | null;
+  mode: "local" | "cloud";
+  actionItemsData: ActionItemsData | null;
+  threadSummaryData: ThreadSummaryData | null;
+  suggestSplitData: SuggestSplitData | null;
+  commitmentsData: CommitmentItem[];
+  checkedItems: Record<number, boolean>;
+  setCheckedItems: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  onTone: (tone: "shorter" | "formal" | "expand" | "persona") => void;
+  onInsertDraft?: () => void;
+  onApplySplit?: (split: "important" | "other") => void;
+  isSpeaking: boolean;
+  onToggleSpeech: () => void;
+}) {
+  const [showReasoningModal, setShowReasoningModal] = useState(true);
+  const showToast = useToastStore((s) => s.showToast);
+
+  const titleText =
+    props.kind === "summary"
+      ? "AI 智能邮件摘要"
+      : props.kind === "draft"
+        ? "AI 生成回复草稿"
+        : props.kind === "actionItems"
+          ? "AI 行动项与意图分析"
+          : props.kind === "commitments"
+            ? "AI 承诺与截止日期追踪"
+            : props.kind === "threadSummary"
+              ? "AI 线索时间线全景摘要"
+              : props.kind === "suggestSplit"
+                ? "AI 智能分箱建议"
+                : "AI 邮件多语言翻译";
+
+  return (
+    <Dialog
+      open={props.open}
+      onClose={props.onClose}
+      maxWidth="md"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            bgcolor: "background.paper",
+            backgroundImage: "none",
+            maxHeight: "85vh",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 24px 48px rgba(0, 0, 0, 0.28)",
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ px: 3, py: 2, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider" }}>
+        <AutoAwesomeIcon color="primary" />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="h6" sx={{ fontSize: "1.1rem", fontWeight: 600 }}>
+            {titleText}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
+            关联邮件：{props.subject || "(无主题)"}
+          </Typography>
+        </Box>
+        <Chip
+          size="small"
+          label={props.mode === "local" ? "本机 Ollama" : "云端模型"}
+          color="primary"
+          variant="outlined"
+          sx={{ height: 24, fontWeight: 500 }}
+        />
+        <IconButton size="small" onClick={props.onClose} aria-label="关闭小窗" sx={{ ml: 1 }}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 3, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
+        {/* Reasoning / Thinking process section */}
+        {props.reasoningContent && (
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: (t) =>
+                t.palette.mode === "dark" ? "rgba(59, 130, 246, 0.08)" : "rgba(37, 99, 235, 0.04)",
+              borderColor: (t) =>
+                t.palette.mode === "dark" ? "rgba(59, 130, 246, 0.25)" : "rgba(37, 99, 235, 0.2)",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+              onClick={() => setShowReasoningModal(!showReasoningModal)}
+            >
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <PsychologyIcon color="primary" fontSize="small" />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                  AI 深度思考推理过程 (DeepSeek-R1 / Reasoning)
+                </Typography>
+              </Stack>
+              <IconButton size="small">
+                {showReasoningModal ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              </IconButton>
+            </Box>
+            <Collapse in={showReasoningModal}>
+              <Box
+                component="pre"
+                sx={{
+                  mt: 1.5,
+                  p: 1.5,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  fontSize: "0.8rem",
+                  lineHeight: 1.6,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  maxHeight: 240,
+                  overflowY: "auto",
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "#0A0D13" : "#F8FAFC"),
+                  borderRadius: 1.5,
+                  border: 1,
+                  borderColor: "divider",
+                  color: "text.secondary",
+                }}
+              >
+                {props.reasoningContent}
+              </Box>
+            </Collapse>
+          </Paper>
+        )}
+
+        {/* Content body based on result kind */}
+        <Box sx={{ flex: 1, minHeight: 120 }}>
+          {props.kind === "suggestSplit" && props.suggestSplitData ? (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>建议分箱:</Typography>
+                <Chip
+                  label={props.suggestSplitData.split === "important" ? "重要" : "其他"}
+                  color={props.suggestSplitData.split === "important" ? "primary" : "default"}
+                  variant="filled"
+                  sx={{ fontWeight: 600 }}
+                />
+              </Stack>
+              <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+                {props.suggestSplitData.reason}
+              </Typography>
+            </Paper>
+          ) : props.kind === "actionItems" && props.actionItemsData ? (
+            <Stack spacing={2}>
+              {props.actionItemsData.tags && props.actionItemsData.tags.length > 0 && (
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+                  {props.actionItemsData.tags.map((tag) => (
+                    <Chip key={tag} label={tag} color="primary" variant="filled" size="small" />
+                  ))}
+                  {props.actionItemsData.deadline && (
+                    <Chip label={`截止: ${props.actionItemsData.deadline}`} color="error" variant="outlined" size="small" />
+                  )}
+                </Stack>
+              )}
+              <Stack spacing={1}>
+                {props.actionItemsData.actionItems.map((item, idx) => (
+                  <Paper
+                    key={idx}
+                    variant="outlined"
+                    sx={{ p: 1.25, display: "flex", alignItems: "center", gap: 1, cursor: "pointer" }}
+                    onClick={() => props.setCheckedItems((prev) => ({ ...prev, [idx]: !prev[idx] }))}
+                  >
+                    <Checkbox checked={Boolean(props.checkedItems[idx])} size="small" />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        textDecoration: props.checkedItems[idx] ? "line-through" : "none",
+                        color: props.checkedItems[idx] ? "text.secondary" : "text.primary",
+                      }}
+                    >
+                      {item}
+                    </Typography>
+                  </Paper>
+                ))}
+              </Stack>
+            </Stack>
+          ) : (
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                borderRadius: 2,
+                bgcolor: (t) => (t.palette.mode === "dark" ? "#10141D" : "#FFFFFF"),
+              }}
+            >
+              <TypewriterText
+                variant="body1"
+                sx={{ whiteSpace: "pre-wrap", lineHeight: 1.8, fontSize: "0.95rem" }}
+                text={props.text}
+              />
+            </Paper>
+          )}
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", flexWrap: "wrap", gap: 1 }}>
+        {props.kind !== "actionItems" && props.kind !== "threadSummary" && props.kind !== "suggestSplit" && (
+          <Stack direction="row" spacing={0.75} sx={{ mr: "auto" }}>
+            <Button size="small" variant="outlined" onClick={() => props.onTone("shorter")}>
+              更短一点
+            </Button>
+            <Button size="small" variant="outlined" onClick={() => props.onTone("formal")}>
+              更正式
+            </Button>
+            <Button size="small" variant="outlined" onClick={() => props.onTone("expand")}>
+              扩写
+            </Button>
+            <Button size="small" variant="outlined" onClick={() => props.onTone("persona")}>
+              ✦ 以我的风格
+            </Button>
+          </Stack>
+        )}
+
+        {props.onInsertDraft && props.kind === "draft" && (
+          <Button
+            variant="contained"
+            startIcon={<SendIcon />}
+            onClick={() => {
+              props.onInsertDraft?.();
+              props.onClose();
+            }}
+          >
+            插入草稿并编辑
+          </Button>
+        )}
+
+        <Button
+          variant="outlined"
+          startIcon={<ContentCopyIcon />}
+          onClick={() => {
+            void navigator.clipboard?.writeText(props.text);
+            showToast("已复制到剪贴板", "success", 2000);
+          }}
+        >
+          复制内容
+        </Button>
+
+        <Button
+          color={props.isSpeaking ? "secondary" : "inherit"}
+          startIcon={props.isSpeaking ? <VolumeOffIcon /> : <VolumeUpIcon />}
+          onClick={props.onToggleSpeech}
+        >
+          {props.isSpeaking ? "停止朗读" : "朗读"}
+        </Button>
+
+        <Button onClick={props.onClose}>关闭</Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

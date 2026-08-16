@@ -60,7 +60,13 @@ export default function MessageList() {
       sx={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}
     >
       <Box sx={{ px: 1.5, py: 1, display: "flex", alignItems: "center", gap: 1 }}>
-        <Chip size="small" color="primary" label={splitLabel} />
+        <Chip
+          size="small"
+          color={split === "important" ? "primary" : "default"}
+          variant="filled"
+          label={splitLabel}
+          sx={{ fontWeight: 600, px: 0.5 }}
+        />
         <Typography variant="caption" color="text.secondary">
           {folderLabel} · {messages.length} 封
           {isSearching ? ` · 搜索「${searchQuery.trim()}」` : ""}

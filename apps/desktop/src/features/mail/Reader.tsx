@@ -165,10 +165,26 @@ export default function Reader() {
               <Chip
                 size="small"
                 data-testid="split-important"
-                icon={msg.split === "important" ? <StarIcon /> : <StarBorderIcon />}
+                icon={
+                  msg.split === "important" ? (
+                    <StarIcon sx={{ "&&": { color: "#FFFFFF" } }} />
+                  ) : (
+                    <StarBorderIcon />
+                  )
+                }
                 label="重要"
                 color={msg.split === "important" ? "primary" : "default"}
                 variant={msg.split === "important" ? "filled" : "outlined"}
+                sx={
+                  msg.split === "important"
+                    ? {
+                        bgcolor: "primary.main",
+                        color: "#FFFFFF",
+                        fontWeight: 600,
+                        "&:hover": { bgcolor: "primary.dark" },
+                      }
+                    : undefined
+                }
                 onClick={() => {
                   if (msg.split === "important") return;
                   setMessageSplit(msg.id, "important");
@@ -515,7 +531,7 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Theme-locked styles with robust dark mode color inversion for email templates */
+/** Theme-locked styles with robust dark mode color inversion and sleek modern scrollbars */
 function wrapMailHtml(body: string, isDark: boolean): string {
   const color = isDark ? "#F8FAFC" : "#0F172A";
   const bg = isDark ? "#13171F" : "#FFFFFF";
@@ -570,13 +586,71 @@ function wrapMailHtml(body: string, isDark: boolean): string {
       color: ${color};
       color-scheme: light;
     }
+    blockquote {
+      border-left: 3px solid #2563EB;
+      margin: 12px 0;
+      padding: 4px 12px;
+      color: #64748B;
+      background-color: rgba(15, 23, 42, 0.03);
+      border-radius: 0 4px 4px 0;
+    }
+    pre, code {
+      background-color: #F1F5F9;
+      color: #0F172A;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
     `;
 
   return `<!DOCTYPE html><html style="color-scheme:${scheme};height:100%"><head><meta charset="utf-8"/><style>
-    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.6}
-    body{margin:16px 20px;word-break:break-word;overflow-wrap:break-word}
-    a{color:${link} !important}
-    img{max-width:100% !important;height:auto !important;border-radius:4px}
+    html {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    body {
+      min-height: 100%;
+      margin: 0;
+      padding: 20px 24px;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14.5px;
+      line-height: 1.65;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      max-width: 100%;
+    }
+    /* Modern sleek micro-scrollbar matching app theme */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: ${isDark ? "rgba(255, 255, 255, 0.18)" : "rgba(15, 23, 42, 0.18)"};
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: ${isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(15, 23, 42, 0.35)"};
+    }
+    a {
+      color: ${link} !important;
+      text-decoration: underline;
+    }
+    img, video, canvas, svg {
+      max-width: 100% !important;
+      height: auto !important;
+      border-radius: 6px;
+    }
+    table {
+      max-width: 100% !important;
+      border-collapse: collapse;
+    }
     ${darkInversionCss}
   </style></head><body>${body}</body></html>`;
 }

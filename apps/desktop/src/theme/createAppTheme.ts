@@ -175,11 +175,19 @@ export function createAppTheme(mode: PaletteMode) {
             fontWeight: 500,
             borderRadius: 6,
           },
-          filled: {
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)",
+          colorPrimary: {
+            backgroundColor: isDark ? "#3B82F6" : "#2563EB",
+            color: "#FFFFFF",
+            "&:hover": {
+              backgroundColor: isDark ? "#2563EB" : "#1D4ED8",
+            },
+          },
+          colorSecondary: {
+            backgroundColor: isDark ? "#A78BFA" : "#7C3AED",
+            color: "#FFFFFF",
           },
           outlined: {
-            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)",
+            borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(15, 23, 42, 0.15)",
           },
         },
       },
