@@ -558,15 +558,15 @@ export default function LumenCapsule({
               scrollbarWidth: "none",
               "&::-webkit-scrollbar": { display: "none" },
               bgcolor: (t) =>
-                t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                t.palette.mode === "dark" ? "rgba(22, 27, 36, 0.96)" : "rgba(255, 255, 255, 0.95)",
               backdropFilter: "blur(16px)",
               border: (t) =>
                 t.palette.mode === "dark"
-                  ? "1px solid rgba(255, 255, 255, 0.12)"
+                  ? "1px solid rgba(255, 255, 255, 0.1)"
                   : "1px solid rgba(0, 0, 0, 0.08)",
               boxShadow: (t) =>
                 t.palette.mode === "dark"
-                  ? "0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2)"
+                  ? "0 12px 36px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)"
                   : "0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.03)",
             }}
           >
@@ -580,8 +580,8 @@ export default function LumenCapsule({
                 borderRadius: 999,
                 bgcolor: (t) =>
                   t.palette.mode === "dark"
-                    ? "rgba(100, 149, 237, 0.16)"
-                    : "rgba(25, 118, 210, 0.08)",
+                    ? "rgba(59, 130, 246, 0.18)"
+                    : "rgba(37, 99, 235, 0.08)",
                 color: "primary.main",
                 flexShrink: 0,
               }}

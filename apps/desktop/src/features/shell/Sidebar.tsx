@@ -75,18 +75,33 @@ export default function Sidebar() {
         flexDirection: "column",
         borderRight: 1,
         borderColor: "divider",
-        bgcolor: "background.paper",
+        bgcolor: (t) => (t.palette.mode === "dark" ? "#0C0F15" : "#F8FAFC"),
       }}
     >
-      <Box sx={{ px: 2, py: 2, display: "flex", alignItems: "center", gap: 1 }}>
-        <Typography variant="h6" color="primary">
+      <Box sx={{ px: 2.5, py: 2, display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="h6" color="primary" sx={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
           oh-ai-email
         </Typography>
       </Box>
 
       <List
         dense
-        subheader={<ListSubheader component="div">分箱</ListSubheader>}
+        subheader={
+          <ListSubheader
+            component="div"
+            sx={{
+              bgcolor: "transparent",
+              color: "text.secondary",
+              fontWeight: 600,
+              fontSize: "0.7rem",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              lineHeight: "28px",
+            }}
+          >
+            分箱
+          </ListSubheader>
+        }
         sx={{ pt: 0 }}
         aria-label="分箱"
       >
@@ -129,11 +144,26 @@ export default function Sidebar() {
         </ListItemButton>
       </List>
 
-      <Divider />
+      <Divider sx={{ my: 0.5 }} />
 
       <List
         dense
-        subheader={<ListSubheader component="div">邮箱</ListSubheader>}
+        subheader={
+          <ListSubheader
+            component="div"
+            sx={{
+              bgcolor: "transparent",
+              color: "text.secondary",
+              fontWeight: 600,
+              fontSize: "0.7rem",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              lineHeight: "28px",
+            }}
+          >
+            邮箱
+          </ListSubheader>
+        }
         sx={{ flex: 1, overflow: "auto", pt: 0 }}
         aria-label="邮箱文件夹"
       >

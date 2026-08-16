@@ -515,17 +515,68 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Theme-locked styles: do not use prefers-color-scheme (OS dark + app light = white text on white). */
+/** Theme-locked styles with robust dark mode color inversion for email templates */
 function wrapMailHtml(body: string, isDark: boolean): string {
-  const color = isDark ? "#F2F4F8" : "#1A1D24";
-  const bg = isDark ? "#141A22" : "#FFFFFF";
-  const link = isDark ? "#5B8CFF" : "#2F6BFF";
+  const color = isDark ? "#F8FAFC" : "#0F172A";
+  const bg = isDark ? "#13171F" : "#FFFFFF";
+  const link = isDark ? "#60A5FA" : "#2563EB";
   const scheme = isDark ? "dark" : "light";
+
+  const darkInversionCss = isDark
+    ? `
+    html, body {
+      background-color: ${bg} !important;
+      color: ${color} !important;
+      color-scheme: dark;
+    }
+    body {
+      color: ${color} !important;
+    }
+    p, li, td, th, div, span, font, b, strong, em, i, h1, h2, h3, h4, h5, h6 {
+      color: inherit !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    *[style*="background"], *[style*="BACKGROUND"], *[bgcolor], *[BGCOLOR] {
+      background-color: transparent !important;
+    }
+    table {
+      border-collapse: collapse;
+      max-width: 100% !important;
+    }
+    blockquote {
+      border-left: 3px solid #3B82F6 !important;
+      margin: 12px 0 !important;
+      padding: 4px 12px !important;
+      color: #94A3B8 !important;
+      background-color: rgba(255, 255, 255, 0.03) !important;
+      border-radius: 0 4px 4px 0;
+    }
+    pre, code {
+      background-color: #1A1F2B !important;
+      color: #F8FAFC !important;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin: 16px 0;
+    }
+    `
+    : `
+    html, body {
+      background-color: ${bg};
+      color: ${color};
+      color-scheme: light;
+    }
+    `;
+
   return `<!DOCTYPE html><html style="color-scheme:${scheme};height:100%"><head><meta charset="utf-8"/><style>
-    html,body{height:100%;margin:0;background:${bg};color:${color};color-scheme:${scheme}}
-    body{margin:12px 16px;font-family:Roboto,Segoe UI,system-ui,sans-serif;font-size:14px;line-height:1.55}
-    a{color:${link}}
-    img{max-width:100%;height:auto}
-    p,li,td,th,div,span{color:inherit}
+    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.6}
+    body{margin:16px 20px;word-break:break-word;overflow-wrap:break-word}
+    a{color:${link} !important}
+    img{max-width:100% !important;height:auto !important;border-radius:4px}
+    ${darkInversionCss}
   </style></head><body>${body}</body></html>`;
 }

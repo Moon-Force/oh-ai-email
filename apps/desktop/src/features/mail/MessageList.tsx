@@ -82,8 +82,15 @@ export default function MessageList() {
               }}
               sx={{
                 borderLeft: 3,
-                borderColor: m.unread ? "primary.main" : "transparent",
+                borderColor: selected
+                  ? "primary.main"
+                  : m.unread
+                    ? "primary.light"
+                    : "transparent",
                 py: 1.25,
+                px: 1.5,
+                mb: 0.5,
+                borderRadius: 1.5,
                 transition: (t) =>
                   t.transitions.create(["background-color", "border-color"], {
                     duration: t.transitions.duration.shorter,
