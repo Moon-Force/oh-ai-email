@@ -15,7 +15,6 @@ export default function MessageList() {
   const setComposeOpen = useMailStore((s) => s.setComposeOpen);
   const split = useMailStore((s) => s.split);
   const activeFolderId = useMailStore((s) => s.activeFolderId);
-  const allMessages = useMailStore((s) => s.messages);
   const visibleMessages = useMailStore((s) => s.visibleMessages);
 
   const messages = visibleMessages();

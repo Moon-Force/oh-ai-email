@@ -65,7 +65,7 @@ export async function chatComplete(
     }
 
     let outgoingMessages = messages;
-    let combinedReplacements: Record<string, string> = {};
+    const combinedReplacements: Record<string, string> = {};
     if (settings.redactSensitiveData) {
       outgoingMessages = messages.map((m) => {
         const { text, replacements } = redactSensitiveData(m.content);

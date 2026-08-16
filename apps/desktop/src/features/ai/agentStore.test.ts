@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useAgentStore } from "./agentStore";
 import { useMailStore } from "../mail/store";
 import type { AgentProposalData } from "../../lib/ipc";

@@ -92,7 +92,7 @@ export async function runAgentWorkflow(
     });
 
     let toolDataSummary = "";
-    let proposedItems: AgentProposalItem[] = [];
+    const proposedItems: AgentProposalItem[] = [];
 
     if (agentType === "meeting_extractor") {
       emitStreamTokens(`[工具] 正在提取会议日程与参会详情...\n`, onEvent);

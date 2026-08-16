@@ -4,7 +4,6 @@ import {
   aiAnalyzeAttachment,
   aiCompose,
   aiDraftReply,
-  aiLearnUserTone,
   aiQuickReply,
   aiRewrite,
   aiSuggestSplit,

@@ -23,13 +23,11 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import HandshakeIcon from "@mui/icons-material/Handshake";
 import {
   AiRequestError,
   ackCloudPrivacy,
   cancelRequest,
   createAiRequestId,
-  draftReply,
   draftReplyDetailed,
   ensureCloudPrivacyAck,
   extractActionItems,
@@ -37,7 +35,6 @@ import {
   quickReplyDraft,
   rewriteTone,
   suggestSplit,
-  summarize,
   summarizeDetailed,
   summarizeThread,
   translateText,

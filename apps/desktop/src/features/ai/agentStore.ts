@@ -6,7 +6,6 @@ import {
   type AgentProposalCalendarItem,
   type AgentProposalData,
   type AgentProposalDraftItem,
-  type AgentProposalItem,
   type AgentProposalSplitItem,
   type AgentStatus,
   type AgentStepEvent,
