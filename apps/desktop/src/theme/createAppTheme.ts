@@ -102,18 +102,18 @@ export function createAppTheme(mode: PaletteMode) {
             fontWeight: 500,
             letterSpacing: "0.01em",
             transition: "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
-          },
-          containedPrimary: {
-            backgroundColor: isDark ? "#3B82F6" : "#2563EB",
-            "&:hover": {
-              backgroundColor: isDark ? "#2563EB" : "#1D4ED8",
+            "&.MuiButton-containedPrimary": {
+              backgroundColor: isDark ? "#3B82F6" : "#2563EB",
+              "&:hover": {
+                backgroundColor: isDark ? "#2563EB" : "#1D4ED8",
+              },
             },
-          },
-          outlined: {
-            borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(15, 23, 42, 0.15)",
-            "&:hover": {
-              backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(15, 23, 42, 0.04)",
-              borderColor: isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(15, 23, 42, 0.3)",
+            "&.MuiButton-outlined": {
+              borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(15, 23, 42, 0.15)",
+              "&:hover": {
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(15, 23, 42, 0.04)",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(15, 23, 42, 0.3)",
+              },
             },
           },
         },

@@ -178,9 +178,9 @@ export default function SkillsTab(): React.ReactElement {
       </Box>
 
       {/* Skills Grid List */}
-      <Grid container spacing={2}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         {skills.map((skill) => (
-          <Grid item xs={12} md={6} key={skill.id}>
+          <Box key={skill.id}>
             <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <CardContent>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
@@ -203,7 +203,7 @@ export default function SkillsTab(): React.ReactElement {
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                     允许调用的工具：
                   </Typography>
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                  <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
                     {skill.allowedTools && skill.allowedTools.length > 0 ? (
                       skill.allowedTools.map((t) => (
                         <Chip key={t} label={t} size="small" variant="outlined" sx={{ fontSize: 11 }} />
@@ -251,9 +251,9 @@ export default function SkillsTab(): React.ReactElement {
                 )}
               </CardActions>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
       {/* Model Context Protocol (MCP) Integration Section */}
       <Card variant="outlined" sx={{ bgcolor: "background.paper", mt: 2 }}>

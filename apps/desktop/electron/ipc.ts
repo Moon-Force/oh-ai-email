@@ -3,11 +3,14 @@ import fs from "node:fs";
 import {
   checkAndWakeSnoozedMessages,
   deleteAccount,
+  deleteAgentSession,
   getAccount,
   getAttachment,
   getMessage,
   initDb,
   listAccounts,
+  listAgentMessages,
+  listAgentSessions,
   listAllMessages,
   listFolders,
   listMessages,
@@ -20,6 +23,7 @@ import {
   setMessageUnread,
   upsertAccount,
 } from "./db";
+import type { RewriteTone } from "./ai/prompts";
 import type { MessageRecord } from "./mail/types";
 import { checkForAppUpdates } from "./updater";
 

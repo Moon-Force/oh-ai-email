@@ -210,13 +210,12 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
         activeReqId: null,
       });
 
-      useAiAuditStore.getState().recordLog({
-        feature: `agent:${targetType}`,
-        promptLength: targetPrompt.length,
-        responseLength: proposal.summary.length,
-        status: "success",
+      useAiAuditStore.getState().recordCall({
+        mode: "cloud",
+        task: `agent:${targetType}`,
+        charCount: proposal.summary.length,
         durationMs: Date.now() - startTime,
-        isSensitive: false,
+        status: "success",
       });
     } catch (err: unknown) {
       if (get().activeReqId === requestId) {
@@ -227,42 +226,40 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
           activeReqId: null,
         });
 
-        useAiAuditStore.getState().recordLog({
-          feature: `agent:${targetType}`,
-          promptLength: targetPrompt.length,
-          responseLength: 0,
-          status: isAbort ? "cancelled" : "error",
+        useAiAuditStore.getState().recordCall({
+          mode: "cloud",
+          task: `agent:${targetType}`,
+          charCount: targetPrompt.length,
           durationMs: Date.now() - startTime,
-          isSensitive: false,
+          status: isAbort ? "aborted" : "error",
         });
       }
     }
   },
 
   abortWorkflow: async () => {
-    const reqId = get().activeReqId;
-    if (reqId) {
-      await agentAbort(reqId);
-      set({
-        status: "cancelled",
-        activeReqId: null,
-      });
+    const { activeReqId } = get();
+    if (activeReqId) {
+      await agentAbort(activeReqId);
+      set({ status: "cancelled", activeReqId: null });
     }
   },
 
-  toggleItemSelection: (id) => {
+  toggleItemSelection: (id: string) => {
     set((s) => {
       if (!s.proposal) return s;
       return {
         proposal: {
           ...s.proposal,
-          items: s.proposal.items.map((it) => (it.id === id ? { ...it, selected: !it.selected } : it)),
+          items: s.proposal.items.map((it) =>
+            it.id === id ? { ...it, selected: !it.selected } : it
+          ),
         },
       };
     });
   },
 
-  selectAllItems: (selected) => {
+  selectAllItems: (selected: boolean) => {
     set((s) => {
       if (!s.proposal) return s;
       return {
@@ -275,7 +272,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
   },
 
   acceptSelected: async () => {
-    const proposal = get().proposal;
+    const { proposal } = get();
     if (!proposal) {
       return { acceptedCount: 0, drafts: [], calendarEvents: [], splitChanges: [], invoices: [] };
     }
@@ -293,7 +290,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
         drafts.push(item);
         try {
           await mailSaveDraft({
-            to: [item.targetTo],
+            to: item.targetTo,
             subject: item.subject,
             body: item.body,
           });

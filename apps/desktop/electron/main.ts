@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from "electron";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerIpc } from "./ipc";
@@ -38,10 +39,26 @@ function createWindow() {
     }
   });
 
+  win.webContents.on("did-fail-load", (_e, errorCode, errorDescription) => {
+    console.warn(`[main] did-fail-load: ${errorCode} - ${errorDescription}`);
+    if (process.env.VITE_DEV_SERVER_URL) {
+      setTimeout(() => {
+        if (!win.isDestroyed()) {
+          win.loadURL(process.env.VITE_DEV_SERVER_URL!);
+        }
+      }, 1000);
+    }
+  });
+
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
+    const indexPath = path.join(__dirname, "../dist/index.html");
+    if (fs.existsSync(indexPath)) {
+      win.loadFile(indexPath);
+    } else {
+      console.error("[main] dist/index.html not found, please run build first");
+    }
   }
 
   initTray(win, {

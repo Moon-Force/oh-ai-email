@@ -751,10 +751,44 @@ export function onMailEvent(
 // ── Agent Stream & Workflow Foundation ──────────────────────────
 
 export type AgentType =
-  "daily_briefing" | "meeting_extractor" | "batch_triage" | "followup_sequence" | "custom";
+  | "daily_briefing"
+  | "meeting_extractor"
+  | "batch_triage"
+  | "followup_sequence"
+  | "invoice_scanner"
+  | "outreach_translator"
+  | "smart_sorter"
+  | "custom";
 
 export type AgentStatus =
-  "idle" | "planning" | "executing_tools" | "review_pending" | "completed" | "cancelled" | "error";
+  | "idle"
+  | "thinking"
+  | "planning"
+  | "executing_tools"
+  | "review_pending"
+  | "completed"
+  | "cancelled"
+  | "error";
+
+export type AgentSession = {
+  id: string;
+  title: string;
+  agentType: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type AgentMessageRecord = {
+  id: string;
+  sessionId: string;
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  toolCalls?: string;
+  toolCallId?: string;
+  thought?: string;
+  tokens?: number;
+  createdAt: number;
+};
 
 export type AgentStepEvent = {
   type: "step";
@@ -799,8 +833,23 @@ export type AgentProposalSplitItem = {
   selected: boolean;
 };
 
+export type AgentProposalInvoiceItem = {
+  id: string;
+  kind: "invoice_entry";
+  vendorName: string;
+  amount: number;
+  currency: string;
+  category?: string;
+  date?: string;
+  invoiceNo?: string;
+  selected: boolean;
+};
+
 export type AgentProposalItem =
-  AgentProposalCalendarItem | AgentProposalDraftItem | AgentProposalSplitItem;
+  | AgentProposalCalendarItem
+  | AgentProposalDraftItem
+  | AgentProposalSplitItem
+  | AgentProposalInvoiceItem;
 
 export type AgentProposalData = {
   title: string;
@@ -812,12 +861,15 @@ export type AgentProposalData = {
 export type AgentStreamEvent =
   | AgentStepEvent
   | AgentTokenEvent
+  | { type: "thinking_token"; textChunk: string }
+  | { type: "compaction"; compactedTokens: number; summary: string }
   | { type: "proposal"; data: AgentProposalData }
   | { type: "done"; summary: string }
   | { type: "error"; code: string; message: string };
 
 export type AgentRunParams = {
   agentType: AgentType;
+  skillId?: string;
   prompt?: string;
   context?: Record<string, unknown>;
   requestId?: string;

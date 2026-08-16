@@ -376,7 +376,7 @@ export default function AgentDrawer() {
           {/* Stepper Progress */}
           {(isRunning || steps.length > 0) && (
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-              <Stepper activeStep={currentStepIndex - 1} alternativeLabel size="small">
+              <Stepper activeStep={currentStepIndex - 1} alternativeLabel>
                 {STEPS.map((label, idx) => (
                   <Step key={label} completed={currentStepIndex > idx + 1}>
                     <StepLabel>{label}</StepLabel>
@@ -601,11 +601,11 @@ function ProposalItemCard({
                 </Typography>
                 <Chip size="small" label="日历日程" color="info" variant="outlined" />
               </Stack>
-              <Typography variant="caption" color="text.secondary" display="block">
-                时间: {item.startTime} {item.endTime ? `~ ${item.endTime}` : ""}
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                时间: {item.startTime} {item.endTime ? `至 ${item.endTime}` : ""}
               </Typography>
               {item.location && (
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                   地点: {item.location}
                 </Typography>
               )}
@@ -640,7 +640,7 @@ function ProposalItemCard({
                   variant="outlined"
                 />
               </Stack>
-              <Typography variant="caption" color="text.secondary" display="block">
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                 报销类别: {item.category} | 日期: {item.date || "近期"}
               </Typography>
             </Box>

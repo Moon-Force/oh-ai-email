@@ -146,20 +146,22 @@ export async function runAgentWorkflow(
         attendees: Array.isArray(context.attendees) ? context.attendees : undefined,
       });
 
-      proposedItems.push({
-        id: `prop_cal_${Date.now()}`,
-        kind: "calendar_event",
-        title: calItem.title,
-        startTime: calItem.startTime,
-        endTime: calItem.endTime,
-        location: calItem.location,
-        attendees: calItem.attendees,
-        icsContent: generateIcsContent(calItem),
-        selected: true,
-      });
+      if (calItem) {
+        proposedItems.push({
+          id: `prop_cal_${Date.now()}`,
+          kind: "calendar_event",
+          title: calItem.title,
+          startTime: calItem.startTime,
+          endTime: calItem.endTime,
+          location: calItem.location,
+          attendees: calItem.attendees,
+          icsContent: generateIcsContent(calItem),
+          selected: true,
+        });
 
-      toolDataSummary = `提取到会议: ${calItem.title}, 时间: ${calItem.startTime}`;
-      await loop.emitThinkingToken(`\n已成功解析日程实体: ${calItem.title}`);
+        toolDataSummary = `提取到会议: ${calItem.title}, 时间: ${calItem.startTime}`;
+        await loop.emitThinkingToken(`\n已成功解析日程实体: ${calItem.title}`);
+      }
     } else if (agentType === "invoice_scanner" || skill?.id === "invoice_scanner") {
       await loop.emitContentToken(`[工具调用] 正在识别发票与报销明细...\n`);
       const invoiceItem: AgentProposalInvoiceItem = {
@@ -182,6 +184,7 @@ export async function runAgentWorkflow(
           id: contextMessageId || "msg_current",
           subject: contextSubject || "关于下季度规划与预算",
           from: contextFrom || "boss@company.com",
+          body: contextBody || "",
         },
       ]);
       for (const t of triages) {
@@ -190,12 +193,12 @@ export async function runAgentWorkflow(
           kind: "split_change",
           messageId: t.messageId,
           subject: t.subject,
-          targetSplit: t.recommendedSplit,
+          targetSplit: t.targetSplit,
           reason: t.reason,
           selected: true,
         });
       }
-      toolDataSummary = `分类判定完毕，推荐分箱: ${triages[0]?.recommendedSplit || "important"}`;
+      toolDataSummary = `分类判定完毕，推荐分箱: ${triages[0]?.targetSplit || "important"}`;
     } else if (agentType === "followup_sequence" || agentType === "outreach_translator") {
       await loop.emitContentToken(`[工具调用] 正在提取待办跟进项并起草邮件...\n`);
       const commitmentsRes = toolExtractCommitments(contextSubject, contextBody);
@@ -286,10 +289,7 @@ export async function runAgentWorkflow(
       })),
     ];
 
-    const llmResult = await chatComplete(llmMessages, {
-      maxTokens: 1200,
-      temperature: 0.3,
-    });
+    const llmResult = await chatComplete(llmMessages);
 
     let finalSummary = "";
     if (llmResult.ok) {
