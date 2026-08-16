@@ -764,7 +764,10 @@ export default function LumenCapsule({
                 transition: "all 0.15s ease",
                 "&:hover": {
                   bgcolor: (t) =>
-                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                    t.palette.mode === "dark"
+                      ? "rgba(245, 158, 11, 0.15)"
+                      : "rgba(245, 158, 11, 0.08)",
+                  color: "warning.main",
                 },
               }}
             >
@@ -791,7 +794,7 @@ export default function LumenCapsule({
                 transition: "all 0.15s ease",
                 "&:hover": {
                   bgcolor: (t) =>
-                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(37, 99, 235, 0.08)",
                   color: "primary.main",
                 },
               }}
@@ -819,7 +822,7 @@ export default function LumenCapsule({
                 transition: "all 0.15s ease",
                 "&:hover": {
                   bgcolor: (t) =>
-                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(37, 99, 235, 0.08)",
                   color: "primary.main",
                 },
               }}
@@ -850,6 +853,13 @@ export default function LumenCapsule({
                   fontSize: "0.7rem",
                   fontWeight: 600,
                   color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
+                },
+                "&:hover": {
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark"
+                      ? "rgba(59, 130, 246, 0.2)"
+                      : "rgba(37, 99, 235, 0.14)",
+                  borderColor: "primary.main",
                 },
               }}
             />
@@ -914,14 +924,23 @@ export default function LumenCapsule({
                   "& .MuiChip-label": {
                     color: "text.primary",
                     px: 1,
+                    transition: "color 0.15s ease-in-out",
                   },
                   "&:hover": {
-                    bgcolor: (t) => (t.palette.mode === "dark" ? "#3B82F6" : "#2563EB"),
-                    borderColor: (t) => (t.palette.mode === "dark" ? "#3B82F6" : "#2563EB"),
+                    bgcolor: (t) =>
+                      t.palette.mode === "dark"
+                        ? "rgba(59, 130, 246, 0.16)"
+                        : "rgba(37, 99, 235, 0.08)",
+                    borderColor: "primary.main",
                     transform: "translateY(-1px)",
-                    boxShadow: "0 4px 10px rgba(37, 99, 235, 0.2)",
+                    boxShadow: (t) =>
+                      t.palette.mode === "dark"
+                        ? "0 4px 12px rgba(59, 130, 246, 0.2)"
+                        : "0 4px 12px rgba(37, 99, 235, 0.12)",
                     "& .MuiChip-label": {
-                      color: "#FFFFFF !important",
+                      color: (t) =>
+                        t.palette.mode === "dark" ? "#60A5FA !important" : "#2563EB !important",
+                      fontWeight: 600,
                     },
                   },
                 }}
