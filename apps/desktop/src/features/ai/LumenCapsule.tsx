@@ -901,37 +901,174 @@ export default function LumenCapsule({
   }
 
   if (state === "thinking") {
+    const kindLabel =
+      kind === "summary"
+        ? "智能摘要"
+        : kind === "draft"
+          ? "回复草稿"
+          : kind === "actionItems"
+            ? "行动项分析"
+            : kind === "commitments"
+              ? "承诺追踪"
+              : kind === "threadSummary"
+                ? "时间线摘要"
+                : kind === "suggestSplit"
+                  ? "分箱建议"
+                  : "多语言翻译";
+
     return (
       <Paper
-        elevation={4}
+        elevation={8}
         data-testid="lumen-capsule"
         data-state="thinking"
         aria-busy
         sx={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 1,
-          px: 1.5,
-          py: 0.5,
-          borderRadius: 999,
-          border: 1,
-          borderColor: "divider",
+          p: 1.75,
+          width: { xs: "100%", sm: 380 },
+          maxWidth: "100%",
+          maxHeight: "min(46vh, 380px)",
+          borderRadius: 2.5,
           bgcolor: "background.paper",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          border: 1,
+          borderColor: (t) =>
+            t.palette.mode === "dark" ? "rgba(59, 130, 246, 0.3)" : "rgba(37, 99, 235, 0.25)",
+          boxShadow: (t) =>
+            t.palette.mode === "dark"
+              ? "0 12px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(59, 130, 246, 0.12)"
+              : "0 12px 32px rgba(0, 0, 0, 0.08), 0 0 16px rgba(37, 99, 235, 0.08)",
         }}
       >
-        <CircularProgress size={16} />
-        <Typography variant="caption" sx={{ fontWeight: 500 }}>
-          思考中…
-        </Typography>
-        <Button
-          size="small"
-          color="inherit"
-          onClick={() => void handleCancel()}
-          sx={{ minWidth: 0, px: 0.75, py: 0.25, fontSize: "0.75rem" }}
-          aria-label="取消 AI 请求"
-        >
-          取消
-        </Button>
+        <Stack spacing={1.5} sx={{ minHeight: 0, flex: 1 }}>
+          {/* Header */}
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexShrink: 0 }}>
+            <Box
+              sx={{
+                width: 24,
+                height: 24,
+                borderRadius: "50%",
+                bgcolor: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AutoAwesomeIcon sx={{ fontSize: 14, color: "#fff" }} />
+            </Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main" }}>
+              AI 正在生成{kindLabel}...
+            </Typography>
+            <Chip
+              size="small"
+              label={mode === "local" ? "本机" : "云端"}
+              color="primary"
+              variant="outlined"
+              sx={{ ml: "auto", height: 22 }}
+            />
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => void handleCancel()}
+              sx={{ minWidth: 0, px: 0.75, py: 0.25, fontSize: "0.75rem", borderRadius: 1 }}
+              aria-label="取消 AI 请求"
+            >
+              取消
+            </Button>
+          </Stack>
+
+          {/* Thinking Process Body */}
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 110,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.25,
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: (t) =>
+                t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.02)",
+              border: 1,
+              borderColor: "divider",
+              overflow: "hidden",
+            }}
+          >
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <CircularProgress size={14} thickness={5} />
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary" }}>
+                AI 深度思考推理中...
+              </Typography>
+            </Stack>
+
+            {/* Thinking step indicator animation */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, my: "auto" }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    bgcolor: "success.main",
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  1. 解析邮件正文与发件人语境
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    bgcolor: "primary.main",
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 600 }}>
+                  2. 提炼核心要点与深度逻辑推理
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", opacity: 0.6 }}>
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    bgcolor: "text.disabled",
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  3. 组织结构并准备最终输出
+                </Typography>
+              </Stack>
+            </Box>
+
+            {/* Shimmer loading bar */}
+            <Box
+              sx={{
+                height: 3,
+                width: "100%",
+                borderRadius: 2,
+                overflow: "hidden",
+                bgcolor: "divider",
+                position: "relative",
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  bottom: 0,
+                  width: "45%",
+                  bgcolor: "primary.main",
+                  borderRadius: 2,
+                  animation: "shimmer 1.8s infinite ease-in-out",
+                },
+              }}
+            />
+          </Box>
+        </Stack>
       </Paper>
     );
   }

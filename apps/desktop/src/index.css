@@ -58,6 +58,15 @@ body {
   --pane-dur-fast: 240ms;
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 @keyframes pane-enter-up {
   from {
     opacity: 0;
