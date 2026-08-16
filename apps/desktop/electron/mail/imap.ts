@@ -6,7 +6,7 @@ export function passwordKey(accountId: string): string {
   return `acct:${accountId}:pass`;
 }
 
-function createClient(input: ImapConnectInput): ImapFlow {
+export function createClient(input: ImapConnectInput): ImapFlow {
   const secure = input.imapTls === "ssl" || input.imapPort === 993;
   return new ImapFlow({
     host: input.imapHost,

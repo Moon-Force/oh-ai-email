@@ -51,7 +51,7 @@ oh-ai-email/
 
 ## 4. 邮件数据流
 
-### 同步（收）
+### 4.1 同步（收 — 增量轮询与保底）
 
 ```
 用户账号配置
@@ -64,7 +64,31 @@ oh-ai-email/
     → 推送 UI 事件（folder_updated / message_upserted）
 ```
 
-### 发送（发）
+### 4.2 主动推送（IMAP IDLE Push Mail — RFC 2177 毫秒级推信）
+
+客户端通过主进程 `IdleManager` (`apps/desktop/electron/mail/idle.ts`) 为每个活跃账号维持轻量级长连接，实现真正的服务端主动推信：
+
+```mermaid
+sequenceDiagram
+    participant UI as 渲染进程 (React)
+    participant Idle as 主进程 IdleManager
+    participant Sync as 同步模块 (sync.ts)
+    participant Server as 邮件服务器 (IMAP IDLE)
+
+    Note over Idle,Server: 账号建立常驻长连接
+    Idle->>Server: mailboxOpen("INBOX") + idle()
+    Server-->>Idle: + idling (挂起监听)
+
+    Note over Server: 新邮件到达服务端！
+    Server->>Idle: 主动推送: * 123 EXISTS
+    Idle->>Sync: 触发增量获取 (syncAccount)
+    Sync->>Sync: 写入 SQLite + 触发 OS Toast 原生通知
+    Idle->>UI: webContents.send("mail:pushed", { accountId })
+    UI->>UI: 实时无感更新邮件列表与未读角标
+    Note over Idle,Server: 自动保持监听 (14min NOOP 心跳保活 + 断线指数退避重连)
+```
+
+### 4.3 发送（发）
 
 ```
 UI 草稿
@@ -74,7 +98,7 @@ UI 草稿
     → 更新本地状态
 ```
 
-### 读信
+### 4.4 读信
 
 ```
 UI 点开 message_id

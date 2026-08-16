@@ -142,8 +142,9 @@ type Api = {
     mode?: AiModeDto;
     requestId?: string;
   }) => Promise<AiTaskResult>;
+  mailIdleStatus?: () => Promise<IdleWorkerStateDto[]>;
   onMailEvent?: (
-    channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose",
+    channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
     callback: (data: unknown) => void,
   ) => () => void;
   aiListModels: () => Promise<AiListModelsResult>;
@@ -655,8 +656,22 @@ export async function aiAnalyzeAttachment(payload: {
   return api.aiAnalyzeAttachment(payload);
 }
 
+export interface IdleWorkerStateDto {
+  accountId: string;
+  email: string;
+  status: "idle" | "connecting" | "syncing" | "error" | "stopped";
+  lastEventAt?: number;
+  error?: string;
+}
+
+export async function mailIdleStatus(): Promise<IdleWorkerStateDto[]> {
+  const api = getApi();
+  if (!api?.mailIdleStatus) return [];
+  return api.mailIdleStatus();
+}
+
 export function onMailEvent(
-  channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose",
+  channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
   callback: (data: unknown) => void,
 ): (() => void) {
   const api = getApi();

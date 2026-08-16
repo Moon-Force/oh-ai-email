@@ -295,8 +295,10 @@ const api = {
     requestId?: string;
   }): Promise<AiTaskResult> => ipcRenderer.invoke("ai:analyzeAttachment", payload),
 
+  mailIdleStatus: () => ipcRenderer.invoke("mail:idleStatus"),
+
   onMailEvent: (
-    channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose",
+    channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
     callback: (data: unknown) => void,
   ): (() => void) => {
     const listener = (_e: Electron.IpcRendererEvent, data: unknown) => callback(data);

@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerIpc } from "./ipc";
 import { destroyTray, initTray } from "./tray";
+import { startIdleManager, stopIdleManager } from "./mail/idle";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,6 +52,8 @@ function createWindow() {
       win.webContents.send("mail:open-compose");
     },
   });
+
+  void startIdleManager(win);
 }
 
 app.whenReady().then(async () => {
@@ -64,6 +67,7 @@ app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   (app as unknown as { isQuitting: boolean }).isQuitting = true;
+  void stopIdleManager();
   destroyTray();
 });
 

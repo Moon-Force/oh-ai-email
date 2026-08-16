@@ -38,6 +38,7 @@ import AgentDrawer from "./features/ai/AgentDrawer";
 import { useAgentStore } from "./features/ai/agentStore";
 import { useKeyboardShortcuts } from "./features/shell/useKeyboardShortcuts";
 import ShortcutsDialog from "./features/shell/ShortcutsDialog";
+import { onMailEvent } from "./lib/ipc";
 
 export default function App() {
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -82,6 +83,36 @@ export default function App() {
     void hydrateAi();
     void hydratePrefs();
   }, [hydrate, hydrateAi, hydratePrefs]);
+
+  useEffect(() => {
+    const unOpen = onMailEvent("mail:open-message", (data: unknown) => {
+      const payload = data as { messageId?: string };
+      if (payload?.messageId) {
+        useMailStore.getState().select(payload.messageId);
+        useMailStore.getState().setView("mail");
+      }
+    });
+
+    const unSync = onMailEvent("mail:trigger-sync", () => {
+      void useMailStore.getState().syncNow();
+    });
+
+    const unCompose = onMailEvent("mail:open-compose", () => {
+      useMailStore.getState().openCompose();
+    });
+
+    const unPushed = onMailEvent("mail:pushed", (data: unknown) => {
+      const payload = data as { accountId?: string };
+      void useMailStore.getState().hydrate(payload?.accountId || undefined);
+    });
+
+    return () => {
+      unOpen();
+      unSync();
+      unCompose();
+      unPushed();
+    };
+  }, []);
 
   const syncingRef = useRef(syncing);
   syncingRef.current = syncing;

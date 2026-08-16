@@ -51,6 +51,7 @@ import {
   sortFoldersForUi,
   syncAccount,
 } from "./mail/sync";
+import { getIdleStatuses, refreshIdleAccounts } from "./mail/idle";
 import type { AccountRecord, TlsMode } from "./mail/types";
 import { deleteSecret, loadSecret, saveSecret } from "./store";
 import { loadAppPrefs, saveAppPrefs, type AppPrefs } from "./prefs";
@@ -158,13 +159,19 @@ export async function registerIpc(): Promise<void> {
 
     // Initial sync (best-effort)
     const sync = await syncAccount(id);
+    void refreshIdleAccounts();
     return { ok: true as const, account: record, sync };
   });
 
   ipcMain.handle("account:remove", (_e, id: string) => {
     deleteAccount(id);
     deleteSecret(passwordKey(id));
+    void refreshIdleAccounts();
     return true;
+  });
+
+  ipcMain.handle("mail:idleStatus", () => {
+    return getIdleStatuses();
   });
 
   ipcMain.handle("mail:sync", async (_e, accountId?: string) => {
