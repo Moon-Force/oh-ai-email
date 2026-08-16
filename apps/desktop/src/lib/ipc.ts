@@ -146,6 +146,9 @@ type Api = {
     requestId?: string;
   }) => Promise<AiTaskResult>;
   mailIdleStatus?: () => Promise<IdleWorkerStateDto[]>;
+  onAiStreamChunk?: (
+    callback: (chunk: { requestId: string; reasoningChunk?: string; contentChunk?: string }) => void
+  ) => () => void;
   onMailEvent?: (
     channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
     callback: (data: unknown) => void
@@ -1043,4 +1046,12 @@ export async function agentDeleteSession(sessionId: string): Promise<{ ok: boole
   const api = getApi();
   if (!api?.agentDeleteSession) return { ok: true };
   return api.agentDeleteSession(sessionId);
+}
+
+export function onAiStreamChunk(
+  callback: (chunk: { requestId: string; reasoningChunk?: string; contentChunk?: string }) => void
+): () => void {
+  const api = getApi();
+  if (!api?.onAiStreamChunk) return () => {};
+  return api.onAiStreamChunk(callback);
 }

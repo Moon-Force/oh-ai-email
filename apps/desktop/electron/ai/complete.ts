@@ -28,14 +28,25 @@ export function abortAiRequest(requestId: string): boolean {
   return false;
 }
 
+export type StreamChunkCallback = (chunk: {
+  reasoningChunk?: string;
+  contentChunk?: string;
+}) => void;
+
 export async function chatComplete(
   messages: ChatMessage[],
-  opts?: { mode?: AiMode; timeoutMs?: number; requestId?: string }
+  opts?: {
+    mode?: AiMode;
+    timeoutMs?: number;
+    requestId?: string;
+    onChunk?: StreamChunkCallback;
+  }
 ): Promise<AiResult> {
   const settings = loadAiSettings();
   const mode = opts?.mode ?? settings.mode;
   const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const requestId = opts?.requestId;
+  const onChunk = opts?.onChunk;
 
   const controller = new AbortController();
   if (requestId) {
@@ -61,7 +72,8 @@ export async function chatComplete(
         settings.ollamaHost,
         settings.ollamaModel,
         combinedSignal,
-        controller.signal
+        controller.signal,
+        onChunk
       );
     }
     const key = getCloudApiKey();
@@ -89,7 +101,8 @@ export async function chatComplete(
       key,
       settings.model,
       combinedSignal,
-      controller.signal
+      controller.signal,
+      onChunk
     );
 
     if (res.ok && settings.redactSensitiveData && Object.keys(combinedReplacements).length > 0) {
@@ -127,9 +140,11 @@ async function callOpenAiCompatible(
   apiKey: string,
   model: string,
   signal: AbortSignal,
-  userAbortSignal?: AbortSignal
+  userAbortSignal?: AbortSignal,
+  onChunk?: StreamChunkCallback
 ): Promise<AiResult> {
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
+  const isStreaming = Boolean(onChunk);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -142,6 +157,7 @@ async function callOpenAiCompatible(
         model,
         messages,
         temperature: 0.4,
+        stream: isStreaming,
       }),
       signal,
     });
@@ -162,6 +178,73 @@ async function callOpenAiCompatible(
       ok: false,
       code: "HTTP",
       error: `云端请求失败 HTTP ${res.status}${snippet ? `：${snippet}` : ""}`,
+    };
+  }
+
+  if (isStreaming && res.body) {
+    let fullText = "";
+    let fullReasoning = "";
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data:")) continue;
+          const jsonStr = trimmed.slice(5).trim();
+          if (jsonStr === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr) as {
+              choices?: Array<{
+                delta?: {
+                  content?: string;
+                  reasoning_content?: string;
+                  reasoning?: string;
+                };
+              }>;
+            };
+            const delta = parsed.choices?.[0]?.delta;
+            if (!delta) continue;
+
+            const reasoningChunk = delta.reasoning_content || delta.reasoning;
+            const contentChunk = delta.content;
+
+            if (reasoningChunk) {
+              fullReasoning += reasoningChunk;
+              onChunk?.({ reasoningChunk });
+            }
+            if (contentChunk) {
+              fullText += contentChunk;
+              onChunk?.({ contentChunk });
+            }
+          } catch {
+            // ignore partial json
+          }
+        }
+      }
+    } catch (e) {
+      if (userAbortSignal?.aborted) {
+        return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };
+      }
+    }
+
+    const text = fullText.trim();
+    const reasoningContent = fullReasoning.trim() || undefined;
+    if (!text && !reasoningContent) return { ok: false, code: "EMPTY", error: "模型返回为空" };
+    return {
+      ok: true,
+      text: text || (reasoningContent ? "已完成思考分析。" : ""),
+      reasoningContent,
+      mode: "cloud",
     };
   }
 
@@ -191,10 +274,12 @@ async function callOllama(
   host: string,
   model: string,
   signal: AbortSignal,
-  userAbortSignal?: AbortSignal
+  userAbortSignal?: AbortSignal,
+  onChunk?: StreamChunkCallback
 ): Promise<AiResult> {
   const base = host.replace(/\/+$/, "");
   const url = `${base}/api/chat`;
+  const isStreaming = Boolean(onChunk);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -203,7 +288,7 @@ async function callOllama(
       body: JSON.stringify({
         model,
         messages,
-        stream: false,
+        stream: isStreaming,
         options: { temperature: 0.4 },
       }),
       signal,
@@ -229,6 +314,59 @@ async function callOllama(
       code: "OLLAMA_DOWN",
       error: `Ollama 返回 HTTP ${res.status}${body ? `：${body.slice(0, 160)}` : ""}`,
     };
+  }
+
+  if (isStreaming && res.body) {
+    let fullText = "";
+    let fullReasoning = "";
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const parsed = JSON.parse(trimmed) as {
+              message?: {
+                content?: string;
+                reasoning_content?: string;
+              };
+            };
+            const msg = parsed.message;
+            if (!msg) continue;
+            if (msg.reasoning_content) {
+              fullReasoning += msg.reasoning_content;
+              onChunk?.({ reasoningChunk: msg.reasoning_content });
+            }
+            if (msg.content) {
+              fullText += msg.content;
+              onChunk?.({ contentChunk: msg.content });
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    } catch (e) {
+      if (userAbortSignal?.aborted) {
+        return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };
+      }
+    }
+
+    const text = fullText.trim();
+    const reasoningContent = fullReasoning.trim() || undefined;
+    if (!text && !reasoningContent)
+      return { ok: false, code: "EMPTY", error: "Ollama 返回为空（请检查模型名是否已 pull）" };
+    return { ok: true, text, reasoningContent, mode: "local" };
   }
 
   const data = (await res.json()) as { message?: { content?: string } };

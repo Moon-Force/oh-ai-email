@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -53,6 +53,7 @@ import { useMailStore } from "../mail/store";
 import { useToastStore } from "../shell/toastStore";
 import { speakText, stopSpeaking } from "../voice/voiceService";
 import { TypewriterText } from "./TypewriterText";
+import { onAiStreamChunk } from "../../lib/ipc";
 
 type CapsuleState = "idle" | "thinking" | "expanded";
 type ResultKind =
@@ -114,8 +115,31 @@ export default function LumenCapsule({
   const [showReasoning, setShowReasoning] = useState(false);
   const [popoutOpen, setPopoutOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [liveReasoningText, setLiveReasoningText] = useState("");
+  const [liveContentText, setLiveContentText] = useState("");
+  const streamScrollRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAiStreamChunk((chunk) => {
+      if (activeReqIdRef.current && chunk.requestId === activeReqIdRef.current) {
+        if (chunk.reasoningChunk) {
+          setLiveReasoningText((prev) => prev + chunk.reasoningChunk);
+        }
+        if (chunk.contentChunk) {
+          setLiveContentText((prev) => prev + chunk.contentChunk);
+        }
+      }
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (streamScrollRef.current) {
+      streamScrollRef.current.scrollTop = streamScrollRef.current.scrollHeight;
+    }
+  }, [liveReasoningText, liveContentText]);
   const [pendingAction, setPendingAction] = useState<
     | "summary"
     | "draft"
@@ -168,6 +192,8 @@ export default function LumenCapsule({
     activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
     setState("thinking");
     setKind("summary");
     try {
@@ -209,6 +235,8 @@ export default function LumenCapsule({
     activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
     setState("thinking");
     setKind("draft");
     try {
@@ -979,95 +1007,170 @@ export default function LumenCapsule({
           </Stack>
 
           {/* Thinking Process Body */}
-          <Box
-            sx={{
-              flex: 1,
-              minHeight: 110,
-              display: "flex",
-              flexDirection: "column",
-              gap: 1.25,
-              p: 1.5,
-              borderRadius: 2,
-              bgcolor: (t) =>
-                t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.02)",
-              border: 1,
-              borderColor: "divider",
-              overflow: "hidden",
-            }}
-          >
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <CircularProgress size={14} thickness={5} />
-              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary" }}>
-                AI 深度思考推理中...
-              </Typography>
-            </Stack>
-
-            {/* Thinking step indicator animation */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, my: "auto" }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                <Box
-                  sx={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    bgcolor: "success.main",
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  1. 解析邮件正文与发件人语境
+          {liveReasoningText ? (
+            <Box
+              ref={streamScrollRef}
+              sx={{
+                flex: 1,
+                minHeight: 120,
+                maxHeight: 180,
+                overflowY: "auto",
+                p: 1.25,
+                borderRadius: 1.5,
+                bgcolor: (t) => (t.palette.mode === "dark" ? "#080B10" : "#F8FAFC"),
+                border: 1,
+                borderColor: (t) =>
+                  t.palette.mode === "dark" ? "rgba(59, 130, 246, 0.4)" : "rgba(37, 99, 235, 0.3)",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                fontSize: "0.75rem",
+                lineHeight: 1.55,
+                color: "text.primary",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={0.75}
+                sx={{ alignItems: "center", mb: 0.75, color: "primary.main" }}
+              >
+                <PsychologyIcon sx={{ fontSize: 15 }} />
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  实时思考推理流 (DeepSeek-R1 / Reasoning Stream)
                 </Typography>
               </Stack>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <Typography
+                component="div"
+                variant="body2"
+                sx={{ fontFamily: "inherit", fontSize: "inherit", color: "inherit" }}
+              >
+                {liveReasoningText}
                 <Box
+                  component="span"
                   sx={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
+                    display: "inline-block",
+                    width: "6px",
+                    height: "13px",
                     bgcolor: "primary.main",
+                    ml: 0.5,
+                    verticalAlign: "middle",
+                    animation: "pulse 1s infinite",
                   }}
                 />
-                <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 600 }}>
-                  2. 提炼核心要点与深度逻辑推理
-                </Typography>
-              </Stack>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center", opacity: 0.6 }}>
+              </Typography>
+              {liveContentText && (
                 <Box
                   sx={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    bgcolor: "text.disabled",
+                    mt: 1,
+                    pt: 1,
+                    borderTop: 1,
+                    borderColor: "divider",
+                    color: "text.secondary",
                   }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  3. 组织结构并准备最终输出
-                </Typography>
-              </Stack>
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 600, display: "block", mb: 0.25, color: "primary.main" }}
+                  >
+                    实时草稿输出中:
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: "0.78rem" }}>
+                    {liveContentText}
+                  </Typography>
+                </Box>
+              )}
             </Box>
-
-            {/* Shimmer loading bar */}
+          ) : (
             <Box
               sx={{
-                height: 3,
-                width: "100%",
+                flex: 1,
+                minHeight: 110,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.25,
+                p: 1.5,
                 borderRadius: 2,
+                bgcolor: (t) =>
+                  t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.02)",
+                border: 1,
+                borderColor: "divider",
                 overflow: "hidden",
-                bgcolor: "divider",
-                position: "relative",
-                "&::after": {
-                  content: '""',
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  bottom: 0,
-                  width: "45%",
-                  bgcolor: "primary.main",
-                  borderRadius: 2,
-                  animation: "shimmer 1.8s infinite ease-in-out",
-                },
               }}
-            />
-          </Box>
+            >
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <CircularProgress size={14} thickness={5} />
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  AI 深度思考推理中...
+                </Typography>
+              </Stack>
+
+              {/* Thinking step indicator animation */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, my: "auto" }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      bgcolor: "success.main",
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    1. 解析邮件正文与发件人语境
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      bgcolor: "primary.main",
+                    }}
+                  />
+                  <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 600 }}>
+                    2. 提炼核心要点与深度逻辑推理
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", opacity: 0.6 }}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      bgcolor: "text.disabled",
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    3. 组织结构并准备最终输出
+                  </Typography>
+                </Stack>
+              </Box>
+
+              {/* Shimmer loading bar */}
+              <Box
+                sx={{
+                  height: 3,
+                  width: "100%",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                  bgcolor: "divider",
+                  position: "relative",
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    width: "45%",
+                    bgcolor: "primary.main",
+                    borderRadius: 2,
+                    animation: "shimmer 1.8s infinite ease-in-out",
+                  },
+                }}
+              />
+            </Box>
+          )}
         </Stack>
       </Paper>
     );

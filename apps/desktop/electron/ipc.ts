@@ -494,7 +494,7 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle(
     "ai:summarize",
     async (
-      _e,
+      event,
       payload: {
         subject?: string;
         from?: string;
@@ -502,13 +502,24 @@ export async function registerIpc(): Promise<void> {
         mode?: AiMode;
         requestId?: string;
       }
-    ) => taskSummarize(payload)
+    ) =>
+      taskSummarize({
+        ...payload,
+        onChunk: (chunk) => {
+          if (payload.requestId && !event.sender.isDestroyed()) {
+            event.sender.send("ai:stream-chunk", {
+              requestId: payload.requestId,
+              ...chunk,
+            });
+          }
+        },
+      })
   );
 
   ipcMain.handle(
     "ai:draftReply",
     async (
-      _e,
+      event,
       payload: {
         subject?: string;
         from?: string;
@@ -517,13 +528,24 @@ export async function registerIpc(): Promise<void> {
         mode?: AiMode;
         requestId?: string;
       }
-    ) => taskDraftReply(payload)
+    ) =>
+      taskDraftReply({
+        ...payload,
+        onChunk: (chunk) => {
+          if (payload.requestId && !event.sender.isDestroyed()) {
+            event.sender.send("ai:stream-chunk", {
+              requestId: payload.requestId,
+              ...chunk,
+            });
+          }
+        },
+      })
   );
 
   ipcMain.handle(
     "ai:quickReply",
     async (
-      _e,
+      event,
       payload: {
         subject?: string;
         from?: string;
@@ -533,7 +555,18 @@ export async function registerIpc(): Promise<void> {
         mode?: AiMode;
         requestId?: string;
       }
-    ) => taskQuickReply(payload)
+    ) =>
+      taskQuickReply({
+        ...payload,
+        onChunk: (chunk) => {
+          if (payload.requestId && !event.sender.isDestroyed()) {
+            event.sender.send("ai:stream-chunk", {
+              requestId: payload.requestId,
+              ...chunk,
+            });
+          }
+        },
+      })
   );
 
   ipcMain.handle(
@@ -553,7 +586,7 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle(
     "ai:rewrite",
     async (
-      _e,
+      event,
       payload: {
         text: string;
         tone: RewriteTone;
@@ -561,20 +594,42 @@ export async function registerIpc(): Promise<void> {
         mode?: AiMode;
         requestId?: string;
       }
-    ) => taskRewrite(payload)
+    ) =>
+      taskRewrite({
+        ...payload,
+        onChunk: (chunk) => {
+          if (payload.requestId && !event.sender.isDestroyed()) {
+            event.sender.send("ai:stream-chunk", {
+              requestId: payload.requestId,
+              ...chunk,
+            });
+          }
+        },
+      })
   );
 
   ipcMain.handle(
     "ai:compose",
     async (
-      _e,
+      event,
       payload: {
         prompt: string;
         existingBody?: string;
         mode?: AiMode;
         requestId?: string;
       }
-    ) => taskCompose(payload)
+    ) =>
+      taskCompose({
+        ...payload,
+        onChunk: (chunk) => {
+          if (payload.requestId && !event.sender.isDestroyed()) {
+            event.sender.send("ai:stream-chunk", {
+              requestId: payload.requestId,
+              ...chunk,
+            });
+          }
+        },
+      })
   );
 
   ipcMain.handle(

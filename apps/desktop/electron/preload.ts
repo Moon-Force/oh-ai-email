@@ -320,6 +320,19 @@ const api = {
 
   mailIdleStatus: () => ipcRenderer.invoke("mail:idleStatus"),
 
+  onAiStreamChunk: (
+    callback: (chunk: { requestId: string; reasoningChunk?: string; contentChunk?: string }) => void
+  ): (() => void) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      data: { requestId: string; reasoningChunk?: string; contentChunk?: string }
+    ) => callback(data);
+    ipcRenderer.on("ai:stream-chunk", listener);
+    return () => {
+      ipcRenderer.removeListener("ai:stream-chunk", listener);
+    };
+  },
+
   onMailEvent: (
     channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
     callback: (data: unknown) => void

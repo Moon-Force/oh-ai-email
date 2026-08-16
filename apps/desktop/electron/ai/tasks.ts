@@ -1,5 +1,11 @@
 import { buildMailContext, cleanContext } from "./clean";
-import { abortAiRequest, chatComplete, type AiErrorCode, type AiResult } from "./complete";
+import {
+  abortAiRequest,
+  chatComplete,
+  type AiErrorCode,
+  type AiResult,
+  type StreamChunkCallback,
+} from "./complete";
 import type { AiMode } from "./settings";
 import {
   systemForActionItems,
@@ -60,6 +66,7 @@ export async function taskSummarize(input: {
   body: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
   const ctx = buildMailContext(input);
   return chatComplete(
@@ -67,7 +74,7 @@ export async function taskSummarize(input: {
       { role: "system", content: systemForSummarize() },
       { role: "user", content: ctx },
     ],
-    { mode: input.mode, requestId: input.requestId }
+    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
   );
 }
 
@@ -78,6 +85,7 @@ export async function taskDraftReply(input: {
   userPersona?: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
   const ctx = buildMailContext(input);
   return chatComplete(
@@ -85,7 +93,7 @@ export async function taskDraftReply(input: {
       { role: "system", content: systemForDraftReply(input.userPersona) },
       { role: "user", content: `Write a reply to this email:\n\n${ctx}` },
     ],
-    { mode: input.mode, requestId: input.requestId }
+    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
   );
 }
 
@@ -97,6 +105,7 @@ export async function taskQuickReply(input: {
   customNote?: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
   const ctx = buildMailContext(input);
   return chatComplete(
@@ -104,7 +113,7 @@ export async function taskQuickReply(input: {
       { role: "system", content: systemForQuickReply(input.replyType, input.customNote) },
       { role: "user", content: `Write a quick reply to this email:\n\n${ctx}` },
     ],
-    { mode: input.mode, requestId: input.requestId }
+    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
   );
 }
 
@@ -181,6 +190,7 @@ export async function taskRewrite(input: {
   userPersona?: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
   const cleaned = cleanContext(input.text, 6000);
   if (!cleaned.trim()) {
@@ -191,7 +201,7 @@ export async function taskRewrite(input: {
       { role: "system", content: systemForRewrite(input.tone, input.userPersona) },
       { role: "user", content: cleaned },
     ],
-    { mode: input.mode, requestId: input.requestId }
+    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
   );
 }
 
@@ -200,6 +210,7 @@ export async function taskCompose(input: {
   existingBody?: string;
   mode?: AiMode;
   requestId?: string;
+  onChunk?: StreamChunkCallback;
 }): Promise<AiResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
@@ -213,7 +224,7 @@ export async function taskCompose(input: {
       { role: "system", content: systemForCompose() },
       { role: "user", content: user },
     ],
-    { mode: input.mode, requestId: input.requestId }
+    { mode: input.mode, requestId: input.requestId, onChunk: input.onChunk }
   );
 }
 
