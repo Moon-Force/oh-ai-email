@@ -449,17 +449,31 @@ export async function composeFromPrompt(
   });
 }
 
+export async function translateTextDetailed(
+  text: string,
+  targetLang: "zh" | "en" = "zh",
+  modeOrOpts?: AiMode | AiRunOptions,
+  requestId?: string
+): Promise<AiTextResponse> {
+  if (!hasDesktopApi()) browserBlocked();
+  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
+  return runWithAudit(`translate:${targetLang}`, text.length, mode, async () => {
+    const res = await aiTranslate({ text, targetLang, mode, requestId: reqId });
+    if (res.ok) {
+      return { text: res.text, reasoningContent: res.reasoningContent, mode: res.mode };
+    }
+    throw new AiRequestError(res.code, res.error);
+  });
+}
+
 export async function translateText(
   text: string,
   targetLang: "zh" | "en" = "zh",
   modeOrOpts?: AiMode | AiRunOptions,
   requestId?: string
 ): Promise<string> {
-  if (!hasDesktopApi()) browserBlocked();
-  const { mode, requestId: reqId } = parseOptions(modeOrOpts, requestId);
-  return runWithAudit(`translate:${targetLang}`, text.length, mode, async () => {
-    return unwrap(await aiTranslate({ text, targetLang, mode, requestId: reqId }));
-  });
+  const res = await translateTextDetailed(text, targetLang, modeOrOpts, requestId);
+  return res.text;
 }
 
 export function ensureCloudPrivacyAck(): boolean {

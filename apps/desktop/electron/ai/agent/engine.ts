@@ -106,38 +106,99 @@ export async function runAgentWorkflow(
       // Ignore if DB not initialized (e.g. in headless unit tests)
     }
 
-    // ── Step 1: Planning & Thinking ──────────────────────────────
+    // ── Step 1: Planning & Context Resolution ────────────────────
     checkAborted();
     await loop.dispatchEvent({
       type: "step",
       stepIndex: 1,
       totalSteps: 3,
-      message: `正在规划 [${skill?.name || getAgentTypeLabel(agentType)}] 任务并检索上下文...`,
+      message: `正在规划 [${skill?.name || getAgentTypeLabel(agentType)}] 任务...`,
     });
-
-    // Stream initial thinking token
-    const thinkingText = `【深度思考】分析任务类型: ${skill?.name || getAgentTypeLabel(agentType)}。\n正在加载邮件主题与正文，检查是否有附件及历史上下文...`;
-    await loop.emitThinkingToken(thinkingText);
 
     // Context resolution
     const contextSubject = typeof context.subject === "string" ? context.subject : "";
     const contextFrom = typeof context.from === "string" ? context.from : "";
     const contextBody = typeof context.body === "string" ? context.body : "";
     const contextMessageId = typeof context.messageId === "string" ? context.messageId : "";
+    const cleanedBody = cleanContext(contextBody, 4000);
 
-    // ── Step 2: Tool Execution & Information Gathering ────────────
+    // ── Step 2: Tool Execution & Specialization ───────────────────
     checkAborted();
     await loop.dispatchEvent({
       type: "step",
       stepIndex: 2,
       totalSteps: 3,
-      message: "正在调用检索与提取工具收集结构化数据...",
+      message: "正在调用工具提取结构化数据与线索...",
     });
 
     let toolDataSummary = "";
     const proposedItems: AgentProposalItem[] = [];
 
-    if (agentType === "meeting_extractor" || skill?.id === "meeting_extractor") {
+    let systemPrompt = skill?.systemPrompt || `你是一位高效的智能邮件助手。`;
+    let userPromptContent = "";
+
+    if (agentType === "translate") {
+      const isChineseSource =
+        (contextBody.match(/[\u4e00-\u9fa5]/g) || []).length >
+        (contextBody.replace(/\s/g, "").length * 0.15);
+      const targetLang =
+        typeof context.targetLang === "string"
+          ? context.targetLang
+          : isChineseSource
+            ? "en"
+            : "zh";
+
+      systemPrompt = `You are a professional executive email translator.
+Translate the provided email text directly into ${targetLang === "zh" ? "Simplified Chinese (简体中文)" : "English"}.
+Maintain clear, natural business phrasing.
+IMPORTANT: Output ONLY the translated content itself. Do NOT include any summary, explanation, introductory labels, or conversational remarks.`;
+
+      userPromptContent = cleanedBody || contextSubject || prompt;
+    } else if (agentType === "summarize") {
+      systemPrompt = `You are an executive email assistant. Summarize incoming emails concisely in the SAME language as the email.
+1. Capture the core purpose, critical context, and any decision required.
+2. Structure with bullet points if multiple distinct topics exist.
+3. Keep it crisp, factual, and strictly under 4-5 sentences without unnecessary filler.`;
+
+      userPromptContent = `Subject: ${contextSubject}\nFrom: ${contextFrom}\n\n${cleanedBody}`;
+    } else if (agentType === "draft_reply") {
+      systemPrompt = `You are an email assistant drafting professional, context-aware replies.
+1. Respond in the same language as the incoming email.
+2. Address questions and action items directly and politely.
+3. Maintain an empathetic, efficient tone. Generate only the reply text ready to send.`;
+
+      userPromptContent = `Write a reply to this email:\n\nSubject: ${contextSubject}\nFrom: ${contextFrom}\n\n${cleanedBody}`;
+      proposedItems.push({
+        id: `prop_draft_${Date.now()}`,
+        kind: "draft_reply",
+        targetTo: contextFrom,
+        subject: contextSubject.toLowerCase().startsWith("re:")
+          ? contextSubject
+          : `Re: ${contextSubject || "工作跟进"}`,
+        body: "",
+        selected: true,
+      });
+    } else if (agentType === "quick_reply") {
+      const replyIntent = typeof context.replyType === "string" ? context.replyType : "ack";
+      const customNote = typeof context.customNote === "string" ? context.customNote : "";
+      systemPrompt = `You are a high-efficiency email assistant crafting quick replies.
+Generate short, polite, context-appropriate responses according to the requested reply intent (${replyIntent}${customNote ? `, note: ${customNote}` : ""}).
+Generate ONLY the response draft text.`;
+
+      userPromptContent = `Subject: ${contextSubject}\nFrom: ${contextFrom}\n\n${cleanedBody}`;
+    } else if (agentType === "rewrite") {
+      const tone = typeof context.tone === "string" ? context.tone : "formal";
+      systemPrompt = `You are an expert copy editor and writing stylist.
+Rewrite the provided text with tone "${tone}".
+Generate ONLY the rewritten text without explanations.`;
+
+      userPromptContent = cleanedBody || prompt;
+    } else if (agentType === "compose") {
+      systemPrompt = `You are an executive drafting assistant. Transform prompt instructions into a polished, persuasive email with clear structure.`;
+      userPromptContent = context.body
+        ? `Instruction: ${prompt}\n\nExisting draft to improve:\n${cleanContext(String(context.body), 3000)}`
+        : `Instruction: ${prompt}`;
+    } else if (agentType === "meeting_extractor" || skill?.id === "meeting_extractor") {
       await loop.emitContentToken(`[工具调用] 正在提取会议日程与参会详情...\n`);
       const calItem = toolExtractMeetingDetails(contextSubject, contextBody, {
         title: typeof context.title === "string" ? context.title : undefined,
@@ -160,30 +221,28 @@ export async function runAgentWorkflow(
         });
 
         toolDataSummary = `提取到会议: ${calItem.title}, 时间: ${calItem.startTime}`;
-        await loop.emitThinkingToken(`\n已成功解析日程实体: ${calItem.title}`);
       }
+      userPromptContent = `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n工具收集结果: ${toolDataSummary}`;
     } else if (agentType === "invoice_scanner" || skill?.id === "invoice_scanner") {
-      await loop.emitContentToken(`[工具调用] 正在识别发票与报销明细...\n`);
       const invoiceItem: AgentProposalInvoiceItem = {
         id: `prop_inv_${Date.now()}`,
         kind: "invoice_entry",
-        vendorName: contextFrom.split("<")[0].trim() || "阿里云计算有限公司",
+        vendorName: contextFrom.split("<")[0].trim() || "商户开票方",
         amount: 899.0,
         currency: "CNY",
-        category: "云服务基础设施",
+        category: "云服务与基础设施",
         date: new Date().toISOString().slice(0, 10),
         selected: true,
       };
       proposedItems.push(invoiceItem);
       toolDataSummary = `提取到发票凭据: ${invoiceItem.vendorName} 金额: ¥${invoiceItem.amount}`;
-      await loop.emitThinkingToken(`\n已提取发票金额: ¥${invoiceItem.amount}`);
+      userPromptContent = `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n工具收集结果: ${toolDataSummary}`;
     } else if (agentType === "batch_triage" || agentType === "smart_sorter") {
-      await loop.emitContentToken(`[工具调用] 正在智能评估邮件重要性与紧急度...\n`);
       const triages = toolExtractTriageSuggestions([
         {
           id: contextMessageId || "msg_current",
-          subject: contextSubject || "关于下季度规划与预算",
-          from: contextFrom || "boss@company.com",
+          subject: contextSubject || "工作协同与待办",
+          from: contextFrom || "sender@example.com",
           body: contextBody || "",
         },
       ]);
@@ -199,14 +258,15 @@ export async function runAgentWorkflow(
         });
       }
       toolDataSummary = `分类判定完毕，推荐分箱: ${triages[0]?.targetSplit || "important"}`;
+      userPromptContent = `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n工具收集结果: ${toolDataSummary}`;
     } else if (agentType === "followup_sequence" || agentType === "outreach_translator") {
-      await loop.emitContentToken(`[工具调用] 正在提取待办跟进项并起草邮件...\n`);
       const commitmentsRes = toolExtractCommitments(contextSubject, contextBody);
       const commitments = commitmentsRes.commitments || [];
       const commitSummary = commitments.map((c) => `- ${c.text}`).join("\n");
-      const draftBody = commitments.length > 0
-        ? `您好，针对来信中的关键事项，已确认跟进如下：\n\n${commitSummary}\n\n如有变动请随时同步。`
-        : `您好，来信已收到，关于「${contextSubject}」我们将尽快组织落实并回复您。`;
+      const draftBody =
+        commitments.length > 0
+          ? `您好，针对来信中的关键事项，已确认跟进如下：\n\n${commitSummary}\n\n如有变动请随时同步。`
+          : `您好，来信已收到，关于「${contextSubject}」我们将尽快组织落实并回复您。`;
 
       proposedItems.push({
         id: `prop_draft_${Date.now()}`,
@@ -217,44 +277,32 @@ export async function runAgentWorkflow(
         selected: true,
       });
       toolDataSummary = `整理出 ${commitments.length} 项待办承诺，并生成标准草稿`;
+      userPromptContent = `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n工具收集结果: ${toolDataSummary}`;
+    } else if (agentType === "daily_briefing") {
+      proposedItems.push({
+        id: `prop_briefing_cal_${Date.now()}`,
+        kind: "calendar_event",
+        title: "今日工作规划与待办审阅",
+        startTime: new Date().toISOString(),
+        selected: true,
+      });
+      toolDataSummary = "已汇总今日日程与待办";
+      userPromptContent = `主题: ${contextSubject || "今日工作总结"}\n用户需求: 生成晨间简报`;
     } else {
-      // General Daily Briefing / Custom Agent
-      await loop.emitContentToken(`[工具调用] 正在全局检索相关邮件...\n`);
-      const searchRes = toolSearchMessages(prompt || "今日待办");
-      toolDataSummary = `检索到 ${searchRes.length} 封关联信件`;
-      if (agentType === "daily_briefing") {
-        proposedItems.push({
-          id: `prop_briefing_cal_${Date.now()}`,
-          kind: "calendar_event",
-          title: "今日工作规划与待办审阅",
-          startTime: new Date().toISOString(),
-          selected: true,
-        });
-      } else if (contextSubject) {
-        proposedItems.push({
-          id: `prop_draft_${Date.now()}`,
-          kind: "draft_reply",
-          targetTo: contextFrom,
-          subject: `Re: ${contextSubject}`,
-          body: `针对邮件「${contextSubject}」已汇总处理方案，请审阅。`,
-          selected: true,
-        });
-      }
+      userPromptContent =
+        contextSubject || contextBody
+          ? `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n用户需求: ${prompt || "执行智能分析"}`
+          : prompt || "请根据系统指令执行任务。";
     }
 
-    // ── Step 3: LLM Synthesis & Compaction Check ─────────────────
+    // ── Step 3: LLM Synthesis with Real-Time Stream ──────────────
     checkAborted();
     await loop.dispatchEvent({
       type: "step",
       stepIndex: 3,
       totalSteps: 3,
-      message: "正在综合生成结构化总结与行动提案...",
+      message: "AI 正在实时推理与生成最终结果...",
     });
-
-    const cleanedBody = cleanContext(contextBody, 4000);
-    const systemPrompt =
-      skill?.systemPrompt ||
-      `你是一位高效的智能邮件助手。请基于上下文和工具提取的数据生成准确、优雅、结构化的结果。`;
 
     // History & Compaction Handling
     let historyDb: AgentMessageDbRecord[] = [];
@@ -268,16 +316,6 @@ export async function runAgentWorkflow(
       content: m.content,
       thinkingContent: m.thinkingContent,
     }));
-
-    let userPromptContent = "";
-    if (contextSubject || contextBody) {
-      userPromptContent = `邮件主题: ${contextSubject}\n发件人: ${contextFrom}\n正文片段: ${cleanedBody}\n用户需求: ${prompt || "执行智能分析"}`;
-      if (toolDataSummary) {
-        userPromptContent += `\n工具收集结果: ${toolDataSummary}`;
-      }
-    } else {
-      userPromptContent = prompt || "请根据系统指令执行任务。";
-    }
 
     messagesToCompact.push({
       role: "user",
@@ -327,16 +365,27 @@ export async function runAgentWorkflow(
     let finalReasoning = "";
     if (llmResult.ok) {
       finalSummary = llmResult.text.trim();
-      finalReasoning = llmResult.reasoningContent || fullStreamedReasoning || thinkingText;
+      finalReasoning = llmResult.reasoningContent || fullStreamedReasoning;
     } else {
       finalSummary =
         fullStreamedContent.trim() ||
-        `已完成分析。\n\n**工具收集概览**：\n${toolDataSummary}\n\n建议核对下方生成的待办提案。`;
-      finalReasoning = fullStreamedReasoning || thinkingText;
+        (toolDataSummary
+          ? `已完成分析。\n\n**工具收集概览**：\n${toolDataSummary}`
+          : "已完成处理。");
+      finalReasoning = fullStreamedReasoning;
+    }
+
+    if (
+      proposedItems.length > 0 &&
+      proposedItems[0].kind === "draft_reply" &&
+      llmResult.ok &&
+      llmResult.text.trim()
+    ) {
+      (proposedItems[0] as AgentProposalDraftItem).body = finalSummary;
     }
 
     const proposalData: AgentProposalData = {
-      title: `${skill?.name || getAgentTypeLabel(agentType)} 提案`,
+      title: `${skill?.name || getAgentTypeLabel(agentType)} 结果`,
       summary: finalSummary,
       items: proposedItems,
       rawResult: toolDataSummary,

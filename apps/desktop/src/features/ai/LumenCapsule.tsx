@@ -99,9 +99,9 @@ export default function LumenCapsule({
 }: Props) {
   const mode = useAiSettings((s) => s.mode);
   const hasCloudApiKey = useAiSettings((s) => s.hasCloudApiKey);
+  const showToast = useToastStore((s) => s.showToast);
   const openCompose = useMailStore((s) => s.openCompose);
   const setView = useMailStore((s) => s.setView);
-  const showToast = useToastStore((s) => s.showToast);
 
   const [state, setState] = useState<CapsuleState>("idle");
   const [text, setText] = useState("");
@@ -111,6 +111,7 @@ export default function LumenCapsule({
   const [commitmentsData, setCommitmentsData] = useState<CommitmentItem[]>([]);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [kind, setKind] = useState<ResultKind>("summary");
+  const [translateTargetLang, setTranslateTargetLang] = useState<"zh" | "en">("zh");
   const [reasoningContent, setReasoningContent] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [popoutOpen, setPopoutOpen] = useState(false);
@@ -194,6 +195,7 @@ export default function LumenCapsule({
     setError(null);
     setLiveReasoningText("");
     setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     setKind("summary");
     try {
@@ -237,6 +239,7 @@ export default function LumenCapsule({
     setError(null);
     setLiveReasoningText("");
     setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     setKind("draft");
     try {
@@ -278,6 +281,9 @@ export default function LumenCapsule({
     activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     setKind("actionItems");
     try {
@@ -324,6 +330,9 @@ export default function LumenCapsule({
     activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     setKind("threadSummary");
     try {
@@ -366,6 +375,9 @@ export default function LumenCapsule({
     activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     setKind("suggestSplit");
     try {
@@ -408,6 +420,9 @@ export default function LumenCapsule({
     activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     try {
       const d = await quickReplyDraft(
@@ -458,6 +473,9 @@ export default function LumenCapsule({
     const reqId = createAiRequestId();
     activeReqIdRef.current = reqId;
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     try {
       const next = await rewriteTone(text || body, tone, { mode, requestId: reqId });
@@ -502,20 +520,16 @@ export default function LumenCapsule({
         body: text,
       });
     }
-    showToast("已插入写信，请确认后发送", "success", 3000);
+    showToast("已将草稿插入写信编辑器，请核对后发送", "success", 3000);
+    close();
   }
 
   function close() {
     setState("idle");
-    setText("");
-    setActionItemsData(null);
-    setThreadSummaryData(null);
-    setSuggestSplitData(null);
-    setCheckedItems({});
     setError(null);
   }
 
-  async function runTranslate(targetLang: "zh" | "en" = "zh") {
+  async function runTranslate(forcedTargetLang?: "zh" | "en") {
     if (mode === "cloud" && !hasCloudApiKey) {
       guideSettings("未配置云端 API Key，请到设置 → AI 中填写");
       return;
@@ -525,14 +539,24 @@ export default function LumenCapsule({
       setPrivacyOpen(true);
       return;
     }
+
+    const chineseChars = (body.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const totalChars = body.replace(/\s/g, "").length || 1;
+    const isMainlyChinese = chineseChars / totalChars > 0.15;
+    const finalTargetLang = forcedTargetLang || (isMainlyChinese ? "en" : "zh");
+    setTranslateTargetLang(finalTargetLang);
+
     const reqId = createAiRequestId();
     activeReqIdRef.current = reqId;
     setPendingAction(null);
     setError(null);
+    setLiveReasoningText("");
+    setLiveContentText("");
+    setReasoningContent(null);
     setState("thinking");
     setKind("translation");
     try {
-      const res = await translateText(body, targetLang, { mode, requestId: reqId });
+      const res = await translateText(body, finalTargetLang, { mode, requestId: reqId });
       if (activeReqIdRef.current !== reqId) return;
       setText(res);
       setState("expanded");
@@ -1262,6 +1286,15 @@ export default function LumenCapsule({
                           ? "AI 分箱建议"
                           : "邮件翻译"}
             </Typography>
+            {kind === "translation" && (
+              <Chip
+                size="small"
+                label={translateTargetLang === "zh" ? "译为中文" : "译为英文"}
+                color="primary"
+                variant="outlined"
+                sx={{ height: 20, "& .MuiChip-label": { px: 0.5, fontSize: "0.65rem" } }}
+              />
+            )}
             <Chip
               size="small"
               label={mode === "local" ? "本机" : "云端"}
@@ -1680,7 +1713,7 @@ export default function LumenCapsule({
             </Typography>
           )}
           <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5, flexShrink: 0 }}>
-            {kind !== "actionItems" && kind !== "threadSummary" && kind !== "suggestSplit" && (
+            {(kind === "draft" || kind === "summary") && (
               <>
                 <Button size="small" variant="outlined" onClick={() => void runTone("shorter")}>
                   更短一点
@@ -1693,6 +1726,26 @@ export default function LumenCapsule({
                 </Button>
                 <Button size="small" variant="outlined" onClick={() => void runTone("persona")}>
                   ✦ 以我的风格
+                </Button>
+              </>
+            )}
+            {kind === "translation" && (
+              <>
+                <Button
+                  size="small"
+                  variant={translateTargetLang === "zh" ? "contained" : "outlined"}
+                  onClick={() => void runTranslate("zh")}
+                  data-testid="translate-zh-btn"
+                >
+                  译为中文
+                </Button>
+                <Button
+                  size="small"
+                  variant={translateTargetLang === "en" ? "contained" : "outlined"}
+                  onClick={() => void runTranslate("en")}
+                  data-testid="translate-en-btn"
+                >
+                  译为英文
                 </Button>
               </>
             )}
