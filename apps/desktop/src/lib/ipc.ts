@@ -149,6 +149,9 @@ type Api = {
   onAiStreamChunk?: (
     callback: (chunk: { requestId: string; reasoningChunk?: string; contentChunk?: string }) => void
   ) => () => void;
+  onMailSyncProgress?: (
+    callback: (progress: { accountId: string; folder: string; current: number; total: number }) => void
+  ) => () => void;
   onMailEvent?: (
     channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
     callback: (data: unknown) => void
@@ -159,6 +162,10 @@ type Api = {
     text: string;
     voice?: string;
   }) => Promise<AiSynthesizeSpeechResult>;
+  aiTranscribeAudio?: (payload: {
+    audioData: string;
+    mimeType?: string;
+  }) => Promise<{ ok: boolean; text?: string; error?: string }>;
   agentRun: (
     params: AgentRunParams,
     onEvent?: (evt: AgentStreamEvent) => void
@@ -208,10 +215,21 @@ export type AiSettingsDto = {
   preferLocalWhenAvailable: boolean;
   redactSensitiveData: boolean;
   hasCloudApiKey: boolean;
+  sttService: "browser" | "custom";
+  sttBaseUrl: string;
+  sttModel: string;
+  ttsService: "browser" | "custom";
+  ttsBaseUrl: string;
+  ttsModel: string;
+  ttsVoice: string;
+  hasSttApiKey?: boolean;
+  hasTtsApiKey?: boolean;
 };
 
-export type AiSaveSettingsPayload = Partial<Omit<AiSettingsDto, "hasCloudApiKey">> & {
+export type AiSaveSettingsPayload = Partial<Omit<AiSettingsDto, "hasCloudApiKey" | "hasSttApiKey" | "hasTtsApiKey">> & {
   apiKey?: string;
+  sttApiKey?: string;
+  ttsApiKey?: string;
 };
 
 export type AiTaskResult =
@@ -550,6 +568,15 @@ export async function aiGetSettings(): Promise<AiSettingsDto> {
       preferLocalWhenAvailable: false,
       redactSensitiveData: false,
       hasCloudApiKey: false,
+      sttService: "custom",
+      sttBaseUrl: "https://api.openai.com/v1",
+      sttModel: "whisper-1",
+      ttsService: "custom",
+      ttsBaseUrl: "https://api.openai.com/v1",
+      ttsModel: "tts-1",
+      ttsVoice: "alloy",
+      hasSttApiKey: false,
+      hasTtsApiKey: false,
     };
   }
   return api.aiGetSettings();
@@ -568,6 +595,15 @@ export async function aiSaveSettings(payload: AiSaveSettingsPayload): Promise<Ai
       preferLocalWhenAvailable: payload.preferLocalWhenAvailable ?? false,
       redactSensitiveData: payload.redactSensitiveData ?? false,
       hasCloudApiKey: Boolean(payload.apiKey?.trim()),
+      sttService: payload.sttService ?? "custom",
+      sttBaseUrl: payload.sttBaseUrl ?? "https://api.openai.com/v1",
+      sttModel: payload.sttModel ?? "whisper-1",
+      ttsService: payload.ttsService ?? "custom",
+      ttsBaseUrl: payload.ttsBaseUrl ?? "https://api.openai.com/v1",
+      ttsModel: payload.ttsModel ?? "tts-1",
+      ttsVoice: payload.ttsVoice ?? "alloy",
+      hasSttApiKey: Boolean(payload.sttApiKey?.trim()),
+      hasTtsApiKey: Boolean(payload.ttsApiKey?.trim()),
     };
   }
   return api.aiSaveSettings(payload);
@@ -624,6 +660,17 @@ export async function aiSynthesizeSpeech(payload: {
     return { ok: false, error: "仅桌面端可调用云端语音合成" };
   }
   return api.aiSynthesizeSpeech(payload);
+}
+
+export async function aiTranscribeAudio(payload: {
+  audioData: string;
+  mimeType?: string;
+}): Promise<{ ok: boolean; text?: string; error?: string }> {
+  const api = getApi();
+  if (!api?.aiTranscribeAudio) {
+    return { ok: false, error: "仅桌面端可调用云端语音识别" };
+  }
+  return api.aiTranscribeAudio(payload);
 }
 
 export async function aiSummarize(payload: AiMailPayload): Promise<AiTaskResult> {

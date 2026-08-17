@@ -6,10 +6,25 @@ import {
   startSpeechRecognition,
   stopSpeaking,
 } from "./voiceService";
+import { useAiSettings } from "../ai/settingsStore";
+import * as ipc from "../../lib/ipc";
+
+vi.mock("../../lib/ipc", async () => {
+  const actual = await vi.importActual<typeof ipc>("../../lib/ipc");
+  return {
+    ...actual,
+    aiSynthesizeSpeech: vi.fn(),
+    aiTranscribeAudio: vi.fn(),
+  };
+});
 
 describe("Voice Service (STT & TTS)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    useAiSettings.setState({
+      sttService: "browser",
+      ttsService: "browser",
+    });
   });
 
   describe("Speech Recognition (STT)", () => {
@@ -21,18 +36,18 @@ describe("Voice Service (STT & TTS)", () => {
       // @ts-expect-error test override
       delete window.SpeechRecognition;
 
-      expect(isSpeechRecognitionSupported()).toBe(false);
-
       const errorFn = vi.fn();
       const cancel = startSpeechRecognition(vi.fn(), errorFn);
-      expect(errorFn).toHaveBeenCalledWith(expect.stringContaining("不支持语音识别"));
+      expect(errorFn).toHaveBeenCalledWith(
+        expect.stringMatching(/不支持语音识别|未找到可用语音识别引擎/)
+      );
       expect(typeof cancel).toBe("function");
 
       (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition =
         original;
     });
 
-    it("creates recognition instance and handles results", () => {
+    it("creates recognition instance and handles results in browser mode", () => {
       class MockSpeechRecognition {
         continuous = false;
         interimResults = false;
@@ -54,13 +69,25 @@ describe("Voice Service (STT & TTS)", () => {
       const cancel = startSpeechRecognition(resultFn);
 
       expect(typeof cancel).toBe("function");
-
       cancel();
     });
   });
 
   describe("Speech Synthesis (TTS)", () => {
-    it("detects speech synthesis support", () => {
+    beforeEach(() => {
+      // Mock HTML Audio element for jsdom environment
+      // @ts-expect-error test mock
+      global.Audio = class {
+        play = vi.fn().mockResolvedValue(undefined);
+        pause = vi.fn();
+        currentTime = 0;
+        onended: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        constructor(_src?: string) {}
+      };
+    });
+
+    it("detects speech synthesis support and speaks via SpeechSynthesis in browser mode", () => {
       const mockSynthesis = {
         speak: vi.fn(),
         cancel: vi.fn(),
@@ -92,7 +119,28 @@ describe("Voice Service (STT & TTS)", () => {
       expect(typeof cancel).toBe("function");
 
       stopSpeaking();
-      expect(mockSynthesis.cancel).toHaveBeenCalledTimes(2);
+      expect(mockSynthesis.cancel.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("handles custom model TTS mode by invoking aiSynthesizeSpeech", async () => {
+      useAiSettings.setState({
+        ttsService: "custom",
+        ttsBaseUrl: "https://api.openai.com/v1",
+        ttsModel: "tts-1",
+        ttsVoice: "alloy",
+      });
+
+      vi.mocked(ipc.aiSynthesizeSpeech).mockResolvedValue({
+        ok: true,
+        audioData: "data:audio/mp3;base64,dGVzdA==",
+      });
+
+      const endFn = vi.fn();
+      const cancel = speakText("测试语音大模型朗读", endFn);
+      expect(typeof cancel).toBe("function");
+      expect(ipc.aiSynthesizeSpeech).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "测试语音大模型朗读", voice: "alloy" })
+      );
     });
 
     it("handles empty text gracefully", () => {

@@ -35,6 +35,9 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ClearIcon from "@mui/icons-material/Clear";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import MicIcon from "@mui/icons-material/Mic";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import { useAiSettings } from "../ai/settingsStore";
 import { useAiAuditStore } from "../ai/auditStore";
 import { SYNC_INTERVAL_OPTIONS, usePrefsStore } from "./prefsStore";
@@ -50,6 +53,7 @@ import {
   type UpdateCheckResultDto,
 } from "../../lib/ipc";
 import { useToastStore } from "../shell/toastStore";
+import { speakText, stopSpeaking, startSpeechRecognition } from "../voice/voiceService";
 
 import SkillsTab from "./SkillsTab";
 
@@ -87,6 +91,26 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     hasCloudApiKey,
     cloudPrivacyAck,
     setCloudPrivacyAck,
+    sttService,
+    setSttService,
+    sttBaseUrl,
+    setSttBaseUrl,
+    sttModel,
+    setSttModel,
+    sttApiKeyDraft,
+    setSttApiKeyDraft,
+    hasSttApiKey,
+    ttsService,
+    setTtsService,
+    ttsBaseUrl,
+    setTtsBaseUrl,
+    ttsModel,
+    setTtsModel,
+    ttsVoice,
+    setTtsVoice,
+    ttsApiKeyDraft,
+    setTtsApiKeyDraft,
+    hasTtsApiKey,
     userPersona,
     userPersonaTraits,
     setUserPersona,
@@ -107,6 +131,10 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [queryingBalance, setQueryingBalance] = useState(false);
   const [balanceInfo, setBalanceInfo] = useState<AiBalanceResult | null>(null);
+  const [testingTts, setTestingTts] = useState(false);
+  const [testingStt, setTestingStt] = useState(false);
+  const [sttTestResult, setSttTestResult] = useState<string | null>(null);
+  const sttStopRef = useState<(() => void) | null>(null);
   const showToast = useToastStore((s) => s.showToast);
   const auditRecords = useAiAuditStore((s) => s.records);
   const clearAuditRecords = useAiAuditStore((s) => s.clearRecords);
@@ -742,6 +770,313 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     : "可直接手动修改或点击上方按钮智能从发件箱提炼"
                 }
               />
+            </Paper>
+
+            {/* Voice Multimodal (STT & TTS) Section */}
+            <Divider sx={{ my: 1 }} />
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }} data-testid="voice-settings-section">
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5 }}>
+                <GraphicEqIcon color="primary" fontSize="small" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  语音输入 (STT) 与语音朗读 (TTS) 配置
+                </Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                支持配置 OpenAI 兼容的 Whisper / MiMo 等高品质云端语音大模型，亦支持使用系统原生 Web Speech 引擎。
+              </Typography>
+
+              {/* STT Section */}
+              <Box sx={{ p: 1.5, mb: 2, borderRadius: 1.5, bgcolor: "action.hover", border: 1, borderColor: "divider" }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.25 }}>
+                  <MicIcon color="primary" fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    语音输入 (Speech-to-Text / 听写)
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={sttService === "custom" ? "自定义模型" : "系统内置"}
+                    color="primary"
+                    variant="outlined"
+                    sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: "0.65rem" } }}
+                  />
+                </Stack>
+
+                <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
+                  <Button
+                    size="small"
+                    variant={sttService === "custom" && sttBaseUrl === "https://api.openai.com/v1" && sttModel === "whisper-1" ? "contained" : "outlined"}
+                    onClick={() => {
+                      setSttService("custom");
+                      setSttBaseUrl("https://api.openai.com/v1");
+                      setSttModel("whisper-1");
+                    }}
+                  >
+                    OpenAI Whisper
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={sttService === "custom" && sttBaseUrl === "https://api.xiaomimimo.com/v1" ? "contained" : "outlined"}
+                    onClick={() => {
+                      setSttService("custom");
+                      setSttBaseUrl("https://api.xiaomimimo.com/v1");
+                      setSttModel("mimo-asr");
+                    }}
+                  >
+                    小米 MiMo 语音
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={sttService === "browser" ? "contained" : "outlined"}
+                    onClick={() => {
+                      setSttService("browser");
+                    }}
+                  >
+                    系统内置 (Web Speech)
+                  </Button>
+                </Stack>
+
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={sttService}
+                  onChange={(_, v) => v && setSttService(v)}
+                  sx={{ mb: 1.5 }}
+                >
+                  <ToggleButton value="custom">云端/自定义 STT 服务</ToggleButton>
+                  <ToggleButton value="browser">系统内置识别引擎</ToggleButton>
+                </ToggleButtonGroup>
+
+                {sttService === "custom" && (
+                  <Stack spacing={1.5}>
+                    <TextField
+                      label="STT 服务地址 Base URL"
+                      size="small"
+                      fullWidth
+                      value={sttBaseUrl}
+                      onChange={(e) => setSttBaseUrl(e.target.value)}
+                      placeholder="https://api.openai.com/v1"
+                      helperText="将自动请求 /audio/transcriptions 接口"
+                    />
+                    <TextField
+                      label="STT 模型名称 (Model)"
+                      size="small"
+                      fullWidth
+                      value={sttModel}
+                      onChange={(e) => setSttModel(e.target.value)}
+                      placeholder="whisper-1 / mimo-asr / SenseVoiceSmall"
+                    />
+                    <TextField
+                      label="STT 专属 API Key（留空则复用通用 AI Key）"
+                      size="small"
+                      fullWidth
+                      type="password"
+                      value={sttApiKeyDraft}
+                      onChange={(e) => setSttApiKeyDraft(e.target.value)}
+                      placeholder={hasSttApiKey ? "已配置独立 Key（留空则不修改）" : "留空则复用通用云端 API Key"}
+                      autoComplete="off"
+                    />
+                  </Stack>
+                )}
+
+                {/* STT Test Box */}
+                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                    <Button
+                      variant={testingStt ? "contained" : "outlined"}
+                      color={testingStt ? "error" : "primary"}
+                      size="small"
+                      startIcon={<MicIcon />}
+                      onClick={() => {
+                        if (testingStt) {
+                          if (sttStopRef[0]) {
+                            sttStopRef[0]();
+                            sttStopRef[1](null);
+                          }
+                          setTestingStt(false);
+                        } else {
+                          setTestingStt(true);
+                          setSttTestResult("正在聆听录音中，请说话并点击停止…");
+                          const stopFn = startSpeechRecognition(
+                            (text) => {
+                              setSttTestResult(`识别结果：${text}`);
+                              showToast("语音识别测试成功！", "success", 2000);
+                            },
+                            (err) => {
+                              setSttTestResult(`识别失败：${err}`);
+                              showToast(err, "error", 4000);
+                              setTestingStt(false);
+                            },
+                            () => {
+                              setTestingStt(false);
+                            }
+                          );
+                          sttStopRef[1](() => stopFn);
+                        }
+                      }}
+                    >
+                      {testingStt ? "停止录音并识别" : "测试录音转写"}
+                    </Button>
+                    {testingStt && (
+                      <Chip size="small" label="正在录音…" color="error" variant="outlined" />
+                    )}
+                  </Stack>
+                  {sttTestResult && (
+                    <Typography variant="body2" sx={{ mt: 1, p: 1, borderRadius: 1, bgcolor: "background.paper", fontSize: "0.8rem" }}>
+                      {sttTestResult}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              {/* TTS Section */}
+              <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "action.hover", border: 1, borderColor: "divider" }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.25 }}>
+                  <VolumeUpIcon color="primary" fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    语音朗读 (Text-to-Speech / 合成)
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={ttsService === "custom" ? "自定义模型" : "系统内置"}
+                    color="primary"
+                    variant="outlined"
+                    sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: "0.65rem" } }}
+                  />
+                </Stack>
+
+                <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
+                  <Button
+                    size="small"
+                    variant={ttsService === "custom" && ttsBaseUrl === "https://api.openai.com/v1" && ttsModel === "tts-1" ? "contained" : "outlined"}
+                    onClick={() => {
+                      setTtsService("custom");
+                      setTtsBaseUrl("https://api.openai.com/v1");
+                      setTtsModel("tts-1");
+                      setTtsVoice("alloy");
+                    }}
+                  >
+                    OpenAI TTS
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={ttsService === "custom" && ttsBaseUrl === "https://api.xiaomimimo.com/v1" ? "contained" : "outlined"}
+                    onClick={() => {
+                      setTtsService("custom");
+                      setTtsBaseUrl("https://api.xiaomimimo.com/v1");
+                      setTtsModel("mimo-tts");
+                    }}
+                  >
+                    小米 MiMo 语音
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={ttsService === "browser" ? "contained" : "outlined"}
+                    onClick={() => {
+                      setTtsService("browser");
+                    }}
+                  >
+                    系统内置 (SpeechSynthesis)
+                  </Button>
+                </Stack>
+
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={ttsService}
+                  onChange={(_, v) => v && setTtsService(v)}
+                  sx={{ mb: 1.5 }}
+                >
+                  <ToggleButton value="custom">云端/自定义 TTS 服务</ToggleButton>
+                  <ToggleButton value="browser">系统内置合成引擎</ToggleButton>
+                </ToggleButtonGroup>
+
+                {ttsService === "custom" && (
+                  <Stack spacing={1.5}>
+                    <TextField
+                      label="TTS 服务地址 Base URL"
+                      size="small"
+                      fullWidth
+                      value={ttsBaseUrl}
+                      onChange={(e) => setTtsBaseUrl(e.target.value)}
+                      placeholder="https://api.openai.com/v1"
+                      helperText="将自动请求 /audio/speech 接口"
+                    />
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <TextField
+                        label="TTS 模型名称 (Model)"
+                        size="small"
+                        sx={{ flex: 2 }}
+                        value={ttsModel}
+                        onChange={(e) => setTtsModel(e.target.value)}
+                        placeholder="tts-1 / mimo-tts / cosyvoice"
+                      />
+                      <FormControl size="small" sx={{ flex: 1 }}>
+                        <InputLabel id="tts-voice-label">音色 (Voice)</InputLabel>
+                        <Select
+                          labelId="tts-voice-label"
+                          value={ttsVoice}
+                          label="音色 (Voice)"
+                          onChange={(e) => setTtsVoice(e.target.value)}
+                        >
+                          <MenuItem value="alloy">Alloy (中性沉稳)</MenuItem>
+                          <MenuItem value="echo">Echo (阳光明朗)</MenuItem>
+                          <MenuItem value="fable">Fable (英式叙事)</MenuItem>
+                          <MenuItem value="onyx">Onyx (深沉权威)</MenuItem>
+                          <MenuItem value="nova">Nova (自然亲和)</MenuItem>
+                          <MenuItem value="shimmer">Shimmer (清亮温和)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    <TextField
+                      label="TTS 专属 API Key（留空则复用通用 AI Key）"
+                      size="small"
+                      fullWidth
+                      type="password"
+                      value={ttsApiKeyDraft}
+                      onChange={(e) => setTtsApiKeyDraft(e.target.value)}
+                      placeholder={hasTtsApiKey ? "已配置独立 Key（留空则不修改）" : "留空则复用通用云端 API Key"}
+                      autoComplete="off"
+                    />
+                  </Stack>
+                )}
+
+                {/* TTS Test Box */}
+                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={testingTts ? <CircularProgress size={14} /> : <VolumeUpIcon />}
+                      disabled={testingTts}
+                      onClick={() => {
+                        setTestingTts(true);
+                        const stopFn = speakText(
+                          "你好！我是您的智能邮件语音助手，很高兴为您服务。",
+                          () => setTestingTts(false),
+                          (err) => {
+                            showToast(err, "error", 4000);
+                            setTestingTts(false);
+                          }
+                        );
+                      }}
+                    >
+                      {testingTts ? "正在播放语音…" : "试听朗读效果"}
+                    </Button>
+                    {testingTts && (
+                      <Button
+                        size="small"
+                        color="inherit"
+                        onClick={() => {
+                          stopSpeaking();
+                          setTestingTts(false);
+                        }}
+                      >
+                        停止播放
+                      </Button>
+                    )}
+                  </Stack>
+                </Box>
+              </Box>
             </Paper>
 
             {probeMsg && (

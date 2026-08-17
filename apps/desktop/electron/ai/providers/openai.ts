@@ -1,4 +1,4 @@
-import { getCloudApiKey, type AiSettingsRecord } from "../settings";
+import { getCloudApiKey, getSttApiKey, getTtsApiKey, type AiSettingsRecord } from "../settings";
 
 export type BalanceInfo = {
   currency: string;
@@ -32,6 +32,16 @@ export type SpeechSynthesisResult =
   | {
       ok: true;
       audioData: string; // base64 data url
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type AudioTranscriptionResult =
+  | {
+      ok: true;
+      text: string;
     }
   | {
       ok: false;
@@ -222,17 +232,20 @@ export async function fetchAccountBalance(
  */
 export async function synthesizeSpeechMiMo(
   text: string,
-  voice = "alloy",
+  voice?: string,
   settings?: AiSettingsRecord
 ): Promise<SpeechSynthesisResult> {
-  const key = getCloudApiKey();
+  const key = getTtsApiKey() || getCloudApiKey();
   if (!key) {
     return { ok: false, error: "未配置 API Key，无法使用云端语音合成" };
   }
 
-  const base = (settings?.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+  const base = (settings?.ttsBaseUrl || settings?.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
   const url = `${base}/audio/speech`;
-  const model = settings?.model && settings.model.includes("mimo") ? "mimo-tts" : "tts-1";
+  const model =
+    settings?.ttsModel ||
+    (settings?.model && settings.model.includes("mimo") ? "mimo-tts" : "tts-1");
+  const finalVoice = voice || settings?.ttsVoice || "alloy";
 
   try {
     const res = await fetch(url, {
@@ -244,13 +257,17 @@ export async function synthesizeSpeechMiMo(
       body: JSON.stringify({
         model,
         input: text.slice(0, 4000),
-        voice,
+        voice: finalVoice,
       }),
       signal: withTimeout(30_000),
     });
 
     if (!res.ok) {
-      return { ok: false, error: `语音合成请求失败 (HTTP ${res.status})` };
+      const errBody = await res.text().catch(() => "");
+      return {
+        ok: false,
+        error: `语音合成请求失败 (HTTP ${res.status})${errBody ? `: ${errBody.slice(0, 150)}` : ""}`,
+      };
     }
 
     const arrayBuffer = await res.arrayBuffer();
@@ -265,6 +282,71 @@ export async function synthesizeSpeechMiMo(
     return {
       ok: false,
       error: e instanceof Error ? e.message : "语音合成网络错误或超时",
+    };
+  }
+}
+
+/**
+ * Transcribe audio speech via OpenAI / Whisper / MiMo transcription endpoint.
+ */
+export async function transcribeAudioOpenAi(
+  audioBase64OrBuffer: Buffer | string,
+  mimeType = "audio/webm",
+  settings?: AiSettingsRecord
+): Promise<AudioTranscriptionResult> {
+  const key = getSttApiKey() || getCloudApiKey();
+  if (!key) {
+    return { ok: false, error: "未配置 API Key，无法使用云端语音识别" };
+  }
+
+  const base = (settings?.sttBaseUrl || settings?.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+  const url = `${base}/audio/transcriptions`;
+  const model = settings?.sttModel || "whisper-1";
+
+  try {
+    let buffer: Buffer;
+    if (typeof audioBase64OrBuffer === "string") {
+      const cleanBase64 = audioBase64OrBuffer.replace(/^data:audio\/[^;]+;base64,/, "");
+      buffer = Buffer.from(cleanBase64, "base64");
+    } else {
+      buffer = audioBase64OrBuffer;
+    }
+
+    const ext = mimeType.includes("mp3") ? "mp3" : mimeType.includes("wav") ? "wav" : "webm";
+    const filename = `audio.${ext}`;
+
+    const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
+    const formData = new FormData();
+    formData.append("file", blob, filename);
+    formData.append("model", model);
+    formData.append("language", "zh");
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
+      body: formData,
+      signal: withTimeout(30_000),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      return {
+        ok: false,
+        error: `语音转写请求失败 (HTTP ${res.status})${errBody ? `: ${errBody.slice(0, 150)}` : ""}`,
+      };
+    }
+
+    const data = (await res.json()) as { text?: string };
+    return {
+      ok: true,
+      text: data.text?.trim() || "",
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "语音识别网络错误或超时",
     };
   }
 }

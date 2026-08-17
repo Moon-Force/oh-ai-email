@@ -21,6 +21,22 @@ type AiSettingsState = {
   hasCloudApiKey: boolean;
   /** Local draft of api key (never reloaded from disk as plaintext). */
   apiKeyDraft: string;
+
+  /** Voice STT (Speech-to-Text) configuration */
+  sttService: "browser" | "custom";
+  sttBaseUrl: string;
+  sttModel: string;
+  sttApiKeyDraft: string;
+  hasSttApiKey: boolean;
+
+  /** Voice TTS (Text-to-Speech) configuration */
+  ttsService: "browser" | "custom";
+  ttsBaseUrl: string;
+  ttsModel: string;
+  ttsVoice: string;
+  ttsApiKeyDraft: string;
+  hasTtsApiKey: boolean;
+
   userPersona: string;
   userPersonaTraits: string[];
   learningTone: boolean;
@@ -34,6 +50,18 @@ type AiSettingsState = {
   setRedactSensitiveData: (v: boolean) => void;
   setApiKeyDraft: (v: string) => void;
   setCloudPrivacyAck: (v: boolean) => void;
+
+  setSttService: (v: "browser" | "custom") => void;
+  setSttBaseUrl: (v: string) => void;
+  setSttModel: (v: string) => void;
+  setSttApiKeyDraft: (v: string) => void;
+
+  setTtsService: (v: "browser" | "custom") => void;
+  setTtsBaseUrl: (v: string) => void;
+  setTtsModel: (v: string) => void;
+  setTtsVoice: (v: string) => void;
+  setTtsApiKeyDraft: (v: string) => void;
+
   setUserPersona: (persona: string, traits?: string[]) => void;
   learnUserTone: (accountId?: string) => Promise<{ ok: boolean; error?: string }>;
   applyDto: (dto: AiSettingsDto) => void;
@@ -55,6 +83,20 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   redactSensitiveData: false,
   hasCloudApiKey: false,
   apiKeyDraft: "",
+
+  sttService: "custom",
+  sttBaseUrl: "https://api.openai.com/v1",
+  sttModel: "whisper-1",
+  sttApiKeyDraft: "",
+  hasSttApiKey: false,
+
+  ttsService: "custom",
+  ttsBaseUrl: "https://api.openai.com/v1",
+  ttsModel: "tts-1",
+  ttsVoice: "alloy",
+  ttsApiKeyDraft: "",
+  hasTtsApiKey: false,
+
   userPersona: "",
   userPersonaTraits: [],
   learningTone: false,
@@ -68,6 +110,18 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   setRedactSensitiveData: (redactSensitiveData) => set({ redactSensitiveData }),
   setApiKeyDraft: (apiKeyDraft) => set({ apiKeyDraft }),
   setCloudPrivacyAck: (cloudPrivacyAck) => set({ cloudPrivacyAck }),
+
+  setSttService: (sttService) => set({ sttService }),
+  setSttBaseUrl: (sttBaseUrl) => set({ sttBaseUrl }),
+  setSttModel: (sttModel) => set({ sttModel }),
+  setSttApiKeyDraft: (sttApiKeyDraft) => set({ sttApiKeyDraft }),
+
+  setTtsService: (ttsService) => set({ ttsService }),
+  setTtsBaseUrl: (ttsBaseUrl) => set({ ttsBaseUrl }),
+  setTtsModel: (ttsModel) => set({ ttsModel }),
+  setTtsVoice: (ttsVoice) => set({ ttsVoice }),
+  setTtsApiKeyDraft: (ttsApiKeyDraft) => set({ ttsApiKeyDraft }),
+
   setUserPersona: (userPersona, traits) => {
     const userPersonaTraits = traits ?? get().userPersonaTraits;
     try {
@@ -105,6 +159,15 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       preferLocalWhenAvailable: dto.preferLocalWhenAvailable,
       redactSensitiveData: dto.redactSensitiveData,
       hasCloudApiKey: dto.hasCloudApiKey,
+      sttService: dto.sttService ?? "custom",
+      sttBaseUrl: dto.sttBaseUrl ?? "https://api.openai.com/v1",
+      sttModel: dto.sttModel ?? "whisper-1",
+      ttsService: dto.ttsService ?? "custom",
+      ttsBaseUrl: dto.ttsBaseUrl ?? "https://api.openai.com/v1",
+      ttsModel: dto.ttsModel ?? "tts-1",
+      ttsVoice: dto.ttsVoice ?? "alloy",
+      hasSttApiKey: dto.hasSttApiKey ?? false,
+      hasTtsApiKey: dto.hasTtsApiKey ?? false,
       hydrated: true,
     }),
   hydrate: async () => {
@@ -134,12 +197,32 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       cloudPrivacyAck: s.cloudPrivacyAck,
       preferLocalWhenAvailable: s.preferLocalWhenAvailable,
       redactSensitiveData: s.redactSensitiveData,
+      sttService: s.sttService,
+      sttBaseUrl: s.sttBaseUrl,
+      sttModel: s.sttModel,
+      ttsService: s.ttsService,
+      ttsBaseUrl: s.ttsBaseUrl,
+      ttsModel: s.ttsModel,
+      ttsVoice: s.ttsVoice,
     };
     if (s.apiKeyDraft.trim()) {
       payload.apiKey = s.apiKeyDraft.trim();
     }
+    if (s.sttApiKeyDraft.trim()) {
+      payload.sttApiKey = s.sttApiKeyDraft.trim();
+    }
+    if (s.ttsApiKeyDraft.trim()) {
+      payload.ttsApiKey = s.ttsApiKeyDraft.trim();
+    }
     const dto = await aiSaveSettings(payload);
-    set({ apiKeyDraft: "", hasCloudApiKey: dto.hasCloudApiKey });
+    set({
+      apiKeyDraft: "",
+      sttApiKeyDraft: "",
+      ttsApiKeyDraft: "",
+      hasCloudApiKey: dto.hasCloudApiKey,
+      hasSttApiKey: dto.hasSttApiKey,
+      hasTtsApiKey: dto.hasTtsApiKey,
+    });
     get().applyDto(dto);
     return dto;
   },

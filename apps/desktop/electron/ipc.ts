@@ -73,12 +73,15 @@ import {
   probeCloud,
   probeOllama,
   synthesizeSpeechMiMo,
+  transcribeAudioOpenAi,
 } from "./ai/complete";
 import {
   loadAiSettings,
   publicAiSettings,
   saveAiSettings,
   setCloudApiKey,
+  setSttApiKey,
+  setTtsApiKey,
   type AiMode,
   type AiSettingsRecord,
 } from "./ai/settings";
@@ -473,11 +476,20 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle(
     "ai:saveSettings",
-    (_e, payload: Partial<AiSettingsRecord> & { apiKey?: string }) => {
-      const { apiKey, ...rest } = payload;
+    (
+      _e,
+      payload: Partial<AiSettingsRecord> & {
+        apiKey?: string;
+        sttApiKey?: string;
+        ttsApiKey?: string;
+      }
+    ) => {
+      const { apiKey, sttApiKey, ttsApiKey, ...rest } = payload;
       if (apiKey !== undefined) setCloudApiKey(apiKey);
+      if (sttApiKey !== undefined) setSttApiKey(sttApiKey);
+      if (ttsApiKey !== undefined) setTtsApiKey(ttsApiKey);
       const saved = saveAiSettings(rest);
-      return { ...saved, hasCloudApiKey: publicAiSettings().hasCloudApiKey };
+      return { ...saved, ...publicAiSettings() };
     }
   );
 
@@ -487,6 +499,11 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle("ai:queryBalance", () => fetchAccountBalance(loadAiSettings()));
   ipcMain.handle("ai:synthesizeSpeech", (_e, payload: { text: string; voice?: string }) =>
     synthesizeSpeechMiMo(payload.text, payload.voice, loadAiSettings())
+  );
+  ipcMain.handle(
+    "ai:transcribeAudio",
+    (_e, payload: { audioData: string; mimeType?: string }) =>
+      transcribeAudioOpenAi(payload.audioData, payload.mimeType || "audio/webm", loadAiSettings())
   );
 
   ipcMain.handle("ai:abort", (_e, requestId: string) => abortAiRequest(requestId));

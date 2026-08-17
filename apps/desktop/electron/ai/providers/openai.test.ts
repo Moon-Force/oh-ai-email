@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchAccountBalance, fetchRemoteModels, synthesizeSpeechMiMo } from "./openai";
+import {
+  fetchAccountBalance,
+  fetchRemoteModels,
+  synthesizeSpeechMiMo,
+  transcribeAudioOpenAi,
+} from "./openai";
 import type { AiSettingsRecord } from "../settings";
 
 vi.mock("../settings", () => ({
   getCloudApiKey: vi.fn(() => "test-sk-123456"),
+  getSttApiKey: vi.fn(() => "test-sk-123456"),
+  getTtsApiKey: vi.fn(() => "test-sk-123456"),
 }));
 
 describe("OpenAI, DeepSeek & MiMo Provider Functions", () => {
@@ -16,6 +23,13 @@ describe("OpenAI, DeepSeek & MiMo Provider Functions", () => {
     cloudPrivacyAck: true,
     preferLocalWhenAvailable: false,
     redactSensitiveData: false,
+    sttService: "custom",
+    sttBaseUrl: "https://api.openai.com/v1",
+    sttModel: "whisper-1",
+    ttsService: "custom",
+    ttsBaseUrl: "https://api.openai.com/v1",
+    ttsModel: "tts-1",
+    ttsVoice: "alloy",
   };
 
   beforeEach(() => {
@@ -98,7 +112,7 @@ describe("OpenAI, DeepSeek & MiMo Provider Functions", () => {
   });
 
   describe("synthesizeSpeechMiMo", () => {
-    it("synthesizes audio speech into base64 data url", async () => {
+    it("synthesizes audio speech into base64 data url with custom settings", async () => {
       const fakeBuffer = new Uint8Array([1, 2, 3, 4]).buffer;
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
@@ -106,15 +120,41 @@ describe("OpenAI, DeepSeek & MiMo Provider Functions", () => {
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      const res = await synthesizeSpeechMiMo("Hello world", "alloy", {
+      const res = await synthesizeSpeechMiMo("Hello world", "nova", {
         ...baseSettings,
-        baseUrl: "https://api.xiaomimimo.com/v1",
-        model: "mimo-v2.5",
+        ttsBaseUrl: "https://api.xiaomimimo.com/v1",
+        ttsModel: "mimo-tts",
+        ttsVoice: "nova",
       });
 
       expect(res.ok).toBe(true);
       if (res.ok) {
         expect(res.audioData).toContain("data:audio/mp3;base64,");
+      }
+    });
+  });
+
+  describe("transcribeAudioOpenAi", () => {
+    it("transcribes audio speech buffer into text", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ text: "这是一封关于明天的测试邮件" }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await transcribeAudioOpenAi(
+        Buffer.from("dummy-audio-content"),
+        "audio/webm",
+        {
+          ...baseSettings,
+          sttBaseUrl: "https://api.openai.com/v1",
+          sttModel: "whisper-1",
+        }
+      );
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.text).toBe("这是一封关于明天的测试邮件");
       }
     });
   });

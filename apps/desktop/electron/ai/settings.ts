@@ -20,9 +20,22 @@ export type AiSettingsRecord = {
   preferLocalWhenAvailable: boolean;
   /** Redact emails, phones and ID numbers before sending to cloud */
   redactSensitiveData: boolean;
+
+  /** Voice STT (Speech-to-Text) configuration */
+  sttService: "browser" | "custom";
+  sttBaseUrl: string;
+  sttModel: string;
+
+  /** Voice TTS (Text-to-Speech) configuration */
+  ttsService: "browser" | "custom";
+  ttsBaseUrl: string;
+  ttsModel: string;
+  ttsVoice: string;
 };
 
 const CLOUD_KEY = "ai:cloudApiKey";
+const STT_KEY = "ai:sttApiKey";
+const TTS_KEY = "ai:ttsApiKey";
 
 const DEFAULTS: AiSettingsRecord = {
   mode: "cloud",
@@ -33,6 +46,15 @@ const DEFAULTS: AiSettingsRecord = {
   cloudPrivacyAck: false,
   preferLocalWhenAvailable: false,
   redactSensitiveData: false,
+
+  sttService: "custom",
+  sttBaseUrl: "https://api.openai.com/v1",
+  sttModel: "whisper-1",
+
+  ttsService: "custom",
+  ttsBaseUrl: "https://api.openai.com/v1",
+  ttsModel: "tts-1",
+  ttsVoice: "alloy",
 };
 
 function settingsPath(): string {
@@ -55,6 +77,15 @@ export function loadAiSettings(): AiSettingsRecord {
       cloudPrivacyAck: Boolean(raw.cloudPrivacyAck),
       preferLocalWhenAvailable: Boolean(raw.preferLocalWhenAvailable),
       redactSensitiveData: Boolean(raw.redactSensitiveData),
+
+      sttService: raw.sttService === "browser" ? "browser" : "custom",
+      sttBaseUrl: String(raw.sttBaseUrl || DEFAULTS.sttBaseUrl).replace(/\/+$/, ""),
+      sttModel: String(raw.sttModel || DEFAULTS.sttModel),
+
+      ttsService: raw.ttsService === "browser" ? "browser" : "custom",
+      ttsBaseUrl: String(raw.ttsBaseUrl || DEFAULTS.ttsBaseUrl).replace(/\/+$/, ""),
+      ttsModel: String(raw.ttsModel || DEFAULTS.ttsModel),
+      ttsVoice: String(raw.ttsVoice || DEFAULTS.ttsVoice),
     };
   } catch {
     return { ...DEFAULTS };
@@ -69,6 +100,8 @@ export function saveAiSettings(partial: Partial<AiSettingsRecord>): AiSettingsRe
   if (partial.baseUrl != null) next.baseUrl = String(partial.baseUrl).replace(/\/+$/, "");
   if (partial.ollamaHost != null) next.ollamaHost = String(partial.ollamaHost).replace(/\/+$/, "");
   if (partial.mode != null) next.mode = partial.mode === "local" ? "local" : "cloud";
+  if (partial.sttBaseUrl != null) next.sttBaseUrl = String(partial.sttBaseUrl).replace(/\/+$/, "");
+  if (partial.ttsBaseUrl != null) next.ttsBaseUrl = String(partial.ttsBaseUrl).replace(/\/+$/, "");
   fs.mkdirSync(path.dirname(settingsPath()), { recursive: true });
   fs.writeFileSync(settingsPath(), JSON.stringify(next, null, 2), "utf-8");
   return next;
@@ -93,6 +126,43 @@ export function setCloudApiKey(apiKey: string): void {
   saveSecret(CLOUD_KEY, apiKey.trim());
 }
 
-export function publicAiSettings(): AiSettingsRecord & { hasCloudApiKey: boolean } {
-  return { ...loadAiSettings(), hasCloudApiKey: hasCloudApiKey() };
+export function getSttApiKey(): string | null {
+  const k = loadSecret(STT_KEY);
+  return k?.trim() ? k : getCloudApiKey();
+}
+
+export function setSttApiKey(apiKey: string): void {
+  if (!apiKey.trim()) {
+    deleteSecret(STT_KEY);
+    return;
+  }
+  saveSecret(STT_KEY, apiKey.trim());
+}
+
+export function getTtsApiKey(): string | null {
+  const k = loadSecret(TTS_KEY);
+  return k?.trim() ? k : getCloudApiKey();
+}
+
+export function setTtsApiKey(apiKey: string): void {
+  if (!apiKey.trim()) {
+    deleteSecret(TTS_KEY);
+    return;
+  }
+  saveSecret(TTS_KEY, apiKey.trim());
+}
+
+export function publicAiSettings(): AiSettingsRecord & {
+  hasCloudApiKey: boolean;
+  hasSttApiKey: boolean;
+  hasTtsApiKey: boolean;
+} {
+  const sttKey = loadSecret(STT_KEY);
+  const ttsKey = loadSecret(TTS_KEY);
+  return {
+    ...loadAiSettings(),
+    hasCloudApiKey: hasCloudApiKey(),
+    hasSttApiKey: Boolean(sttKey && sttKey.trim()),
+    hasTtsApiKey: Boolean(ttsKey && ttsKey.trim()),
+  };
 }

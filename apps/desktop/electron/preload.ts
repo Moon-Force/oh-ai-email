@@ -228,6 +228,12 @@ const api = {
   }): Promise<{ ok: boolean; audioData?: string; error?: string }> =>
     ipcRenderer.invoke("ai:synthesizeSpeech", payload),
 
+  aiTranscribeAudio: (payload: {
+    audioData: string;
+    mimeType?: string;
+  }): Promise<{ ok: boolean; text?: string; error?: string }> =>
+    ipcRenderer.invoke("ai:transcribeAudio", payload),
+
   aiAbort: (requestId: string): Promise<boolean> => ipcRenderer.invoke("ai:abort", requestId),
 
   aiSummarize: (payload: {

@@ -434,4 +434,9 @@ export async function probeCloud(): Promise<
   }
 }
 
-export { fetchRemoteModels, fetchAccountBalance, synthesizeSpeechMiMo } from "./providers/openai";
+export {
+  fetchRemoteModels,
+  fetchAccountBalance,
+  synthesizeSpeechMiMo,
+  transcribeAudioOpenAi,
+} from "./providers/openai";
