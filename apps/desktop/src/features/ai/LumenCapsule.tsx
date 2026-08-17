@@ -825,7 +825,9 @@ export default function LumenCapsule({
                 transition: "all 0.15s ease",
                 "&:hover": {
                   bgcolor: (t) =>
-                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(37, 99, 235, 0.08)",
+                    t.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.08)"
+                      : "rgba(37, 99, 235, 0.08)",
                   color: "primary.main",
                 },
               }}
@@ -853,7 +855,9 @@ export default function LumenCapsule({
                 transition: "all 0.15s ease",
                 "&:hover": {
                   bgcolor: (t) =>
-                    t.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(37, 99, 235, 0.08)",
+                    t.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.08)"
+                      : "rgba(37, 99, 235, 0.08)",
                   color: "primary.main",
                 },
               }}
@@ -872,9 +876,7 @@ export default function LumenCapsule({
                 flexShrink: 0,
                 color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
                 borderColor: (t) =>
-                  t.palette.mode === "dark"
-                    ? "rgba(96, 165, 250, 0.4)"
-                    : "rgba(37, 99, 235, 0.35)",
+                  t.palette.mode === "dark" ? "rgba(96, 165, 250, 0.4)" : "rgba(37, 99, 235, 0.35)",
                 bgcolor: (t) =>
                   t.palette.mode === "dark"
                     ? "rgba(59, 130, 246, 0.12)"
@@ -933,10 +935,7 @@ export default function LumenCapsule({
                 onClick={() => void runQuickReply(opt.key)}
                 variant="outlined"
                 sx={{
-                  bgcolor: (t) =>
-                    t.palette.mode === "dark"
-                      ? "rgba(24, 28, 36, 0.9)"
-                      : "#FFFFFF",
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "rgba(24, 28, 36, 0.9)" : "#FFFFFF"),
                   color: "text.primary",
                   backdropFilter: "blur(8px)",
                   cursor: "pointer",
@@ -1061,9 +1060,7 @@ export default function LumenCapsule({
                 height: 22,
                 color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
                 borderColor: (t) =>
-                  t.palette.mode === "dark"
-                    ? "rgba(96, 165, 250, 0.4)"
-                    : "rgba(37, 99, 235, 0.35)",
+                  t.palette.mode === "dark" ? "rgba(96, 165, 250, 0.4)" : "rgba(37, 99, 235, 0.35)",
                 bgcolor: (t) =>
                   t.palette.mode === "dark"
                     ? "rgba(59, 130, 246, 0.12)"
@@ -1189,7 +1186,11 @@ export default function LumenCapsule({
 
             {!liveReasoningText && !liveContentText ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1, my: "auto" }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: "center", color: "primary.main" }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center", color: "primary.main" }}
+                >
                   <CircularProgress size={14} thickness={5} color="inherit" />
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>
                     正在初始化 Pi Agent 引擎并启动深度逻辑推理...
@@ -1297,9 +1298,7 @@ export default function LumenCapsule({
                 height: 22,
                 color: (t) => (t.palette.mode === "dark" ? "#60A5FA" : "#2563EB"),
                 borderColor: (t) =>
-                  t.palette.mode === "dark"
-                    ? "rgba(96, 165, 250, 0.4)"
-                    : "rgba(37, 99, 235, 0.35)",
+                  t.palette.mode === "dark" ? "rgba(96, 165, 250, 0.4)" : "rgba(37, 99, 235, 0.35)",
                 bgcolor: (t) =>
                   t.palette.mode === "dark"
                     ? "rgba(59, 130, 246, 0.12)"
@@ -1948,7 +1947,17 @@ function AiPopoutModal(props: {
         },
       }}
     >
-      <DialogTitle sx={{ px: 3, py: 2, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider" }}>
+      <DialogTitle
+        sx={{
+          px: 3,
+          py: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
         <AutoAwesomeIcon color="primary" />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="h6" sx={{ fontSize: "1.1rem", fontWeight: 600 }}>
@@ -1970,7 +1979,9 @@ function AiPopoutModal(props: {
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
+      <DialogContent
+        sx={{ p: 3, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}
+      >
         {/* Reasoning / Thinking process section */}
         {props.reasoningContent && (
           <Paper
@@ -2001,7 +2012,11 @@ function AiPopoutModal(props: {
                 </Typography>
               </Stack>
               <IconButton size="small">
-                {showReasoningModal ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                {showReasoningModal ? (
+                  <ExpandLessIcon fontSize="small" />
+                ) : (
+                  <ExpandMoreIcon fontSize="small" />
+                )}
               </IconButton>
             </Box>
             <Collapse in={showReasoningModal}>
@@ -2035,7 +2050,9 @@ function AiPopoutModal(props: {
           {props.kind === "suggestSplit" && props.suggestSplitData ? (
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>建议分箱:</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  建议分箱:
+                </Typography>
                 <Chip
                   label={props.suggestSplitData.split === "important" ? "重要" : "其他"}
                   color={props.suggestSplitData.split === "important" ? "primary" : "default"}
@@ -2055,7 +2072,12 @@ function AiPopoutModal(props: {
                     <Chip key={tag} label={tag} color="primary" variant="filled" size="small" />
                   ))}
                   {props.actionItemsData.deadline && (
-                    <Chip label={`截止: ${props.actionItemsData.deadline}`} color="error" variant="outlined" size="small" />
+                    <Chip
+                      label={`截止: ${props.actionItemsData.deadline}`}
+                      color="error"
+                      variant="outlined"
+                      size="small"
+                    />
                   )}
                 </Stack>
               )}
@@ -2064,8 +2086,16 @@ function AiPopoutModal(props: {
                   <Paper
                     key={idx}
                     variant="outlined"
-                    sx={{ p: 1.25, display: "flex", alignItems: "center", gap: 1, cursor: "pointer" }}
-                    onClick={() => props.setCheckedItems((prev) => ({ ...prev, [idx]: !prev[idx] }))}
+                    sx={{
+                      p: 1.25,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      cursor: "pointer",
+                    }}
+                    onClick={() =>
+                      props.setCheckedItems((prev) => ({ ...prev, [idx]: !prev[idx] }))
+                    }
                   >
                     <Checkbox checked={Boolean(props.checkedItems[idx])} size="small" />
                     <Typography
@@ -2100,23 +2130,27 @@ function AiPopoutModal(props: {
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", flexWrap: "wrap", gap: 1 }}>
-        {props.kind !== "actionItems" && props.kind !== "threadSummary" && props.kind !== "suggestSplit" && (
-          <Stack direction="row" spacing={0.75} sx={{ mr: "auto" }}>
-            <Button size="small" variant="outlined" onClick={() => props.onTone("shorter")}>
-              更短一点
-            </Button>
-            <Button size="small" variant="outlined" onClick={() => props.onTone("formal")}>
-              更正式
-            </Button>
-            <Button size="small" variant="outlined" onClick={() => props.onTone("expand")}>
-              扩写
-            </Button>
-            <Button size="small" variant="outlined" onClick={() => props.onTone("persona")}>
-              ✦ 以我的风格
-            </Button>
-          </Stack>
-        )}
+      <DialogActions
+        sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", flexWrap: "wrap", gap: 1 }}
+      >
+        {props.kind !== "actionItems" &&
+          props.kind !== "threadSummary" &&
+          props.kind !== "suggestSplit" && (
+            <Stack direction="row" spacing={0.75} sx={{ mr: "auto" }}>
+              <Button size="small" variant="outlined" onClick={() => props.onTone("shorter")}>
+                更短一点
+              </Button>
+              <Button size="small" variant="outlined" onClick={() => props.onTone("formal")}>
+                更正式
+              </Button>
+              <Button size="small" variant="outlined" onClick={() => props.onTone("expand")}>
+                扩写
+              </Button>
+              <Button size="small" variant="outlined" onClick={() => props.onTone("persona")}>
+                ✦ 以我的风格
+              </Button>
+            </Stack>
+          )}
 
         {props.onInsertDraft && props.kind === "draft" && (
           <Button

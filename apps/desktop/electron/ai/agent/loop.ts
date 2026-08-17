@@ -16,8 +16,15 @@ export interface AgentToolExecutable {
 
 export interface AgentLoopOptions {
   tools?: Map<string, AgentToolExecutable>;
-  beforeToolCall?: (toolName: string, args: Record<string, unknown>) => Promise<BeforeToolCallResult> | BeforeToolCallResult;
-  afterToolCall?: (toolName: string, result: unknown, isError: boolean) => Promise<AfterToolCallResult> | AfterToolCallResult;
+  beforeToolCall?: (
+    toolName: string,
+    args: Record<string, unknown>
+  ) => Promise<BeforeToolCallResult> | BeforeToolCallResult;
+  afterToolCall?: (
+    toolName: string,
+    result: unknown,
+    isError: boolean
+  ) => Promise<AfterToolCallResult> | AfterToolCallResult;
   maxTurns?: number;
   signal?: AbortSignal;
 }
@@ -100,7 +107,8 @@ export class AgentLoop {
       try {
         const beforeRes = await this.options.beforeToolCall(toolName, args);
         if (beforeRes.block) {
-          const reason = beforeRes.reason || `Tool execution for '${toolName}' was blocked by safety policy.`;
+          const reason =
+            beforeRes.reason || `Tool execution for '${toolName}' was blocked by safety policy.`;
           const endEvt: AgentToolEndEvent = {
             type: "tool_end",
             toolCallId,

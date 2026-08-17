@@ -134,7 +134,9 @@ export function createAppTheme(mode: PaletteMode) {
         styleOverrides: {
           root: {
             backgroundColor: isDark ? "#0D1016" : "#FFFFFF",
-            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(15, 23, 42, 0.08)",
+            borderBottom: isDark
+              ? "1px solid rgba(255, 255, 255, 0.08)"
+              : "1px solid rgba(15, 23, 42, 0.08)",
             color: isDark ? "#F8FAFC" : "#0F172A",
           },
         },

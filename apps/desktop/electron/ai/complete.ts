@@ -82,7 +82,9 @@ export async function chatComplete(
 ): Promise<AiResult> {
   const settings = loadAiSettings();
   const mode = opts?.mode ?? settings.mode;
-  const timeoutMs = opts?.timeoutMs ?? (settings.timeoutSeconds ? settings.timeoutSeconds * 1000 : DEFAULT_TIMEOUT_MS);
+  const timeoutMs =
+    opts?.timeoutMs ??
+    (settings.timeoutSeconds ? settings.timeoutSeconds * 1000 : DEFAULT_TIMEOUT_MS);
   const requestId = opts?.requestId;
   const onChunk = opts?.onChunk;
   const tools = opts?.tools;
@@ -168,7 +170,8 @@ export async function chatComplete(
         { role: "assistant", content: accumulatedText },
         {
           role: "user",
-          content: "请直接紧接着上面未完成的内容继续输出，严禁重复前面的任何内容，保持内容格式与上下文连贯。",
+          content:
+            "请直接紧接着上面未完成的内容继续输出，严禁重复前面的任何内容，保持内容格式与上下文连贯。",
         },
       ];
 
@@ -289,10 +292,7 @@ async function callOpenAiCompatible(
     let fullText = "";
     let fullReasoning = "";
     let finishReason: string | undefined;
-    const toolCallsAccumulator = new Map<
-      number,
-      { id: string; name: string; arguments: string }
-    >();
+    const toolCallsAccumulator = new Map<number, { id: string; name: string; arguments: string }>();
     const reader = res.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
@@ -403,7 +403,8 @@ async function callOpenAiCompatible(
     }
     return {
       ok: true,
-      text: text || (streamedToolCalls.length > 0 ? "" : reasoningContent ? "已完成思考分析。" : ""),
+      text:
+        text || (streamedToolCalls.length > 0 ? "" : reasoningContent ? "已完成思考分析。" : ""),
       reasoningContent,
       toolCalls: streamedToolCalls.length > 0 ? streamedToolCalls : undefined,
       finishReason,

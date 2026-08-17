@@ -52,8 +52,8 @@ export function isSpeechRecognitionSupported(): boolean {
   };
   return Boolean(
     win.SpeechRecognition ||
-      win.webkitSpeechRecognition ||
-      (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia)
+    win.webkitSpeechRecognition ||
+    (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia)
   );
 }
 

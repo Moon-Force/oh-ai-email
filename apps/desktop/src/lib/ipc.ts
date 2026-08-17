@@ -150,7 +150,12 @@ type Api = {
     callback: (chunk: { requestId: string; reasoningChunk?: string; contentChunk?: string }) => void
   ) => () => void;
   onMailSyncProgress?: (
-    callback: (progress: { accountId: string; folder: string; current: number; total: number }) => void
+    callback: (progress: {
+      accountId: string;
+      folder: string;
+      current: number;
+      total: number;
+    }) => void
   ) => () => void;
   onMailEvent?: (
     channel: "mail:open-message" | "mail:trigger-sync" | "mail:open-compose" | "mail:pushed",
@@ -185,6 +190,44 @@ type Api = {
   prefsGetAutolaunch: () => Promise<boolean>;
   prefsSetAutolaunch: (enabled: boolean) => Promise<boolean>;
   updaterCheck: () => Promise<UpdateCheckResultDto>;
+  calendarList?: (startMs?: number, endMs?: number) => Promise<CalendarEventDto[]>;
+  calendarGet?: (id: string) => Promise<CalendarEventDto | null>;
+  calendarCreate?: (data: CreateCalendarEventPayload) => Promise<CalendarEventDto>;
+  calendarUpdate?: (
+    id: string,
+    partial: Partial<CalendarEventDto>
+  ) => Promise<CalendarEventDto | null>;
+  calendarDelete?: (id: string) => Promise<boolean>;
+  calendarImportIcs?: (
+    icsContent: string
+  ) => Promise<{ importedCount: number; events: CalendarEventDto[] }>;
+  calendarExportIcs?: (eventIds?: string[]) => Promise<string>;
+  calendarExportIcsDialog?: (
+    eventIds?: string[]
+  ) => Promise<{ ok: boolean; path?: string; error?: string }>;
+  onCalendarOpenEvent?: (callback: (payload: { eventId: string }) => void) => () => void;
+  contactsList?: (query?: {
+    tag?: string;
+    isStarred?: boolean;
+    search?: string;
+  }) => Promise<ContactDto[]>;
+  contactsGet?: (id: string) => Promise<ContactDto | null>;
+  contactsCreate?: (
+    data: Omit<ContactDto, "id" | "createdAt" | "updatedAt"> & { id?: string }
+  ) => Promise<ContactDto>;
+  contactsUpdate?: (id: string, partial: Partial<ContactDto>) => Promise<ContactDto | null>;
+  contactsDelete?: (id: string) => Promise<boolean>;
+  contactsToggleStar?: (id: string) => Promise<boolean>;
+  contactsHarvest?: (
+    limit?: number
+  ) => Promise<Array<{ name: string; email: string; count: number; lastDateMs: number }>>;
+  contactsImportVcf?: (
+    vcfContent: string
+  ) => Promise<{ importedCount: number; contacts: ContactDto[] }>;
+  contactsExportVcf?: (contactIds?: string[]) => Promise<string>;
+  contactsExportVcfDialog?: (
+    contactIds?: string[]
+  ) => Promise<{ ok: boolean; path?: string; error?: string }>;
 };
 
 export type AgentSkillDefinition = {
@@ -229,7 +272,9 @@ export type AiSettingsDto = {
   hasTtsApiKey?: boolean;
 };
 
-export type AiSaveSettingsPayload = Partial<Omit<AiSettingsDto, "hasCloudApiKey" | "hasSttApiKey" | "hasTtsApiKey">> & {
+export type AiSaveSettingsPayload = Partial<
+  Omit<AiSettingsDto, "hasCloudApiKey" | "hasSttApiKey" | "hasTtsApiKey">
+> & {
   apiKey?: string;
   sttApiKey?: string;
   ttsApiKey?: string;
@@ -1106,4 +1151,537 @@ export function onAiStreamChunk(
   const api = getApi();
   if (!api?.onAiStreamChunk) return () => {};
   return api.onAiStreamChunk(callback);
+}
+
+// -----------------------------------------------------------------------------
+// Calendar IPC Types & Functions
+// -----------------------------------------------------------------------------
+
+export type CalendarEventCategory = "meeting" | "work" | "personal" | "reminder" | "travel";
+
+export type CalendarEventDto = {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  startTime: string;
+  endTime: string;
+  startMs: number;
+  endMs: number;
+  allDay: boolean;
+  category: CalendarEventCategory;
+  color: string;
+  status: "confirmed" | "tentative" | "cancelled";
+  attendees: string[];
+  sourceMessageId?: string;
+  sourceMessageSubject?: string;
+  icsUid?: string;
+  recurrence: "none" | "daily" | "weekly" | "monthly";
+  remindMinutesBefore: number;
+  isReminded: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+// In-memory mock store for non-Electron test runner
+let mockCalendarEvents: CalendarEventDto[] = [
+  {
+    id: "mock_evt_1",
+    title: "Q3 产品战略与 AI 邮件推演评审",
+    description: "讨论 oh-ai-email 桌面端新版发布、日历融合及性能优化指标。",
+    location: "腾讯会议 / 会议室 302",
+    startTime: new Date(Date.now() + 3600_000).toISOString(),
+    endTime: new Date(Date.now() + 7200_000).toISOString(),
+    startMs: Date.now() + 3600_000,
+    endMs: Date.now() + 7200_000,
+    allDay: false,
+    category: "meeting",
+    color: "#2563eb",
+    status: "confirmed",
+    attendees: ["team-lead@company.com", "product@company.com"],
+    recurrence: "none",
+    remindMinutesBefore: 15,
+    isReminded: false,
+    createdAt: Date.now() - 86400_000,
+    updatedAt: Date.now() - 86400_000,
+  },
+  {
+    id: "mock_evt_2",
+    title: "跨团队周会同步",
+    description: "周度常规迭代进度同步与阻碍排查。",
+    location: "飞书视频会议",
+    startTime: new Date(Date.now() + 86400_000).toISOString(),
+    endTime: new Date(Date.now() + 90000_000).toISOString(),
+    startMs: Date.now() + 86400_000,
+    endMs: Date.now() + 90000_000,
+    allDay: false,
+    category: "work",
+    color: "#16a34a",
+    status: "confirmed",
+    attendees: ["colleague@company.com"],
+    recurrence: "weekly",
+    remindMinutesBefore: 10,
+    isReminded: false,
+    createdAt: Date.now() - 86400_000,
+    updatedAt: Date.now() - 86400_000,
+  },
+];
+
+export async function calendarList(startMs?: number, endMs?: number): Promise<CalendarEventDto[]> {
+  const api = getApi();
+  if (!api?.calendarList) {
+    let list = [...mockCalendarEvents];
+    if (startMs !== undefined && endMs !== undefined) {
+      list = list.filter((e) => e.endMs >= startMs && e.startMs <= endMs);
+    }
+    return list.sort((a, b) => a.startMs - b.startMs);
+  }
+  return api.calendarList(startMs, endMs);
+}
+
+export async function calendarGet(id: string): Promise<CalendarEventDto | null> {
+  const api = getApi();
+  if (!api?.calendarGet) {
+    return mockCalendarEvents.find((e) => e.id === id) || null;
+  }
+  return api.calendarGet(id);
+}
+
+export type CreateCalendarEventPayload = {
+  id?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  startTime: string;
+  endTime: string;
+  startMs?: number;
+  endMs?: number;
+  allDay?: boolean;
+  category?: CalendarEventCategory;
+  color?: string;
+  status?: "confirmed" | "tentative" | "cancelled";
+  attendees?: string[];
+  sourceMessageId?: string;
+  sourceMessageSubject?: string;
+  icsUid?: string;
+  recurrence?: "none" | "daily" | "weekly" | "monthly";
+  remindMinutesBefore?: number;
+  isReminded?: boolean;
+};
+
+export async function calendarCreate(
+  payload: CreateCalendarEventPayload
+): Promise<CalendarEventDto> {
+  const api = getApi();
+  if (!api?.calendarCreate) {
+    const sMs = payload.startMs ?? new Date(payload.startTime).getTime();
+    const eMs = payload.endMs ?? new Date(payload.endTime).getTime();
+    const newEvt: CalendarEventDto = {
+      id: payload.id || `evt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title: payload.title,
+      description: payload.description,
+      location: payload.location,
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      startMs: sMs,
+      endMs: eMs,
+      allDay: payload.allDay || false,
+      category: payload.category || "meeting",
+      color: payload.color || "#2563eb",
+      status: payload.status || "confirmed",
+      attendees: payload.attendees || [],
+      sourceMessageId: payload.sourceMessageId,
+      sourceMessageSubject: payload.sourceMessageSubject,
+      icsUid: payload.icsUid,
+      recurrence: payload.recurrence || "none",
+      remindMinutesBefore: payload.remindMinutesBefore ?? 15,
+      isReminded: payload.isReminded || false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    mockCalendarEvents.push(newEvt);
+    return newEvt;
+  }
+  return api.calendarCreate(payload);
+}
+
+export async function calendarUpdate(
+  id: string,
+  patch: Partial<CalendarEventDto>
+): Promise<CalendarEventDto | null> {
+  const api = getApi();
+  if (!api?.calendarUpdate) {
+    const idx = mockCalendarEvents.findIndex((e) => e.id === id);
+    if (idx === -1) return null;
+    mockCalendarEvents[idx] = {
+      ...mockCalendarEvents[idx],
+      ...patch,
+      updatedAt: Date.now(),
+    };
+    return mockCalendarEvents[idx];
+  }
+  return api.calendarUpdate(id, patch);
+}
+
+export async function calendarDelete(id: string): Promise<boolean> {
+  const api = getApi();
+  if (!api?.calendarDelete) {
+    mockCalendarEvents = mockCalendarEvents.filter((e) => e.id !== id);
+    return true;
+  }
+  return api.calendarDelete(id);
+}
+
+export async function calendarImportIcs(
+  icsContent: string
+): Promise<{ importedCount: number; events: CalendarEventDto[] }> {
+  const api = getApi();
+  if (!api?.calendarImportIcs) {
+    const lines = icsContent.split(/\r?\n/);
+    let current: Partial<CalendarEventDto> | null = null;
+    const imported: CalendarEventDto[] = [];
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line === "BEGIN:VEVENT") {
+        current = {
+          id: `evt_mock_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          title: "新日程",
+          allDay: false,
+          category: "meeting",
+          color: "#2563eb",
+          status: "confirmed",
+          recurrence: "none",
+          attendees: [],
+          remindMinutesBefore: 15,
+          isReminded: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      } else if (line === "END:VEVENT" && current) {
+        if (!current.startTime) {
+          current.startTime = new Date().toISOString();
+          current.startMs = Date.now();
+        }
+        if (!current.endTime) {
+          current.endTime = new Date(Date.now() + 3600_000).toISOString();
+          current.endMs = Date.now() + 3600_000;
+        }
+        const full = current as CalendarEventDto;
+        mockCalendarEvents.push(full);
+        imported.push(full);
+        current = null;
+      } else if (current) {
+        const idx = line.indexOf(":");
+        if (idx !== -1) {
+          const key = line.slice(0, idx).split(";")[0].toUpperCase();
+          const val = line.slice(idx + 1).trim();
+          if (key === "SUMMARY") current.title = val;
+          else if (key === "DESCRIPTION") current.description = val;
+          else if (key === "LOCATION") current.location = val;
+          else if (key === "DTSTART") {
+            try {
+              const d = new Date(
+                val.replace(
+                  /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/,
+                  "$1-$2-$3T$4:$5:$6.000Z"
+                )
+              );
+              current.startTime = d.toISOString();
+              current.startMs = d.getTime();
+            } catch {}
+          } else if (key === "DTEND") {
+            try {
+              const d = new Date(
+                val.replace(
+                  /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/,
+                  "$1-$2-$3T$4:$5:$6.000Z"
+                )
+              );
+              current.endTime = d.toISOString();
+              current.endMs = d.getTime();
+            } catch {}
+          } else if (key === "ATTENDEE") {
+            current.attendees = [...(current.attendees || []), val.replace(/^mailto:/i, "")];
+          }
+        }
+      }
+    }
+    return { importedCount: imported.length, events: imported };
+  }
+  return api.calendarImportIcs(icsContent);
+}
+
+export async function calendarExportIcs(eventIds?: string[]): Promise<string> {
+  const api = getApi();
+  if (!api?.calendarExportIcs) {
+    return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR";
+  }
+  return api.calendarExportIcs(eventIds);
+}
+
+export async function calendarExportIcsDialog(
+  eventIds?: string[]
+): Promise<{ ok: boolean; path?: string; canceled?: boolean }> {
+  const api = getApi();
+  if (!api?.calendarExportIcsDialog) {
+    return { ok: true, path: "/mock/calendar.ics" };
+  }
+  return api.calendarExportIcsDialog(eventIds);
+}
+
+export function onCalendarOpenEvent(
+  callback: (payload: { eventId: string; sourceMessageId?: string }) => void
+): () => void {
+  const api = getApi();
+  if (!api?.onCalendarOpenEvent) return () => {};
+  return api.onCalendarOpenEvent(callback);
+}
+
+// -----------------------------------------------------------------------------
+// Contacts IPC Types & Functions
+// -----------------------------------------------------------------------------
+
+export type ContactDto = {
+  id: string;
+  name: string;
+  email: string;
+  secondaryEmails: string[];
+  phone?: string;
+  company?: string;
+  jobTitle?: string;
+  avatarColor?: string;
+  notes?: string;
+  tags: string[];
+  isStarred: boolean;
+  lastContactedAt?: number;
+  createdAt: number;
+  updatedAt: number;
+};
+
+let mockContacts: ContactDto[] = [
+  {
+    id: "mock_cnt_1",
+    name: "张总 (Tech Lead)",
+    email: "boss@company.com",
+    secondaryEmails: ["alex.zhang@gmail.com"],
+    phone: "13800138000",
+    company: "Moon Force Tech",
+    jobTitle: "技术总监 / VP",
+    avatarColor: "#2563EB",
+    notes: "主导架构演进与 Q3 上线关键决策人。",
+    tags: ["工作", "管理层", "VIP"],
+    isStarred: true,
+    lastContactedAt: Date.now() - 3600_000,
+    createdAt: Date.now() - 86400_000 * 10,
+    updatedAt: Date.now() - 86400_000 * 2,
+  },
+  {
+    id: "mock_cnt_2",
+    name: "李设计师",
+    email: "design@company.com",
+    secondaryEmails: [],
+    phone: "13911223344",
+    company: "Moon Force Tech",
+    jobTitle: "UI/UX 设计专家",
+    avatarColor: "#7C3AED",
+    notes: "黑曜石碳暗色主题与 Fluid 控件主创。",
+    tags: ["工作", "设计组"],
+    isStarred: false,
+    lastContactedAt: Date.now() - 7200_000,
+    createdAt: Date.now() - 86400_000 * 15,
+    updatedAt: Date.now() - 86400_000 * 5,
+  },
+];
+
+export async function contactsList(filter?: {
+  query?: string;
+  tag?: string;
+  starredOnly?: boolean;
+}): Promise<ContactDto[]> {
+  const api = getApi();
+  if (!api?.contactsList) {
+    let list = [...mockContacts];
+    if (filter?.starredOnly) list = list.filter((c) => c.isStarred);
+    if (filter?.tag) list = list.filter((c) => c.tags.includes(filter.tag!));
+    if (filter?.query && filter.query.trim()) {
+      const q = filter.query.trim().toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.email.toLowerCase().includes(q) ||
+          (c.company && c.company.toLowerCase().includes(q))
+      );
+    }
+    return list.sort(
+      (a, b) => (b.isStarred ? 1 : 0) - (a.isStarred ? 1 : 0) || a.name.localeCompare(b.name)
+    );
+  }
+  return api.contactsList(filter);
+}
+
+export async function contactsGet(id: string): Promise<ContactDto | null> {
+  const api = getApi();
+  if (!api?.contactsGet) {
+    return mockContacts.find((c) => c.id === id) || null;
+  }
+  return api.contactsGet(id);
+}
+
+export async function contactsCreate(
+  payload: Omit<ContactDto, "id" | "createdAt" | "updatedAt"> & { id?: string }
+): Promise<ContactDto> {
+  const api = getApi();
+  if (!api?.contactsCreate) {
+    const newCnt: ContactDto = {
+      id: payload.id || `cnt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name: payload.name || payload.email.split("@")[0],
+      email: payload.email,
+      secondaryEmails: payload.secondaryEmails || [],
+      phone: payload.phone,
+      company: payload.company,
+      jobTitle: payload.jobTitle,
+      avatarColor: payload.avatarColor || "#2563EB",
+      notes: payload.notes,
+      tags: payload.tags || [],
+      isStarred: payload.isStarred || false,
+      lastContactedAt: payload.lastContactedAt,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    mockContacts.push(newCnt);
+    return newCnt;
+  }
+  return api.contactsCreate(payload);
+}
+
+export async function contactsUpdate(
+  id: string,
+  patch: Partial<ContactDto>
+): Promise<ContactDto | null> {
+  const api = getApi();
+  if (!api?.contactsUpdate) {
+    const idx = mockContacts.findIndex((c) => c.id === id);
+    if (idx === -1) return null;
+    mockContacts[idx] = {
+      ...mockContacts[idx],
+      ...patch,
+      updatedAt: Date.now(),
+    };
+    return mockContacts[idx];
+  }
+  return api.contactsUpdate(id, patch);
+}
+
+export async function contactsDelete(id: string): Promise<boolean> {
+  const api = getApi();
+  if (!api?.contactsDelete) {
+    mockContacts = mockContacts.filter((c) => c.id !== id);
+    return true;
+  }
+  return api.contactsDelete(id);
+}
+
+export async function contactsToggleStar(id: string): Promise<boolean> {
+  const api = getApi();
+  if (!api?.contactsToggleStar) {
+    const c = mockContacts.find((item) => item.id === id);
+    if (!c) return false;
+    c.isStarred = !c.isStarred;
+    return c.isStarred;
+  }
+  return api.contactsToggleStar(id);
+}
+
+export async function contactsHarvest(
+  limit = 50
+): Promise<Array<{ name: string; email: string; count: number; lastDateMs: number }>> {
+  const api = getApi();
+  if (!api?.contactsHarvest) {
+    return [
+      {
+        name: "王经理",
+        email: "wang@supplier.com",
+        count: 4,
+        lastDateMs: Date.now() - 3600_000 * 5,
+      },
+      {
+        name: "HR Service",
+        email: "hr@company.com",
+        count: 2,
+        lastDateMs: Date.now() - 86400_000 * 2,
+      },
+    ].slice(0, limit);
+  }
+  return api.contactsHarvest(limit);
+}
+
+export async function contactsImportVcf(
+  vcfContent: string
+): Promise<{ importedCount: number; contacts: ContactDto[] }> {
+  const api = getApi();
+  if (!api?.contactsImportVcf) {
+    const lines = vcfContent.split(/\r?\n/);
+    let current: Partial<ContactDto> | null = null;
+    const imported: ContactDto[] = [];
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line === "BEGIN:VCARD") {
+        current = {
+          id: `c_mock_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          name: "",
+          email: "",
+          secondaryEmails: [],
+          tags: [],
+          isStarred: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      } else if (line === "END:VCARD" && current) {
+        if (current.email) {
+          if (!current.name) current.name = current.email.split("@")[0];
+          const full = current as ContactDto;
+          mockContacts.push(full);
+          imported.push(full);
+        }
+        current = null;
+      } else if (current) {
+        const idx = line.indexOf(":");
+        if (idx !== -1) {
+          const key = line.slice(0, idx).split(";")[0].toUpperCase();
+          const val = line.slice(idx + 1).trim();
+          if (key === "FN" || key === "NAME") current.name = val;
+          else if (key === "EMAIL") current.email = val;
+          else if (key === "TEL") current.phone = val;
+          else if (key === "ORG") current.company = val;
+          else if (key === "TITLE") current.jobTitle = val;
+          else if (key === "NOTE") current.notes = val;
+          else if (key === "CATEGORIES")
+            current.tags = val
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean);
+        }
+      }
+    }
+    return { importedCount: imported.length, contacts: imported };
+  }
+  return api.contactsImportVcf(vcfContent);
+}
+
+export async function contactsExportVcf(contactIds?: string[]): Promise<string> {
+  const api = getApi();
+  if (!api?.contactsExportVcf) {
+    return "BEGIN:VCARD\r\nVERSION:3.0\r\nEND:VCARD";
+  }
+  return api.contactsExportVcf(contactIds);
+}
+
+export async function contactsExportVcfDialog(
+  contactIds?: string[]
+): Promise<{ ok: boolean; path?: string; canceled?: boolean }> {
+  const api = getApi();
+  if (!api?.contactsExportVcfDialog) {
+    return { ok: true, path: "/mock/contacts.vcf" };
+  }
+  return api.contactsExportVcfDialog(contactIds);
 }

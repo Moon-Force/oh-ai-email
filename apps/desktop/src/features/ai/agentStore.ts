@@ -4,6 +4,7 @@ import {
   agentListSkills,
   agentRun,
   mailSaveDraft,
+  calendarCreate,
   type AgentProposalCalendarItem,
   type AgentProposalData,
   type AgentProposalDraftItem,
@@ -215,7 +216,9 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
               break;
             case "compaction":
               set((s) => ({
-                streamText: s.streamText + `\n[系统] 已自动压缩前序历史对话 (${evt.compactedTokens} tokens)\n`,
+                streamText:
+                  s.streamText +
+                  `\n[系统] 已自动压缩前序历史对话 (${evt.compactedTokens} tokens)\n`,
               }));
               break;
             case "proposal":
@@ -334,6 +337,22 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
         }
       } else if (item.kind === "calendar_event") {
         calendarEvents.push(item);
+        try {
+          const sTime = item.startTime;
+          const eTime =
+            item.endTime || new Date(new Date(sTime).getTime() + 3600_000).toISOString();
+          await calendarCreate({
+            title: item.title,
+            startTime: sTime,
+            endTime: eTime,
+            location: item.location,
+            attendees: item.attendees || [],
+            category: "meeting",
+            remindMinutesBefore: 15,
+          });
+        } catch {
+          // ignore calendar saving error
+        }
       } else if (item.kind === "split_change") {
         splitChanges.push(item);
         mailStore.setMessageSplit(item.messageId, item.targetSplit);

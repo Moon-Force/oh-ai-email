@@ -14,7 +14,9 @@ describe("SkillsTab Component", () => {
     expect(screen.getByText("智能体技能生态 (Skills Ecosystem)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "新建自定义技能" })).toBeInTheDocument();
     expect(screen.getByText("Model Context Protocol (MCP) 邮件服务")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "复制 Claude / Cursor 配置 JSON" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "复制 Claude / Cursor 配置 JSON" })
+    ).toBeInTheDocument();
   });
 
   it("renders built-in skills cards correctly", async () => {

@@ -145,7 +145,10 @@ type Block =
 /**
  * Tokenizes markdown string into structured semantic blocks.
  */
-function parseMarkdownBlocks(rawText: string, hideJsonBlocks: boolean): { blocks: Block[]; jsonBlocks: string[] } {
+function parseMarkdownBlocks(
+  rawText: string,
+  hideJsonBlocks: boolean
+): { blocks: Block[]; jsonBlocks: string[] } {
   const blocks: Block[] = [];
   const jsonBlocks: string[] = [];
 
@@ -176,7 +179,10 @@ function parseMarkdownBlocks(rawText: string, hideJsonBlocks: boolean): { blocks
       if (i < lines.length) i++; // skip closing ```
 
       const codeString = codeLines.join("\n");
-      if (lang === "json" && (codeString.includes("split_change") || codeString.includes("proposal"))) {
+      if (
+        lang === "json" &&
+        (codeString.includes("split_change") || codeString.includes("proposal"))
+      ) {
         jsonBlocks.push(codeString);
         if (!hideJsonBlocks) {
           blocks.push({ type: "code", language: "json", code: codeString });
@@ -188,7 +194,7 @@ function parseMarkdownBlocks(rawText: string, hideJsonBlocks: boolean): { blocks
     }
 
     // 2. Horizontal Rules (---, ___, ***)
-    if (/^(\-{3,}|\_{3,}|\*{3,})$/.test(trimmed)) {
+    if (/^(-{3,}|_{3,}|\*{3,})$/.test(trimmed)) {
       blocks.push({ type: "hr" });
       i++;
       continue;
@@ -234,7 +240,7 @@ function parseMarkdownBlocks(rawText: string, hideJsonBlocks: boolean): { blocks
 
         const headers = parseRow(tableLines[0]);
         // Filter out delimiter row (|:---|:---|)
-        const contentRows = tableLines.slice(1).filter((r) => !/^[\|\:\-\s]+$/.test(r));
+        const contentRows = tableLines.slice(1).filter((r) => !/^[|:\-\s]+$/.test(r));
         const rows = contentRows.map(parseRow);
 
         blocks.push({ type: "table", headers, rows });
@@ -288,7 +294,7 @@ function parseMarkdownBlocks(rawText: string, hideJsonBlocks: boolean): { blocks
         (cur.startsWith("|") && cur.endsWith("|")) ||
         /^[-*+]\s+/.test(cur) ||
         /^\d+\.\s+/.test(cur) ||
-        /^(\-{3,}|\_{3,}|\*{3,})$/.test(cur)
+        /^(-{3,}|_{3,}|\*{3,})$/.test(cur)
       ) {
         break;
       }
@@ -335,9 +341,7 @@ export default function MarkdownView({ content, hideJsonBlocks = true }: Markdow
         borderRadius: 2.5,
         bgcolor: "background.paper",
         boxShadow: (t) =>
-          t.palette.mode === "dark"
-            ? "0 4px 20px rgba(0,0,0,0.3)"
-            : "0 2px 12px rgba(0,0,0,0.04)",
+          t.palette.mode === "dark" ? "0 4px 20px rgba(0,0,0,0.3)" : "0 2px 12px rgba(0,0,0,0.04)",
         border: 1,
         borderColor: "divider",
         position: "relative",
@@ -363,7 +367,11 @@ export default function MarkdownView({ content, hideJsonBlocks = true }: Markdow
         </Stack>
         <Tooltip title={copied ? "已复制到剪贴板" : "复制报告全文"}>
           <IconButton size="small" onClick={handleCopy} sx={{ p: 0.5 }}>
-            {copied ? <CheckIcon fontSize="small" color="success" /> : <ContentCopyIcon fontSize="small" />}
+            {copied ? (
+              <CheckIcon fontSize="small" color="success" />
+            ) : (
+              <ContentCopyIcon fontSize="small" />
+            )}
           </IconButton>
         </Tooltip>
       </Box>
@@ -627,7 +635,13 @@ export default function MarkdownView({ content, hideJsonBlocks = true }: Markdow
             size="small"
             color="inherit"
             startIcon={<CodeIcon fontSize="small" />}
-            endIcon={showJsonInspector ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            endIcon={
+              showJsonInspector ? (
+                <ExpandLessIcon fontSize="small" />
+              ) : (
+                <ExpandMoreIcon fontSize="small" />
+              )
+            }
             onClick={() => setShowJsonInspector((v) => !v)}
             sx={{ fontSize: "0.75rem", color: "text.secondary" }}
           >

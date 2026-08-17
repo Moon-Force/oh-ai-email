@@ -23,9 +23,13 @@ import LabelIcon from "@mui/icons-material/Label";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import SettingsIcon from "@mui/icons-material/Settings";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import ContactsIcon from "@mui/icons-material/Contacts";
 import { useMailStore } from "../mail/store";
 import type { MailFolderId } from "../mail/types";
 import { useAccountsStore } from "../accounts/store";
+import { useCalendarStore } from "../calendar/calendarStore";
+import { useContactsStore } from "../contacts/contactsStore";
 
 const MAILBOXES: {
   id: MailFolderId;
@@ -45,13 +49,20 @@ export default function Sidebar() {
   const setFolder = useMailStore((s) => s.setFolder);
   const split = useMailStore((s) => s.split);
   const setSplit = useMailStore((s) => s.setSplit);
+  const view = useMailStore((s) => s.view);
   const setView = useMailStore((s) => s.setView);
+  const composeOpen = useMailStore((s) => s.composeOpen);
   const setComposeOpen = useMailStore((s) => s.setComposeOpen);
   const unreadInFolder = useMailStore((s) => s.unreadInFolder);
   const messages = useMailStore((s) => s.messages);
   const accounts = useAccountsStore((s) => s.accounts);
 
+  const todayEvents = useCalendarStore((s) => s.todayEvents);
+  const contacts = useContactsStore((s) => s.contacts);
+
   const importantUnread = messages.filter((m) => m.split === "important" && m.unread).length;
+  const todayCount = todayEvents().length;
+  const contactsCount = contacts.length;
 
   /** Leave compose so folder/settings navigation is visible again. */
   function leaveCompose() {
@@ -83,6 +94,62 @@ export default function Sidebar() {
           oh-ai-email
         </Typography>
       </Box>
+
+      {/* 核心应用视图 */}
+      <List dense sx={{ pt: 0, pb: 1 }}>
+        <ListItemButton
+          selected={view === "mail" && !composeOpen}
+          onClick={goMail}
+          sx={{ borderRadius: 1.5, mx: 1 }}
+        >
+          <ListItemIcon sx={{ minWidth: 32 }}>
+            <InboxIcon
+              fontSize="small"
+              color={view === "mail" && !composeOpen ? "primary" : "inherit"}
+            />
+          </ListItemIcon>
+          <ListItemText primary="邮件" />
+        </ListItemButton>
+
+        <ListItemButton
+          selected={view === "calendar"}
+          onClick={() => {
+            leaveCompose();
+            setView("calendar");
+          }}
+          sx={{ borderRadius: 1.5, mx: 1 }}
+        >
+          <ListItemIcon sx={{ minWidth: 32 }}>
+            <CalendarMonthIcon
+              fontSize="small"
+              color={view === "calendar" ? "primary" : "inherit"}
+            />
+          </ListItemIcon>
+          <ListItemText primary="日历日程" />
+          {todayCount > 0 && <Badge badgeContent={todayCount} color="primary" />}
+        </ListItemButton>
+
+        <ListItemButton
+          selected={view === "contacts"}
+          onClick={() => {
+            leaveCompose();
+            setView("contacts");
+          }}
+          sx={{ borderRadius: 1.5, mx: 1 }}
+        >
+          <ListItemIcon sx={{ minWidth: 32 }}>
+            <ContactsIcon fontSize="small" color={view === "contacts" ? "primary" : "inherit"} />
+          </ListItemIcon>
+          <ListItemText primary="通讯录" />
+          {contactsCount > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              {contactsCount}
+            </Typography>
+          )}
+        </ListItemButton>
+      </List>
+
+      <Divider />
 
       <List
         dense

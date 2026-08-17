@@ -32,8 +32,12 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import { useMailStore, ambientFromSender } from "./store";
 import { useToastStore } from "../shell/toastStore";
+import { useCalendarStore } from "../calendar/calendarStore";
+import { useContactsStore } from "../contacts/contactsStore";
 import LumenCapsule from "../ai/LumenCapsule";
 import { TypewriterText } from "../ai/TypewriterText";
 import { analyzeAttachment } from "../ai/router";
@@ -53,6 +57,9 @@ export default function Reader() {
   const snoozeMessage = useMailStore((s) => s.snoozeMessage);
   const [snoozeAnchor, setSnoozeAnchor] = useState<null | HTMLElement>(null);
   const showToast = useToastStore((s) => s.showToast);
+  const contacts = useContactsStore((s) => s.contacts);
+  const openContactCreate = useContactsStore((s) => s.openCreateDialog);
+  const openCalendarCreate = useCalendarStore((s) => s.openCreateDialog);
   const msg = messages.find((m) => m.id === selectedId);
 
   const handleSnooze = (preset: "evening" | "tomorrow" | "weekend" | "next_week" | "clear") => {
@@ -132,6 +139,18 @@ export default function Reader() {
         }))
     : undefined;
 
+  const isSenderInContacts = msg
+    ? contacts.some((c) => c.email.toLowerCase() === msg.from.toLowerCase())
+    : false;
+
+  const hasIcsAttachment = msg?.attachments
+    ? msg.attachments.some(
+        (a) =>
+          a.filename.toLowerCase().endsWith(".ics") ||
+          a.contentType.toLowerCase().includes("calendar")
+      )
+    : false;
+
   return (
     <PaneTransition paneKey={msg.id} variant="reader">
       <Box
@@ -156,11 +175,56 @@ export default function Reader() {
             <Typography variant="h6" sx={{ fontSize: "1.05rem" }}>
               {msg.subject}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {msg.fromName} &lt;{msg.from}&gt; · {msg.date}
-            </Typography>
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+              <Typography variant="caption" color="text.secondary">
+                {msg.fromName} &lt;{msg.from}&gt; · {msg.date}
+              </Typography>
+              {!isSenderInContacts && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<PersonAddAlt1Icon sx={{ fontSize: 13 }} />}
+                  onClick={() =>
+                    openContactCreate({
+                      name: msg.fromName || msg.from.split("@")[0],
+                      email: msg.from,
+                    })
+                  }
+                  sx={{
+                    py: 0,
+                    px: 0.75,
+                    minHeight: 20,
+                    fontSize: "0.68rem",
+                    textTransform: "none",
+                    borderRadius: 1,
+                  }}
+                >
+                  + 加为联系人
+                </Button>
+              )}
+            </Stack>
           </Box>
           <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexShrink: 0 }}>
+            <Tooltip title="将该邮件转为日程安排">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<CalendarMonthIcon fontSize="small" />}
+                onClick={() => {
+                  openCalendarCreate({
+                    title: msg.subject || "邮件日程",
+                    description: `${msg.fromName ? `发件人: ${msg.fromName} <${msg.from}>\n\n` : ""}${msg.snippet || msg.subject || ""}`,
+                    sourceMessageId: msg.id,
+                    sourceMessageSubject: msg.subject,
+                    startTime: new Date(Date.now() + 3600_000).toISOString(),
+                    endTime: new Date(Date.now() + 7200_000).toISOString(),
+                  });
+                }}
+              >
+                转为日程
+              </Button>
+            </Tooltip>
+
             <Tooltip title={msg.split === "important" ? "当前：重要" : "标为重要"}>
               <Chip
                 size="small"
@@ -294,6 +358,53 @@ export default function Reader() {
         </Stack>
 
         <Divider sx={{ flexShrink: 0 }} />
+
+        {hasIcsAttachment && (
+          <Paper
+            variant="outlined"
+            sx={{
+              mx: 2,
+              my: 1.25,
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: (t) =>
+                t.palette.mode === "dark" ? "rgba(37,99,235,0.12)" : "rgba(37,99,235,0.06)",
+              borderColor: "primary.main",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexShrink: 0,
+            }}
+          >
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+              <CalendarMonthIcon color="primary" />
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  检测到日程 / 会议邀请文件 (.ics)
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  点击可一键将该会议直接录入并同步至您的本地日历
+                </Typography>
+              </Box>
+            </Stack>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => {
+                openCalendarCreate({
+                  title: msg.subject,
+                  description: `${msg.fromName ? `发件人: ${msg.fromName} <${msg.from}>\n\n` : ""}${msg.snippet || msg.subject}`,
+                  sourceMessageId: msg.id,
+                  sourceMessageSubject: msg.subject,
+                  startTime: new Date(Date.now() + 3600_000).toISOString(),
+                  endTime: new Date(Date.now() + 7200_000).toISOString(),
+                });
+              }}
+            >
+              一键写入日历
+            </Button>
+          </Paper>
+        )}
 
         {attachments.length > 0 && (
           <Box

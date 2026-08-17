@@ -636,7 +636,16 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   )}
 
                 {/* Reasoning Effort Selector */}
-                <Box sx={{ mt: 1, p: 1.5, borderRadius: 1.5, bgcolor: "action.hover", border: 1, borderColor: "divider" }}>
+                <Box
+                  sx={{
+                    mt: 1,
+                    p: 1.5,
+                    borderRadius: 1.5,
+                    bgcolor: "action.hover",
+                    border: 1,
+                    borderColor: "divider",
+                  }}
+                >
                   <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
                     思考推理强度 (Reasoning Effort)
                   </Typography>
@@ -662,7 +671,14 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Box>
 
                 {/* Max Tokens & Timeout Controls */}
-                <Box sx={{ mt: 1, display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
+                <Box
+                  sx={{
+                    mt: 1,
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                    gap: 1.5,
+                  }}
+                >
                   <FormControl size="small" fullWidth>
                     <InputLabel id="max-tokens-label">最大输出 Token (Max Tokens)</InputLabel>
                     <Select
@@ -842,7 +858,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
 
             {/* Voice Multimodal (STT & TTS) Section */}
             <Divider sx={{ my: 1 }} />
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }} data-testid="voice-settings-section">
+            <Paper
+              variant="outlined"
+              sx={{ p: 2, borderRadius: 2, bgcolor: "background.paper" }}
+              data-testid="voice-settings-section"
+            >
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5 }}>
                 <GraphicEqIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -850,11 +870,21 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                支持配置 OpenAI 兼容的 Whisper / MiMo 等高品质云端语音大模型，亦支持使用系统原生 Web Speech 引擎。
+                支持配置 OpenAI 兼容的 Whisper / MiMo 等高品质云端语音大模型，亦支持使用系统原生 Web
+                Speech 引擎。
               </Typography>
 
               {/* STT Section */}
-              <Box sx={{ p: 1.5, mb: 2, borderRadius: 1.5, bgcolor: "action.hover", border: 1, borderColor: "divider" }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  mb: 2,
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                  border: 1,
+                  borderColor: "divider",
+                }}
+              >
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.25 }}>
                   <MicIcon color="primary" fontSize="small" />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -872,7 +902,13 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
                   <Button
                     size="small"
-                    variant={sttService === "custom" && sttBaseUrl === "https://api.openai.com/v1" && sttModel === "whisper-1" ? "contained" : "outlined"}
+                    variant={
+                      sttService === "custom" &&
+                      sttBaseUrl === "https://api.openai.com/v1" &&
+                      sttModel === "whisper-1"
+                        ? "contained"
+                        : "outlined"
+                    }
                     onClick={() => {
                       setSttService("custom");
                       setSttBaseUrl("https://api.openai.com/v1");
@@ -883,7 +919,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   </Button>
                   <Button
                     size="small"
-                    variant={sttService === "custom" && sttBaseUrl === "https://api.xiaomimimo.com/v1" ? "contained" : "outlined"}
+                    variant={
+                      sttService === "custom" && sttBaseUrl === "https://api.xiaomimimo.com/v1"
+                        ? "contained"
+                        : "outlined"
+                    }
                     onClick={() => {
                       setSttService("custom");
                       setSttBaseUrl("https://api.xiaomimimo.com/v1");
@@ -940,7 +980,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                       type="password"
                       value={sttApiKeyDraft}
                       onChange={(e) => setSttApiKeyDraft(e.target.value)}
-                      placeholder={hasSttApiKey ? "已配置独立 Key（留空则不修改）" : "留空则复用通用云端 API Key"}
+                      placeholder={
+                        hasSttApiKey
+                          ? "已配置独立 Key（留空则不修改）"
+                          : "留空则复用通用云端 API Key"
+                      }
                       autoComplete="off"
                     />
                   </Stack>
@@ -989,7 +1033,16 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     )}
                   </Stack>
                   {sttTestResult && (
-                    <Typography variant="body2" sx={{ mt: 1, p: 1, borderRadius: 1, bgcolor: "background.paper", fontSize: "0.8rem" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        mt: 1,
+                        p: 1,
+                        borderRadius: 1,
+                        bgcolor: "background.paper",
+                        fontSize: "0.8rem",
+                      }}
+                    >
                       {sttTestResult}
                     </Typography>
                   )}
@@ -997,7 +1050,15 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               </Box>
 
               {/* TTS Section */}
-              <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "action.hover", border: 1, borderColor: "divider" }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                  border: 1,
+                  borderColor: "divider",
+                }}
+              >
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.25 }}>
                   <VolumeUpIcon color="primary" fontSize="small" />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -1015,7 +1076,13 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
                   <Button
                     size="small"
-                    variant={ttsService === "custom" && ttsBaseUrl === "https://api.openai.com/v1" && ttsModel === "tts-1" ? "contained" : "outlined"}
+                    variant={
+                      ttsService === "custom" &&
+                      ttsBaseUrl === "https://api.openai.com/v1" &&
+                      ttsModel === "tts-1"
+                        ? "contained"
+                        : "outlined"
+                    }
                     onClick={() => {
                       setTtsService("custom");
                       setTtsBaseUrl("https://api.openai.com/v1");
@@ -1027,7 +1094,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   </Button>
                   <Button
                     size="small"
-                    variant={ttsService === "custom" && ttsBaseUrl === "https://api.xiaomimimo.com/v1" ? "contained" : "outlined"}
+                    variant={
+                      ttsService === "custom" && ttsBaseUrl === "https://api.xiaomimimo.com/v1"
+                        ? "contained"
+                        : "outlined"
+                    }
                     onClick={() => {
                       setTtsService("custom");
                       setTtsBaseUrl("https://api.xiaomimimo.com/v1");
@@ -1102,7 +1173,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                       type="password"
                       value={ttsApiKeyDraft}
                       onChange={(e) => setTtsApiKeyDraft(e.target.value)}
-                      placeholder={hasTtsApiKey ? "已配置独立 Key（留空则不修改）" : "留空则复用通用云端 API Key"}
+                      placeholder={
+                        hasTtsApiKey
+                          ? "已配置独立 Key（留空则不修改）"
+                          : "留空则复用通用云端 API Key"
+                      }
                       autoComplete="off"
                     />
                   </Stack>

@@ -237,16 +237,25 @@ export function parseSkillMarkdown(content: string, fallbackId: string): AgentSk
     const colonIdx = line.indexOf(":");
     if (colonIdx > 0) {
       const key = line.slice(0, colonIdx).trim();
-      const val = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, "");
+      const val = line
+        .slice(colonIdx + 1)
+        .trim()
+        .replace(/^["']|["']$/g, "");
       metadata[key] = val;
     }
   }
 
   const allowedTools = metadata.allowedTools
-    ? metadata.allowedTools.split(",").map((s) => s.trim()).filter(Boolean)
+    ? metadata.allowedTools
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
     : [];
   const tags = metadata.tags
-    ? metadata.tags.split(",").map((s) => s.trim()).filter(Boolean)
+    ? metadata.tags
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
     : [];
 
   return {
@@ -277,7 +286,8 @@ export function exportSkillMarkdown(skill: AgentSkillDefinition): string {
   if (skill.icon) lines.push(`icon: ${skill.icon}`);
   if (skill.author) lines.push(`author: ${skill.author}`);
   if (skill.tags && skill.tags.length > 0) lines.push(`tags: ${skill.tags.join(",")}`);
-  if (skill.allowedTools && skill.allowedTools.length > 0) lines.push(`allowedTools: ${skill.allowedTools.join(",")}`);
+  if (skill.allowedTools && skill.allowedTools.length > 0)
+    lines.push(`allowedTools: ${skill.allowedTools.join(",")}`);
   lines.push("---");
   lines.push("");
   lines.push(skill.systemPrompt);

@@ -1,5 +1,10 @@
 import { buildMailContext, cleanContext } from "./clean";
-import { abortAiRequest, type AiErrorCode, type AiResult, type StreamChunkCallback } from "./complete";
+import {
+  abortAiRequest,
+  type AiErrorCode,
+  type AiResult,
+  type StreamChunkCallback,
+} from "./complete";
 import { loadAiSettings, type AiMode } from "./settings";
 import {
   systemForActionItems,

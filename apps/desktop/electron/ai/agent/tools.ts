@@ -277,7 +277,7 @@ export function toolExtractInvoiceDetails(
   let vendorName = from.split("<")[0].trim().replace(/["']/g, "");
   if (!vendorName || vendorName.includes("@")) {
     const vendorMatch = subject.match(/(?:【([^】]+)】|\[([^\]]+)\])/);
-    vendorName = vendorMatch ? (vendorMatch[1] || vendorMatch[2]) : (from.split("@")[0] || "开票方");
+    vendorName = vendorMatch ? vendorMatch[1] || vendorMatch[2] : from.split("@")[0] || "开票方";
   }
 
   // Determine category
@@ -454,7 +454,8 @@ export const AGENT_TOOLS: ToolDefinition[] = [
         properties: {
           query: {
             type: "string",
-            description: "Keyword or search terms (e.g., '发票', '周报', '合同', sender name or email)",
+            description:
+              "Keyword or search terms (e.g., '发票', '周报', '合同', sender name or email)",
           },
           limit: {
             type: "number",
@@ -495,7 +496,8 @@ export const AGENT_TOOLS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "get_unread_summary",
-      description: "Retrieve a list and overview of recent unread emails across all active accounts in the inbox.",
+      description:
+        "Retrieve a list and overview of recent unread emails across all active accounts in the inbox.",
       parameters: {
         type: "object",
         properties: {
@@ -511,7 +513,8 @@ export const AGENT_TOOLS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "get_recent_messages",
-      description: "Retrieve the most recent received or sent emails to understand current context or daily briefing.",
+      description:
+        "Retrieve the most recent received or sent emails to understand current context or daily briefing.",
       parameters: {
         type: "object",
         properties: {
@@ -839,5 +842,3 @@ export function parseProposalItemsFromOutput(
 
   return resultItems;
 }
-
-

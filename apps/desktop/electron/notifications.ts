@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Notification } from "electron";
+import { BrowserWindow, Notification } from "electron";
 
 export interface MailNotificationPayload {
   messageId: string;

@@ -1,4 +1,10 @@
-import { listAllMessages, getMessage, searchMessagesFts, upsertDraft, listAccounts } from "../../db";
+import {
+  listAllMessages,
+  getMessage,
+  searchMessagesFts,
+  upsertDraft,
+  listAccounts,
+} from "../../db";
 
 export interface McpToolDefinition {
   name: string;
@@ -94,7 +100,12 @@ export class MailMcpServer {
    * Process incoming JSON-RPC 2.0 / MCP request string and return response JSON string.
    */
   public async handleMessage(rawMessage: string): Promise<string | null> {
-    let req: { jsonrpc?: string; id?: string | number; method?: string; params?: Record<string, unknown> };
+    let req: {
+      jsonrpc?: string;
+      id?: string | number;
+      method?: string;
+      params?: Record<string, unknown>;
+    };
     try {
       req = JSON.parse(rawMessage);
     } catch {

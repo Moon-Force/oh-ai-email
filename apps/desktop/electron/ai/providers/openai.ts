@@ -240,7 +240,10 @@ export async function synthesizeSpeechMiMo(
     return { ok: false, error: "未配置 API Key，无法使用云端语音合成" };
   }
 
-  const base = (settings?.ttsBaseUrl || settings?.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+  const base = (settings?.ttsBaseUrl || settings?.baseUrl || "https://api.openai.com/v1").replace(
+    /\/+$/,
+    ""
+  );
   const url = `${base}/audio/speech`;
   const model =
     settings?.ttsModel ||
@@ -299,7 +302,10 @@ export async function transcribeAudioOpenAi(
     return { ok: false, error: "未配置 API Key，无法使用云端语音识别" };
   }
 
-  const base = (settings?.sttBaseUrl || settings?.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+  const base = (settings?.sttBaseUrl || settings?.baseUrl || "https://api.openai.com/v1").replace(
+    /\/+$/,
+    ""
+  );
   const url = `${base}/audio/transcriptions`;
   const model = settings?.sttModel || "whisper-1";
 

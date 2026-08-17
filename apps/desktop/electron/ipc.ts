@@ -23,6 +23,26 @@ import {
   setMessageUnread,
   upsertAccount,
 } from "./db";
+import {
+  createCalendarEvent,
+  deleteCalendarEvent,
+  exportEventsToIcs,
+  getCalendarEventById,
+  importIcsEvents,
+  listCalendarEvents,
+  updateCalendarEvent,
+} from "./calendar/service";
+import {
+  createContact,
+  deleteContact,
+  exportContactsToVcf,
+  getContactById,
+  harvestContactsFromMessages,
+  importVcfContacts,
+  listContacts,
+  toggleContactStarred,
+  updateContact,
+} from "./contacts/service";
 import type { RewriteTone } from "./ai/prompts";
 import type { MessageRecord } from "./mail/types";
 import { checkForAppUpdates } from "./updater";
@@ -500,10 +520,8 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle("ai:synthesizeSpeech", (_e, payload: { text: string; voice?: string }) =>
     synthesizeSpeechMiMo(payload.text, payload.voice, loadAiSettings())
   );
-  ipcMain.handle(
-    "ai:transcribeAudio",
-    (_e, payload: { audioData: string; mimeType?: string }) =>
-      transcribeAudioOpenAi(payload.audioData, payload.mimeType || "audio/webm", loadAiSettings())
+  ipcMain.handle("ai:transcribeAudio", (_e, payload: { audioData: string; mimeType?: string }) =>
+    transcribeAudioOpenAi(payload.audioData, payload.mimeType || "audio/webm", loadAiSettings())
   );
 
   ipcMain.handle("ai:abort", (_e, requestId: string) => abortAiRequest(requestId));
@@ -806,6 +824,127 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle("agent:sessions:delete", (_e, sessionId: string) => {
     deleteAgentSession(sessionId);
     return { ok: true };
+  });
+
+  // ---------------------------------------------------------------------------
+  // Calendar IPC Handlers
+  // ---------------------------------------------------------------------------
+  ipcMain.handle("calendar:list", (_e, startMs?: number, endMs?: number) => {
+    return listCalendarEvents(startMs, endMs);
+  });
+
+  ipcMain.handle("calendar:get", (_e, id: string) => {
+    return getCalendarEventById(id);
+  });
+
+  ipcMain.handle("calendar:create", (_e, payload: Parameters<typeof createCalendarEvent>[0]) => {
+    return createCalendarEvent(payload);
+  });
+
+  ipcMain.handle(
+    "calendar:update",
+    (_e, id: string, patch: Parameters<typeof updateCalendarEvent>[1]) => {
+      return updateCalendarEvent(id, patch);
+    }
+  );
+
+  ipcMain.handle("calendar:delete", (_e, id: string) => {
+    return deleteCalendarEvent(id);
+  });
+
+  ipcMain.handle("calendar:importIcs", (_e, icsContent: string) => {
+    return importIcsEvents(icsContent);
+  });
+
+  ipcMain.handle("calendar:exportIcs", (_e, eventIds?: string[]) => {
+    const all = listCalendarEvents();
+    const targets =
+      eventIds && eventIds.length > 0 ? all.filter((e) => eventIds.includes(e.id)) : all;
+    return exportEventsToIcs(targets);
+  });
+
+  ipcMain.handle("calendar:exportIcsDialog", async (_e, eventIds?: string[]) => {
+    const all = listCalendarEvents();
+    const targets =
+      eventIds && eventIds.length > 0 ? all.filter((e) => eventIds.includes(e.id)) : all;
+    const icsString = exportEventsToIcs(targets);
+
+    const win = BrowserWindow.getFocusedWindow();
+    const { canceled, filePath } = await dialog.showSaveDialog(win!, {
+      title: "导出日历日程 (.ics)",
+      defaultPath: `calendar-export-${new Date().toISOString().slice(0, 10)}.ics`,
+      filters: [{ name: "iCalendar", extensions: ["ics"] }],
+    });
+
+    if (canceled || !filePath) return { ok: false, canceled: true };
+    fs.writeFileSync(filePath, icsString, "utf8");
+    return { ok: true, path: filePath };
+  });
+
+  // ---------------------------------------------------------------------------
+  // Contacts IPC Handlers
+  // ---------------------------------------------------------------------------
+  ipcMain.handle(
+    "contacts:list",
+    (_e, filter?: { query?: string; tag?: string; starredOnly?: boolean }) => {
+      return listContacts(filter);
+    }
+  );
+
+  ipcMain.handle("contacts:get", (_e, id: string) => {
+    return getContactById(id);
+  });
+
+  ipcMain.handle("contacts:create", (_e, payload: Parameters<typeof createContact>[0]) => {
+    return createContact(payload);
+  });
+
+  ipcMain.handle(
+    "contacts:update",
+    (_e, id: string, patch: Parameters<typeof updateContact>[1]) => {
+      return updateContact(id, patch);
+    }
+  );
+
+  ipcMain.handle("contacts:delete", (_e, id: string) => {
+    return deleteContact(id);
+  });
+
+  ipcMain.handle("contacts:toggleStar", (_e, id: string) => {
+    return toggleContactStarred(id);
+  });
+
+  ipcMain.handle("contacts:harvest", (_e, limit?: number) => {
+    return harvestContactsFromMessages(limit);
+  });
+
+  ipcMain.handle("contacts:importVcf", (_e, vcfContent: string) => {
+    return importVcfContacts(vcfContent);
+  });
+
+  ipcMain.handle("contacts:exportVcf", (_e, contactIds?: string[]) => {
+    const all = listContacts();
+    const targets =
+      contactIds && contactIds.length > 0 ? all.filter((c) => contactIds.includes(c.id)) : all;
+    return exportContactsToVcf(targets);
+  });
+
+  ipcMain.handle("contacts:exportVcfDialog", async (_e, contactIds?: string[]) => {
+    const all = listContacts();
+    const targets =
+      contactIds && contactIds.length > 0 ? all.filter((c) => contactIds.includes(c.id)) : all;
+    const vcfString = exportContactsToVcf(targets);
+
+    const win = BrowserWindow.getFocusedWindow();
+    const { canceled, filePath } = await dialog.showSaveDialog(win!, {
+      title: "导出联系人通讯录 (.vcf)",
+      defaultPath: `contacts-export-${new Date().toISOString().slice(0, 10)}.vcf`,
+      filters: [{ name: "vCard", extensions: ["vcf"] }],
+    });
+
+    if (canceled || !filePath) return { ok: false, canceled: true };
+    fs.writeFileSync(filePath, vcfString, "utf8");
+    return { ok: true, path: filePath };
   });
 
   // Check snoozed messages every 15s

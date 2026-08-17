@@ -88,11 +88,7 @@ export default function MessageList() {
               }}
               sx={{
                 borderLeft: 3,
-                borderColor: selected
-                  ? "primary.main"
-                  : m.unread
-                    ? "primary.light"
-                    : "transparent",
+                borderColor: selected ? "primary.main" : m.unread ? "primary.light" : "transparent",
                 py: 1.25,
                 px: 1.5,
                 mb: 0.5,
