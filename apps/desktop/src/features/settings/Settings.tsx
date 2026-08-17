@@ -93,6 +93,10 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     setCloudPrivacyAck,
     reasoningEffort,
     setReasoningEffort,
+    maxTokens,
+    setMaxTokens,
+    timeoutSeconds,
+    setTimeoutSeconds,
     sttService,
     setSttService,
     sttBaseUrl,
@@ -343,7 +347,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               </Typography>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
                 <Typography variant="body2" color="text.secondary">
-                  当前版本：<strong>v0.1.0</strong>
+                  当前版本：<strong>v{updateResult?.currentVersion || "0.2.0"}</strong>
                 </Typography>
                 <Button
                   size="small"
@@ -362,7 +366,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     }
                   }}
                 >
-                  {checkingUpdate ? "正在检查..." : "检查更新"}
+                  {checkingUpdate ? "检查中..." : "检查更新"}
                 </Button>
               </Stack>
             </Box>
@@ -384,7 +388,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
               maxWidth="xs"
               fullWidth
             >
-              <DialogTitle>检查更新</DialogTitle>
+              <DialogTitle>软件更新检查</DialogTitle>
               <DialogContent dividers>
                 {updateResult?.updateAvailable ? (
                   <Stack spacing={1.5}>
@@ -400,7 +404,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 ) : (
                   <Stack spacing={1}>
                     <Typography variant="body1">
-                      当前已是最新版本 (v{updateResult?.currentVersion || "0.1.0"})。
+                      当前已是最新版本 (v{updateResult?.currentVersion || "0.2.0"})。
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       所有功能均已就绪。
@@ -655,6 +659,42 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         ? "🧠 深度多步推演与严谨反思，适合长线索时间线全景分析、复杂条款审核与重要邮件草拟。"
                         : "⚖️ 推荐模式：兼顾深度推理质量与响应速度，适合常规邮件分析与回复润色。"}
                   </Typography>
+                </Box>
+
+                {/* Max Tokens & Timeout Controls */}
+                <Box sx={{ mt: 1, display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
+                  <FormControl size="small" fullWidth>
+                    <InputLabel id="max-tokens-label">最大输出 Token (Max Tokens)</InputLabel>
+                    <Select
+                      labelId="max-tokens-label"
+                      value={maxTokens || 32768}
+                      label="最大输出 Token (Max Tokens)"
+                      onChange={(e) => setMaxTokens(Number(e.target.value))}
+                    >
+                      <MenuItem value={4096}>4,096 (4K · 极速轻量)</MenuItem>
+                      <MenuItem value={8192}>8,192 (8K · 紧凑)</MenuItem>
+                      <MenuItem value={16384}>16,384 (16K · 标配长文)</MenuItem>
+                      <MenuItem value={32768}>32,768 (32K · 推荐 / 深度推演)</MenuItem>
+                      <MenuItem value={65536}>65,536 (64K · 全景多邮件分析)</MenuItem>
+                      <MenuItem value={131072}>131,072 (128K · 极客旗舰无损)</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl size="small" fullWidth>
+                    <InputLabel id="timeout-seconds-label">单次请求超时限制</InputLabel>
+                    <Select
+                      labelId="timeout-seconds-label"
+                      value={timeoutSeconds || 300}
+                      label="单次请求超时限制"
+                      onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
+                    >
+                      <MenuItem value={60}>60 秒 (1分钟 · 短请求)</MenuItem>
+                      <MenuItem value={120}>120 秒 (2分钟 · 中等)</MenuItem>
+                      <MenuItem value={180}>180 秒 (3分钟)</MenuItem>
+                      <MenuItem value={300}>300 秒 (5分钟 · 推荐 / 长任务)</MenuItem>
+                      <MenuItem value={600}>600 秒 (10分钟 · 深度推理)</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Box>
 
                 <FormControlLabel

@@ -24,6 +24,7 @@ import {
   TextField,
   Tooltip,
   Typography,
+  Snackbar,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -43,6 +44,8 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import TranslateIcon from "@mui/icons-material/Translate";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import { useAgentStore } from "./agentStore";
+import { useMailStore } from "../mail/store";
+import MarkdownView from "./MarkdownView";
 import type { AgentProposalItem, AgentType } from "../../lib/ipc";
 
 const AGENT_OPTIONS: { type: AgentType; label: string; description: string }[] = [
@@ -100,6 +103,8 @@ export default function AgentDrawer() {
     error,
     prompt,
     setPrompt,
+    context,
+    clearContext,
     runWorkflow,
     abortWorkflow,
     toggleItemSelection,
@@ -115,6 +120,7 @@ export default function AgentDrawer() {
   const [showThinking, setShowThinking] = useState(true);
   const [showLog, setShowLog] = useState(true);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [isAccepted, setIsAccepted] = useState(false);
 
   const isRunning = status === "planning" || status === "executing_tools" || status === "thinking";
 
@@ -125,17 +131,20 @@ export default function AgentDrawer() {
 
   const handleStart = () => {
     setSuccessToast(null);
+    setIsAccepted(false);
     void runWorkflow();
   };
 
   const handleAcceptSelected = async () => {
     const res = await acceptSelected();
-    setSuccessToast(`已成功采纳 ${res.acceptedCount} 项操作！`);
+    setIsAccepted(true);
+    setSuccessToast(`已成功采纳 ${res.acceptedCount} 项操作！已同步更新分箱与数据。`);
   };
 
   const handleAcceptAll = async () => {
     const res = await acceptAll();
-    setSuccessToast(`已成功全部采纳 ${res.acceptedCount} 项操作！`);
+    setIsAccepted(true);
+    setSuccessToast(`已成功全部采纳 ${res.acceptedCount} 项操作！已同步更新分箱与数据。`);
   };
 
   return (
@@ -312,6 +321,60 @@ export default function AgentDrawer() {
           {/* Workflow Configuration Form */}
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
             <Stack spacing={2}>
+              {/* Context Indicator */}
+              {context && (context.subject || context.messageId) ? (
+                <Box
+                  sx={{
+                    p: 1.25,
+                    borderRadius: 1.5,
+                    bgcolor: "action.hover",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0 }}>
+                    <Chip size="small" label="当前邮件" color="primary" variant="outlined" />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {String(context.subject || "未命名邮件")}
+                    </Typography>
+                  </Stack>
+                  <Button
+                    size="small"
+                    variant="text"
+                    color="secondary"
+                    onClick={() => clearContext()}
+                    sx={{ fontSize: "0.75rem", p: 0.5, minWidth: "auto" }}
+                  >
+                    切换全局
+                  </Button>
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 1.5,
+                    bgcolor: "action.hover",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Chip size="small" label="全局模式" variant="outlined" />
+                  <Typography variant="caption" color="text.secondary">
+                    AI 可自主通过检索工具查询所有本地邮件
+                  </Typography>
+                </Box>
+              )}
+
               <FormControl size="small" fullWidth>
                 <InputLabel id="agent-type-select-label">工作流类型</InputLabel>
                 <Select
@@ -514,9 +577,7 @@ export default function AgentDrawer() {
                 <Chip size="small" label={`${proposal.items.length} 项提议`} color="primary" />
               </Box>
 
-              <Typography variant="body2" color="text.secondary">
-                {proposal.summary}
-              </Typography>
+              <MarkdownView content={proposal.summary} hideJsonBlocks={true} />
 
               {/* Select All Checkbox */}
               {proposal.items.length > 0 && (
@@ -549,28 +610,82 @@ export default function AgentDrawer() {
               </Stack>
 
               {/* Bottom Actions */}
-              <Stack direction="row" spacing={1} sx={{ pt: 1, justifyContent: "space-between" }}>
-                <Button size="small" color="inherit" onClick={dismiss}>
-                  忽略放弃
-                </Button>
-                <Stack direction="row" spacing={1}>
+              {isAccepted ? (
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: "success.main",
+                    color: "success.contrastText",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1,
+                  }}
+                >
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                    <CheckCircleIcon fontSize="small" />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      已成功采纳并应用变更！
+                    </Typography>
+                  </Stack>
                   <Button
                     size="small"
-                    variant="outlined"
-                    onClick={handleAcceptSelected}
-                    disabled={!proposal.items.some((i) => i.selected)}
+                    variant="contained"
+                    sx={{
+                      bgcolor: "background.paper",
+                      color: "text.primary",
+                      "&:hover": { bgcolor: "action.hover" },
+                    }}
+                    onClick={() => {
+                      useMailStore.getState().setView("mail");
+                      closeDrawer();
+                    }}
                   >
-                    采纳已选 ({proposal.items.filter((i) => i.selected).length})
+                    返回收件箱
                   </Button>
-                  <Button size="small" variant="contained" onClick={handleAcceptAll}>
-                    全部采纳
+                </Box>
+              ) : (
+                <Stack direction="row" spacing={1} sx={{ pt: 1, justifyContent: "space-between" }}>
+                  <Button size="small" color="inherit" onClick={dismiss}>
+                    忽略放弃
                   </Button>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={handleAcceptSelected}
+                      disabled={!proposal.items.some((i) => i.selected)}
+                    >
+                      采纳已选 ({proposal.items.filter((i) => i.selected).length})
+                    </Button>
+                    <Button size="small" variant="contained" onClick={handleAcceptAll}>
+                      全部采纳
+                    </Button>
+                  </Stack>
                 </Stack>
-              </Stack>
+              )}
             </Stack>
           )}
         </Stack>
       </Box>
+
+      {/* Global Floating Toast */}
+      <Snackbar
+        open={Boolean(successToast)}
+        autoHideDuration={4000}
+        onClose={() => setSuccessToast(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSuccessToast(null)}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%", boxShadow: 4 }}
+        >
+          {successToast}
+        </Alert>
+      </Snackbar>
     </Drawer>
   );
 }
@@ -689,6 +804,7 @@ function ProposalItemCard({
   }
 
   if (item.kind === "split_change") {
+    const isImportant = item.targetSplit === "important";
     return (
       <Card variant="outlined" sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
@@ -699,14 +815,29 @@ function ProposalItemCard({
               onChange={onToggle}
               sx={{ p: 0.5, mt: 0.2 }}
             />
-            <Box sx={{ flex: 1 }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
-                <LabelIcon fontSize="small" color="action" />
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  调整为「{item.targetSplit === "important" ? "重要" : "其它"}」
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: "center", mb: 0.5, flexWrap: "wrap", gap: 0.5 }}
+              >
+                <LabelIcon fontSize="small" color={isImportant ? "primary" : "action"} />
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, flex: 1, minWidth: 120 }}
+                  noWrap
+                  title={item.subject}
+                >
+                  {item.subject || "邮件分箱调整"}
                 </Typography>
+                <Chip
+                  size="small"
+                  label={`调整为「${isImportant ? "重要" : "其它"}」`}
+                  color={isImportant ? "primary" : "default"}
+                  variant={isImportant ? "filled" : "outlined"}
+                />
               </Stack>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                 {item.reason}
               </Typography>
             </Box>

@@ -4,6 +4,30 @@
 
 ---
 
+## [0.2.0] - 2026-08-17
+
+### 🚀 智能体架构升级与生态赋能：Pi Agent · MCP 协议 · 黑曜石碳暗色系统
+
+#### 智能体核心引擎升级 (Pi Agent Architecture)
+- **智能循环与流式思考 (Thinking Stream)**：全面引入 Pi Agent 架构，深度思考模型的 reasoning tokens 实时直显并与正文平滑分离渲染，支持浮动助手卡片与全屏推演弹窗。
+- **上下文自动压缩与持久化**：超长对话上下文智能 Compaction 摘要，基于 SQLite 的 Agent 会话与状态持久化还原。
+- **统一副驾调度**：收件箱读信胶囊、写信润色、会议抽历、批量智能分箱全面统一收敛至 Agent 核心调度流。
+
+#### 技能生态与 MCP 协议扩展 (Skills & Model Context Protocol)
+- **可视化技能管理器 (Skills Tab)**：内置会议抽取、发票报销、分箱整理、每日简报等多项智能技能，支持图形化查看、自定义技能创建与动态热插拔。
+- **内置 MCP Mail Server**：实现标准 Model Context Protocol (JSON-RPC 2.0)，支持工具注册、邮件全文检索与智能提案落地，向外部生态智能体开放邮件能力。
+
+#### 深度推理与高级模型控制
+- **推理强度调节 (Reasoning Effort)**：支持配置 DeepSeek / OpenAI 思维链模型推理强度（Low / Medium / High），精准平衡分析深度与响应速度。
+- **长文本与超时可调**：新增 Max Tokens（最高支持 128K）与单次超时限制（最高支持 600s）细粒度调节。
+- **自定义语音服务配置**：支持自定义 Whisper STT 听写端点与 TTS 朗读模型，集成连通性一键实时测试。
+
+#### 视觉设计与暗黑模式重构 (Obsidian Carbon Dark Mode)
+- **黑曜石碳暗色调**：重塑深色模式材质层级与文字对比度，适配富文本邮件模版色彩自适应反转，消除高亮 Chip 刺眼/低对比问题。
+- **精致 UI 动效**：重塑 Lumen Blue 强调色体系、现代平滑滚动条样式与 Markdown 原生格式渲染器。
+
+---
+
 ## [0.1.0] - 2026-08-16
 
 ### 🎉 首个公开版本：Desktop MVP (Spark-like AI Email Client)

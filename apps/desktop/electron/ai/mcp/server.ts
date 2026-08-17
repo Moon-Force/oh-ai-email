@@ -87,7 +87,7 @@ export const MAIL_MCP_TOOLS: McpToolDefinition[] = [
 export class MailMcpServer {
   private serverInfo = {
     name: "oh-ai-email-mcp",
-    version: "0.1.0",
+    version: "0.2.0",
   };
 
   /**

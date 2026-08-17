@@ -1,16 +1,51 @@
 import { getCloudApiKey, loadAiSettings, type AiMode } from "./settings";
 import { redactSensitiveData, restoreRedactedData } from "./clean";
 
-export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+export type ToolDefinition = {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: "object";
+      properties: Record<string, unknown>;
+      required?: string[];
+    };
+  };
+};
+
+export type ToolCall = {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+};
+
+export type ChatMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | null;
+  name?: string;
+  tool_call_id?: string;
+  tool_calls?: ToolCall[];
+};
 
 export type AiErrorCode =
   "NO_KEY" | "OLLAMA_DOWN" | "TIMEOUT" | "ABORTED" | "HTTP" | "EMPTY" | "NETWORK" | "CONFIG";
 
 export type AiResult =
-  | { ok: true; text: string; reasoningContent?: string; mode: AiMode }
+  | {
+      ok: true;
+      text: string;
+      reasoningContent?: string;
+      toolCalls?: ToolCall[];
+      finishReason?: string;
+      mode: AiMode;
+    }
   | { ok: false; code: AiErrorCode; error: string };
 
-const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_TIMEOUT_MS = 120_000;
 
 function withTimeout(ms: number): AbortSignal {
   return AbortSignal.timeout(ms);
@@ -40,13 +75,19 @@ export async function chatComplete(
     timeoutMs?: number;
     requestId?: string;
     onChunk?: StreamChunkCallback;
+    tools?: ToolDefinition[];
+    autoContinue?: boolean;
+    maxAutoContinues?: number;
   }
 ): Promise<AiResult> {
   const settings = loadAiSettings();
   const mode = opts?.mode ?? settings.mode;
-  const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs = opts?.timeoutMs ?? (settings.timeoutSeconds ? settings.timeoutSeconds * 1000 : DEFAULT_TIMEOUT_MS);
   const requestId = opts?.requestId;
   const onChunk = opts?.onChunk;
+  const tools = opts?.tools;
+  const autoContinue = opts?.autoContinue ?? true;
+  const maxAutoContinues = opts?.maxAutoContinues ?? 3;
 
   const controller = new AbortController();
   if (requestId) {
@@ -73,7 +114,8 @@ export async function chatComplete(
         settings.ollamaModel,
         combinedSignal,
         controller.signal,
-        onChunk
+        onChunk,
+        tools
       );
     }
     const key = getCloudApiKey();
@@ -89,13 +131,14 @@ export async function chatComplete(
     const combinedReplacements: Record<string, string> = {};
     if (settings.redactSensitiveData) {
       outgoingMessages = messages.map((m) => {
+        if (!m.content) return m;
         const { text, replacements } = redactSensitiveData(m.content);
         Object.assign(combinedReplacements, replacements);
-        return { role: m.role, content: text };
+        return { ...m, content: text };
       });
     }
 
-    const res = await callOpenAiCompatible(
+    let res = await callOpenAiCompatible(
       outgoingMessages,
       settings.baseUrl,
       key,
@@ -103,8 +146,53 @@ export async function chatComplete(
       combinedSignal,
       controller.signal,
       onChunk,
-      settings.reasoningEffort
+      settings.reasoningEffort,
+      tools,
+      settings.maxTokens
     );
+
+    // Auto-Continue loop for length-truncated completions
+    let continueCount = 0;
+    let accumulatedText = res.ok ? res.text : "";
+    while (
+      res.ok &&
+      autoContinue &&
+      res.finishReason === "length" &&
+      (!res.toolCalls || res.toolCalls.length === 0) &&
+      continueCount < maxAutoContinues &&
+      !controller.signal.aborted
+    ) {
+      continueCount++;
+      const continueMessages: ChatMessage[] = [
+        ...outgoingMessages,
+        { role: "assistant", content: accumulatedText },
+        {
+          role: "user",
+          content: "请直接紧接着上面未完成的内容继续输出，严禁重复前面的任何内容，保持内容格式与上下文连贯。",
+        },
+      ];
+
+      const continueRes = await callOpenAiCompatible(
+        continueMessages,
+        settings.baseUrl,
+        key,
+        settings.model,
+        combinedSignal,
+        controller.signal,
+        onChunk,
+        settings.reasoningEffort,
+        tools,
+        settings.maxTokens
+      );
+
+      if (!continueRes.ok) break;
+
+      accumulatedText += continueRes.text;
+      res = {
+        ...continueRes,
+        text: accumulatedText,
+      };
+    }
 
     if (res.ok && settings.redactSensitiveData && Object.keys(combinedReplacements).length > 0) {
       return {
@@ -118,7 +206,8 @@ export async function chatComplete(
       return { ok: false, code: "ABORTED", error: "已取消 AI 请求" };
     }
     if (timeoutSignal.aborted || isTimeoutError(e)) {
-      return { ok: false, code: "TIMEOUT", error: "AI 请求超时（60s），请稍后重试" };
+      const timeoutSec = Math.round(timeoutMs / 1000);
+      return { ok: false, code: "TIMEOUT", error: `AI 请求超时（${timeoutSec}s），请稍后重试` };
     }
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, code: "NETWORK", error: msg };
@@ -143,7 +232,9 @@ async function callOpenAiCompatible(
   signal: AbortSignal,
   userAbortSignal?: AbortSignal,
   onChunk?: StreamChunkCallback,
-  reasoningEffort: "low" | "medium" | "high" = "medium"
+  reasoningEffort: "low" | "medium" | "high" = "medium",
+  tools?: ToolDefinition[],
+  maxTokens = 32768
 ): Promise<AiResult> {
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
   const isStreaming = Boolean(onChunk);
@@ -153,10 +244,16 @@ async function callOpenAiCompatible(
       model,
       messages,
       temperature: 0.4,
+      max_tokens: maxTokens,
+      max_completion_tokens: maxTokens,
       stream: isStreaming,
     };
     if (reasoningEffort) {
       payloadBody.reasoning_effort = reasoningEffort;
+    }
+    if (tools && tools.length > 0) {
+      payloadBody.tools = tools;
+      payloadBody.tool_choice = "auto";
     }
 
     res = await fetch(url, {
@@ -191,6 +288,11 @@ async function callOpenAiCompatible(
   if (isStreaming && res.body) {
     let fullText = "";
     let fullReasoning = "";
+    let finishReason: string | undefined;
+    const toolCallsAccumulator = new Map<
+      number,
+      { id: string; name: string; arguments: string }
+    >();
     const reader = res.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
@@ -212,13 +314,25 @@ async function callOpenAiCompatible(
           try {
             const parsed = JSON.parse(jsonStr) as {
               choices?: Array<{
+                finish_reason?: string;
                 delta?: {
                   content?: string;
                   reasoning_content?: string;
                   reasoning?: string;
+                  tool_calls?: Array<{
+                    index?: number;
+                    id?: string;
+                    function?: {
+                      name?: string;
+                      arguments?: string;
+                    };
+                  }>;
                 };
               }>;
             };
+            if (parsed.choices?.[0]?.finish_reason) {
+              finishReason = parsed.choices[0].finish_reason;
+            }
             const delta = parsed.choices?.[0]?.delta;
             if (!delta) continue;
 
@@ -233,6 +347,33 @@ async function callOpenAiCompatible(
               fullText += contentChunk;
               onChunk?.({ contentChunk });
             }
+            if (delta.tool_calls) {
+              for (const tc of delta.tool_calls) {
+                const idx = tc.index ?? 0;
+                let existing = toolCallsAccumulator.get(idx);
+                if (!existing) {
+                  existing = {
+                    id: tc.id || `call_${idx}_${Date.now()}`,
+                    name: "",
+                    arguments: "",
+                  };
+                  toolCallsAccumulator.set(idx, existing);
+                }
+                if (tc.id) existing.id = tc.id;
+                if (tc.function?.name) {
+                  if (!existing.name) {
+                    existing.name = tc.function.name;
+                  } else if (existing.name === tc.function.name) {
+                    // Repeated full name chunk, do nothing
+                  } else if (tc.function.name.startsWith(existing.name)) {
+                    existing.name = tc.function.name;
+                  } else if (!existing.name.endsWith(tc.function.name)) {
+                    existing.name += tc.function.name;
+                  }
+                }
+                if (tc.function?.arguments) existing.arguments += tc.function.arguments;
+              }
+            }
           } catch {
             // ignore partial json
           }
@@ -246,32 +387,78 @@ async function callOpenAiCompatible(
 
     const text = fullText.trim();
     const reasoningContent = fullReasoning.trim() || undefined;
-    if (!text && !reasoningContent) return { ok: false, code: "EMPTY", error: "模型返回为空" };
+    const streamedToolCalls: ToolCall[] = Array.from(toolCallsAccumulator.values())
+      .filter((tc) => Boolean(tc.name))
+      .map((tc) => ({
+        id: tc.id,
+        type: "function",
+        function: {
+          name: tc.name,
+          arguments: tc.arguments,
+        },
+      }));
+
+    if (!text && !reasoningContent && streamedToolCalls.length === 0) {
+      return { ok: false, code: "EMPTY", error: "模型返回为空" };
+    }
     return {
       ok: true,
-      text: text || (reasoningContent ? "已完成思考分析。" : ""),
+      text: text || (streamedToolCalls.length > 0 ? "" : reasoningContent ? "已完成思考分析。" : ""),
       reasoningContent,
+      toolCalls: streamedToolCalls.length > 0 ? streamedToolCalls : undefined,
+      finishReason,
       mode: "cloud",
     };
   }
 
   const data = (await res.json()) as {
     choices?: {
+      finish_reason?: string;
       message?: {
         content?: string;
         reasoning_content?: string;
         reasoning?: string;
+        tool_calls?: Array<{
+          id?: string;
+          type?: string;
+          function?: {
+            name?: string;
+            arguments?: string | Record<string, unknown>;
+          };
+        }>;
       };
     }[];
   };
   const msgObj = data.choices?.[0]?.message;
+  const finishReason = data.choices?.[0]?.finish_reason;
   const text = msgObj?.content?.trim() ?? "";
   const reasoningContent = (msgObj?.reasoning_content || msgObj?.reasoning)?.trim() || undefined;
-  if (!text && !reasoningContent) return { ok: false, code: "EMPTY", error: "模型返回为空" };
+  const rawToolCalls = msgObj?.tool_calls;
+  const parsedToolCalls: ToolCall[] = Array.isArray(rawToolCalls)
+    ? rawToolCalls
+        .filter((tc) => Boolean(tc.function?.name))
+        .map((tc) => ({
+          id: tc.id || `call_${Math.random().toString(36).slice(2, 7)}`,
+          type: "function",
+          function: {
+            name: tc.function?.name || "",
+            arguments:
+              typeof tc.function?.arguments === "string"
+                ? tc.function.arguments
+                : JSON.stringify(tc.function?.arguments || {}),
+          },
+        }))
+    : [];
+
+  if (!text && !reasoningContent && parsedToolCalls.length === 0) {
+    return { ok: false, code: "EMPTY", error: "模型返回为空" };
+  }
   return {
     ok: true,
-    text: text || (reasoningContent ? "已完成思考分析。" : ""),
+    text: text || (parsedToolCalls.length > 0 ? "" : reasoningContent ? "已完成思考分析。" : ""),
     reasoningContent,
+    toolCalls: parsedToolCalls.length > 0 ? parsedToolCalls : undefined,
+    finishReason,
     mode: "cloud",
   };
 }
@@ -282,22 +469,28 @@ async function callOllama(
   model: string,
   signal: AbortSignal,
   userAbortSignal?: AbortSignal,
-  onChunk?: StreamChunkCallback
+  onChunk?: StreamChunkCallback,
+  tools?: ToolDefinition[]
 ): Promise<AiResult> {
   const base = host.replace(/\/+$/, "");
   const url = `${base}/api/chat`;
   const isStreaming = Boolean(onChunk);
   let res: Response;
   try {
+    const bodyPayload: Record<string, unknown> = {
+      model,
+      messages,
+      stream: isStreaming,
+      options: { temperature: 0.4 },
+    };
+    if (tools && tools.length > 0) {
+      bodyPayload.tools = tools;
+    }
+
     res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: isStreaming,
-        options: { temperature: 0.4 },
-      }),
+      body: JSON.stringify(bodyPayload),
       signal,
     });
   } catch (e) {
@@ -326,6 +519,7 @@ async function callOllama(
   if (isStreaming && res.body) {
     let fullText = "";
     let fullReasoning = "";
+    const toolCallsAccumulator: ToolCall[] = [];
     const reader = res.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
@@ -346,6 +540,12 @@ async function callOllama(
               message?: {
                 content?: string;
                 reasoning_content?: string;
+                tool_calls?: Array<{
+                  function?: {
+                    name?: string;
+                    arguments?: string | Record<string, unknown>;
+                  };
+                }>;
               };
             };
             const msg = parsed.message;
@@ -357,6 +557,23 @@ async function callOllama(
             if (msg.content) {
               fullText += msg.content;
               onChunk?.({ contentChunk: msg.content });
+            }
+            if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+              for (const tc of msg.tool_calls) {
+                if (tc.function?.name) {
+                  toolCallsAccumulator.push({
+                    id: `ollama_call_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                    type: "function",
+                    function: {
+                      name: tc.function.name,
+                      arguments:
+                        typeof tc.function.arguments === "string"
+                          ? tc.function.arguments
+                          : JSON.stringify(tc.function.arguments || {}),
+                    },
+                  });
+                }
+              }
             }
           } catch {
             // ignore
@@ -371,16 +588,53 @@ async function callOllama(
 
     const text = fullText.trim();
     const reasoningContent = fullReasoning.trim() || undefined;
-    if (!text && !reasoningContent)
+    if (!text && !reasoningContent && toolCallsAccumulator.length === 0)
       return { ok: false, code: "EMPTY", error: "Ollama 返回为空（请检查模型名是否已 pull）" };
-    return { ok: true, text, reasoningContent, mode: "local" };
+    return {
+      ok: true,
+      text,
+      reasoningContent,
+      toolCalls: toolCallsAccumulator.length > 0 ? toolCallsAccumulator : undefined,
+      mode: "local",
+    };
   }
 
-  const data = (await res.json()) as { message?: { content?: string } };
+  const data = (await res.json()) as {
+    message?: {
+      content?: string;
+      tool_calls?: Array<{
+        function?: {
+          name?: string;
+          arguments?: string | Record<string, unknown>;
+        };
+      }>;
+    };
+  };
   const text = data.message?.content?.trim() ?? "";
-  if (!text)
+  const ollamaToolCalls: ToolCall[] = Array.isArray(data.message?.tool_calls)
+    ? data.message.tool_calls
+        .filter((tc) => Boolean(tc.function?.name))
+        .map((tc) => ({
+          id: `ollama_call_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          type: "function",
+          function: {
+            name: tc.function?.name || "",
+            arguments:
+              typeof tc.function?.arguments === "string"
+                ? tc.function.arguments
+                : JSON.stringify(tc.function?.arguments || {}),
+          },
+        }))
+    : [];
+
+  if (!text && ollamaToolCalls.length === 0)
     return { ok: false, code: "EMPTY", error: "Ollama 返回为空（请检查模型名是否已 pull）" };
-  return { ok: true, text, mode: "local" };
+  return {
+    ok: true,
+    text,
+    toolCalls: ollamaToolCalls.length > 0 ? ollamaToolCalls : undefined,
+    mode: "local",
+  };
 }
 
 export async function probeOllama(): Promise<

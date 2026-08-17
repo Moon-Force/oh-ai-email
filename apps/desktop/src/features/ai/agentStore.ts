@@ -41,6 +41,8 @@ export interface AgentStoreState {
   closeDrawer: () => void;
   setAgentType: (type: AgentType) => void;
   setPrompt: (p: string) => void;
+  setContext: (ctx: Record<string, unknown>) => void;
+  clearContext: () => void;
   loadSkills: () => Promise<void>;
   selectSkill: (skillId: string) => void;
   runWorkflow: (
@@ -86,11 +88,36 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
   selectedSkillId: "meeting_extractor",
 
   openDrawer: (agentType, context, prompt) => {
+    let resolvedContext = context;
+    if (!resolvedContext || Object.keys(resolvedContext).length === 0) {
+      // Automatically bind current active message if present in MailStore
+      try {
+        const mailState = useMailStore.getState();
+        const currentMsg = mailState.selectedId
+          ? mailState.messages.find((m) => m.id === mailState.selectedId)
+          : null;
+        if (currentMsg) {
+          resolvedContext = {
+            messageId: currentMsg.id,
+            subject: currentMsg.subject,
+            from: currentMsg.from,
+            fromName: currentMsg.fromName,
+            body: currentMsg.snippet || currentMsg.subject,
+            date: currentMsg.date,
+            dateMs: currentMsg.dateMs,
+            split: currentMsg.split,
+          };
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     set((s) => ({
       open: true,
       agentType: agentType ?? s.agentType,
       selectedSkillId: agentType ?? s.selectedSkillId,
-      context: context ?? s.context,
+      context: resolvedContext ?? s.context,
       prompt: prompt !== undefined ? prompt : s.prompt,
     }));
     get().loadSkills();
@@ -106,6 +133,14 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
 
   setPrompt: (prompt) => {
     set({ prompt });
+  },
+
+  setContext: (context) => {
+    set({ context });
+  },
+
+  clearContext: () => {
+    set({ context: {} });
   },
 
   loadSkills: async () => {

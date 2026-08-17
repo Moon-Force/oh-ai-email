@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  executeAgentTool,
   generateIcsContent,
+  normalizeToolName,
+  parseProposalItemsFromOutput,
   toolExtractCommitments,
   toolExtractMeetingDetails,
   toolExtractTriageSuggestions,
   toolSearchMessages,
 } from "./tools";
 import { abortAgentWorkflow, runAgentWorkflow } from "./engine";
-import type { AgentStreamEvent } from "./types";
+import type { AgentProposalSplitItem, AgentStreamEvent } from "./types";
 import type { MessageRecord } from "../../mail/types";
 
 describe("Agent Tools", () => {
@@ -52,6 +55,18 @@ describe("Agent Tools", () => {
 
     const none = toolSearchMessages("nonexistent term xyz", undefined, sampleMessages);
     expect(none).toHaveLength(0);
+  });
+
+  it("normalizeToolName correctly cleans duplicated, prefixed or dirty tool names", () => {
+    expect(normalizeToolName("get_recent_messagesget_recent_messages")).toBe("get_recent_messages");
+    expect(normalizeToolName("functions.get_recent_messages")).toBe("get_recent_messages");
+    expect(normalizeToolName("search_messagessearch_messages")).toBe("search_messages");
+    expect(normalizeToolName("  get_message_context  ")).toBe("get_message_context");
+  });
+
+  it("executeAgentTool handles duplicated tool names gracefully", async () => {
+    const res = await executeAgentTool("get_recent_messagesget_recent_messages", { limit: 5 });
+    expect(res.success).toBe(true);
   });
 
   it("generateIcsContent formats valid RFC 5545 iCalendar content", () => {
@@ -257,5 +272,76 @@ describe("Agent Workflow Engine", () => {
     if (errorEvent && errorEvent.type === "error") {
       expect(errorEvent.code).toBe("ABORTED");
     }
+  });
+
+  it("runs batch_triage workflow and emits split proposals", async () => {
+    const events: AgentStreamEvent[] = [];
+    const proposal = await runAgentWorkflow({
+      agentType: "batch_triage",
+      context: {
+        subject: "紧急生产故障排查",
+        from: "dev@company.com",
+        body: "请立即处理生产故障告警",
+      },
+      onEvent: (evt) => events.push(evt),
+    });
+
+    expect(proposal.items.length).toBeGreaterThan(0);
+    expect(proposal.items[0].kind).toBe("split_change");
+  });
+
+  it("parseProposalItemsFromOutput extracts LLM split proposals and overrides pre-populated items", () => {
+    const mockExisting = [
+      {
+        id: "prop_1",
+        kind: "split_change" as const,
+        messageId: "msg_101",
+        subject: "Re: 【超期提醒】交货 2 单已超期",
+        targetSplit: "important" as const,
+        reason: "默认规则原因",
+        selected: true,
+      },
+      {
+        id: "prop_2",
+        kind: "split_change" as const,
+        messageId: "msg_102",
+        subject: "你好",
+        targetSplit: "important" as const,
+        reason: "默认规则原因",
+        selected: true,
+      },
+    ];
+
+    const llmReport = `
+根据分析，以下是分箱建议：
+\`\`\`json
+{
+  "split_change": [
+    {
+      "message_id": "msg_101",
+      "subject": "Re: 【超期提醒】交货 2 单已超期",
+      "new_split": "important",
+      "reason": "涉及紧急订单超期处理"
+    },
+    {
+      "message_id": "msg_102",
+      "subject": "你好",
+      "new_split": "other",
+      "reason": "纯问候无实质业务内容"
+    }
+  ]
+}
+\`\`\`
+`;
+
+    const parsed = parseProposalItemsFromOutput(llmReport, mockExisting);
+    expect(parsed).toHaveLength(2);
+    const item1 = parsed[0] as AgentProposalSplitItem;
+    const item2 = parsed[1] as AgentProposalSplitItem;
+    expect(item1.targetSplit).toBe("important");
+    expect(item1.reason).toBe("涉及紧急订单超期处理");
+
+    expect(item2.targetSplit).toBe("other");
+    expect(item2.reason).toBe("纯问候无实质业务内容");
   });
 });

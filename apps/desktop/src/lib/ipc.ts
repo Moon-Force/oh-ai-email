@@ -216,6 +216,8 @@ export type AiSettingsDto = {
   redactSensitiveData: boolean;
   hasCloudApiKey: boolean;
   reasoningEffort: "low" | "medium" | "high";
+  maxTokens?: number;
+  timeoutSeconds?: number;
   sttService: "browser" | "custom";
   sttBaseUrl: string;
   sttModel: string;
@@ -510,8 +512,8 @@ export async function updaterCheck(): Promise<UpdateCheckResultDto> {
   if (!api?.updaterCheck) {
     return {
       updateAvailable: false,
-      currentVersion: "0.1.0",
-      latestVersion: "0.1.0",
+      currentVersion: "0.2.0",
+      latestVersion: "0.2.0",
       releaseNotes: "当前为测试/开发环境",
     };
   }

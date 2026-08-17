@@ -25,6 +25,11 @@ export type AiSettingsRecord = {
   /** Reasoning effort for deep thinking models */
   reasoningEffort: ReasoningEffort;
 
+  /** Maximum output completion tokens */
+  maxTokens: number;
+  /** Request timeout in seconds */
+  timeoutSeconds: number;
+
   /** Voice STT (Speech-to-Text) configuration */
   sttService: "browser" | "custom";
   sttBaseUrl: string;
@@ -52,6 +57,8 @@ const DEFAULTS: AiSettingsRecord = {
   redactSensitiveData: false,
 
   reasoningEffort: "medium",
+  maxTokens: 32768,
+  timeoutSeconds: 300,
 
   sttService: "custom",
   sttBaseUrl: "https://api.openai.com/v1",

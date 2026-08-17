@@ -24,6 +24,8 @@ type AiSettingsState = {
 
   /** Reasoning effort */
   reasoningEffort: "low" | "medium" | "high";
+  maxTokens: number;
+  timeoutSeconds: number;
 
   /** Voice STT (Speech-to-Text) configuration */
   sttService: "browser" | "custom";
@@ -54,6 +56,8 @@ type AiSettingsState = {
   setApiKeyDraft: (v: string) => void;
   setCloudPrivacyAck: (v: boolean) => void;
   setReasoningEffort: (effort: "low" | "medium" | "high") => void;
+  setMaxTokens: (tokens: number) => void;
+  setTimeoutSeconds: (sec: number) => void;
 
   setSttService: (v: "browser" | "custom") => void;
   setSttBaseUrl: (v: string) => void;
@@ -89,6 +93,8 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   apiKeyDraft: "",
 
   reasoningEffort: "medium",
+  maxTokens: 32768,
+  timeoutSeconds: 300,
 
   sttService: "custom",
   sttBaseUrl: "https://api.openai.com/v1",
@@ -117,6 +123,8 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   setApiKeyDraft: (apiKeyDraft) => set({ apiKeyDraft }),
   setCloudPrivacyAck: (cloudPrivacyAck) => set({ cloudPrivacyAck }),
   setReasoningEffort: (reasoningEffort) => set({ reasoningEffort }),
+  setMaxTokens: (maxTokens) => set({ maxTokens }),
+  setTimeoutSeconds: (timeoutSeconds) => set({ timeoutSeconds }),
 
   setSttService: (sttService) => set({ sttService }),
   setSttBaseUrl: (sttBaseUrl) => set({ sttBaseUrl }),
@@ -167,6 +175,8 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       redactSensitiveData: dto.redactSensitiveData,
       hasCloudApiKey: dto.hasCloudApiKey,
       reasoningEffort: dto.reasoningEffort ?? "medium",
+      maxTokens: dto.maxTokens ?? 32768,
+      timeoutSeconds: dto.timeoutSeconds ?? 300,
       sttService: dto.sttService ?? "custom",
       sttBaseUrl: dto.sttBaseUrl ?? "https://api.openai.com/v1",
       sttModel: dto.sttModel ?? "whisper-1",
@@ -206,6 +216,8 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       preferLocalWhenAvailable: s.preferLocalWhenAvailable,
       redactSensitiveData: s.redactSensitiveData,
       reasoningEffort: s.reasoningEffort,
+      maxTokens: s.maxTokens,
+      timeoutSeconds: s.timeoutSeconds,
       sttService: s.sttService,
       sttBaseUrl: s.sttBaseUrl,
       sttModel: s.sttModel,

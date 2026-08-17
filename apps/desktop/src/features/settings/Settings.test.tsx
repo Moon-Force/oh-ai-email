@@ -52,8 +52,8 @@ vi.mock("../../lib/ipc", () => ({
   prefsSetAutolaunch: vi.fn(async (enabled: boolean) => enabled),
   updaterCheck: vi.fn(async () => ({
     updateAvailable: false,
-    currentVersion: "0.1.0",
-    latestVersion: "0.1.0",
+    currentVersion: "0.2.0",
+    latestVersion: "0.2.0",
     releaseNotes: "无新版本",
   })),
 }));

@@ -15,7 +15,7 @@ vi.mock("electron", () => {
   return {
     app: {
       isPackaged: false,
-      getVersion: vi.fn(() => "0.1.0"),
+      getVersion: vi.fn(() => "0.2.0"),
       getPath: vi.fn((name: string) => `/mock/path/${name}`),
       getName: vi.fn(() => "oh-ai-email"),
       on: vi.fn(),

@@ -12,9 +12,9 @@ export interface UpdateCheckResult {
 
 export function getCurrentAppVersion(): string {
   try {
-    return app.getVersion() || "0.1.0";
+    return app.getVersion() || "0.2.0";
   } catch {
-    return "0.1.0";
+    return "0.2.0";
   }
 }
 

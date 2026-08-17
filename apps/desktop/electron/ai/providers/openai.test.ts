@@ -24,6 +24,8 @@ describe("OpenAI, DeepSeek & MiMo Provider Functions", () => {
     preferLocalWhenAvailable: false,
     redactSensitiveData: false,
     reasoningEffort: "medium",
+    maxTokens: 32768,
+    timeoutSeconds: 300,
     sttService: "custom",
     sttBaseUrl: "https://api.openai.com/v1",
     sttModel: "whisper-1",
