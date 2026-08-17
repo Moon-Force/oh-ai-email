@@ -86,8 +86,20 @@ export function startSpeechRecognition(
   if (useCloudStt) {
     let mediaStream: MediaStream | null = null;
     let mediaRecorder: MediaRecorder | null = null;
+    let wavRecorder: { stop: () => void } | null = null;
     const audioChunks: Blob[] = [];
     let isAborted = false;
+    let fallbackCleanup: (() => void) | null = null;
+    let recordStartMs = 0;
+    let hasData = false;
+    let pendingStop = false;
+
+    function cleanupMediaStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((t) => t.stop());
+        mediaStream = null;
+      }
+    }
 
     navigator.mediaDevices
       .getUserMedia({ audio: true })
@@ -97,33 +109,139 @@ export function startSpeechRecognition(
           return;
         }
         mediaStream = stream;
+        const effectiveSttBase = settings.sttBaseUrl || settings.baseUrl || "";
+        const effectiveTtsBase = settings.ttsBaseUrl || settings.baseUrl || "";
+        const isMimoStt =
+          (effectiveSttBase.includes("mimo") ||
+            effectiveSttBase.includes("xiaomi") ||
+            effectiveTtsBase.includes("mimo") ||
+            effectiveTtsBase.includes("xiaomi") ||
+            settings.baseUrl.includes("mimo") ||
+            settings.baseUrl.includes("xiaomi")) &&
+          settings.sttModel.includes("mimo");
+        if (isMimoStt) {
+          wavRecorder = createMimoWavRecorder(
+            stream,
+            async (wavBlob) => {
+              wavRecorder = null;
+              cleanupMediaStream();
+              if (isAborted && wavBlob.size === 0) {
+                onEnd?.();
+                return;
+              }
+              if (wavBlob.size < 800) {
+                onError?.("录音过短，请长按 1-2 秒后松开");
+                onEnd?.();
+                return;
+              }
+              const reader = new FileReader();
+              reader.onerror = () => {
+                onError?.("录音读取失败，请重试");
+                onEnd?.();
+              };
+              reader.onloadend = async () => {
+                const base64 = reader.result as string;
+                if (!base64 || base64.length < 100) {
+                  onError?.("录音转码失败，请重试");
+                  onEnd?.();
+                  return;
+                }
+                try {
+                  const res = await aiTranscribeAudio({ audioData: base64, mimeType: "audio/wav" });
+                  if (res.ok && res.text) onResult(res.text, true);
+                  else if (res.ok) onError?.("语音识别返回为空，请重试");
+                  else onError?.(res.error || "语音识别失败");
+                } catch (err) {
+                  onError?.(err instanceof Error ? err.message : "语音识别请求超时或失败");
+                } finally {
+                  onEnd?.();
+                }
+              };
+              reader.readAsDataURL(wavBlob);
+            },
+            (errMsg) => {
+              wavRecorder = null;
+              cleanupMediaStream();
+              onError?.(errMsg);
+              onEnd?.();
+            }
+          );
+          if (wavRecorder) {
+            return;
+          }
+        }
         const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
           ? "audio/webm;codecs=opus"
-          : "audio/webm";
+          : MediaRecorder.isTypeSupported("audio/webm")
+            ? "audio/webm"
+            : "audio/wav";
         mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorder.onerror = () => {
+          cleanupMediaStream();
+          const cleanup = fallbackWebSpeech();
+          fallbackCleanup = cleanup;
+        };
 
         mediaRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) {
             audioChunks.push(e.data);
+            hasData = true;
+          }
+          if (pendingStop && hasData) {
+            pendingStop = false;
+            try {
+              mediaRecorder!.stop();
+            } catch {
+              // ignore
+            }
           }
         };
 
         mediaRecorder.onstop = () => {
-          stream.getTracks().forEach((t) => t.stop());
-          if (isAborted || audioChunks.length === 0) {
+          cleanupMediaStream();
+          const elapsedMs = recordStartMs ? Date.now() - recordStartMs : 0;
+          if (isAborted && audioChunks.length === 0) {
+            onEnd?.();
+            return;
+          }
+          if (audioChunks.length === 0 || !hasData) {
+            if (elapsedMs < 600) {
+              const sec = (elapsedMs / 1000).toFixed(1);
+              onError?.(`录音过短（${sec}秒，${audioChunks.length}段），请对着麦克风说一句完整的话再点停止`);
+            } else {
+              onError?.("未采到声音，可能是麦克风权限或静音，请重试并说话大声一点");
+            }
             onEnd?.();
             return;
           }
 
-          const blob = new Blob(audioChunks, { type: "audio/webm" });
+          const actualMime = mediaRecorder!.mimeType || "audio/webm";
+          const blob = new Blob(audioChunks, { type: actualMime });
+          if (blob.size < 400 || elapsedMs < 500) {
+            const sec = (elapsedMs / 1000).toFixed(1);
+            onError?.(`录音过短（${sec}秒，${blob.size}字节），请长按录 1-2 秒再松开`);
+            onEnd?.();
+            return;
+          }
           const reader = new FileReader();
+          reader.onerror = () => {
+            onError?.("录音读取失败，请重试");
+            onEnd?.();
+          };
           reader.onloadend = async () => {
             const base64 = reader.result as string;
+            if (!base64 || base64.length < 100) {
+              onError?.("录音转码失败，请重试");
+              onEnd?.();
+              return;
+            }
             try {
-              const res = await aiTranscribeAudio({ audioData: base64, mimeType: "audio/webm" });
+              const res = await aiTranscribeAudio({ audioData: base64, mimeType: actualMime });
               if (res.ok && res.text) {
                 onResult(res.text, true);
-              } else if (!res.ok) {
+              } else if (res.ok) {
+                onError?.("语音识别返回为空，请检查录音是否有声音或 STT 模型是否正确");
+              } else {
                 onError?.(res.error || "语音识别失败，请检查模型与服务配置");
               }
             } catch (err) {
@@ -135,14 +253,55 @@ export function startSpeechRecognition(
           reader.readAsDataURL(blob);
         };
 
-        mediaRecorder.start();
+        recordStartMs = Date.now();
+        mediaRecorder.start(200);
       })
-      .catch((err) => {
-        // If microphone permission denied or MediaRecorder fails, fallback to Web Speech
-        fallbackWebSpeech();
+      .catch(() => {
+        const cleanup = fallbackWebSpeech();
+        fallbackCleanup = cleanup;
       });
 
     return () => {
+      if (fallbackCleanup) {
+        try {
+          fallbackCleanup();
+        } catch {
+          // ignore
+        }
+        fallbackCleanup = null;
+        cleanupMediaStream();
+        onEnd?.();
+        return;
+      }
+      if (wavRecorder) {
+        const r = wavRecorder;
+        wavRecorder = null;
+        try { r.stop(); } catch {}
+        return;
+      }
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        if (!hasData) {
+          pendingStop = true;
+          mediaRecorder.requestData();
+          setTimeout(() => {
+            if (pendingStop) {
+              pendingStop = false;
+              try {
+                mediaRecorder!.stop();
+              } catch {
+                // ignore
+              }
+            }
+          }, 350);
+          return;
+        }
+        try {
+          mediaRecorder!.stop();
+        } catch {
+          // ignore
+        }
+        return;
+      }
       isAborted = true;
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         try {
@@ -151,9 +310,9 @@ export function startSpeechRecognition(
           // ignore
         }
       }
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((t) => t.stop());
-        mediaStream = null;
+      cleanupMediaStream();
+      if (!mediaRecorder && !wavRecorder) {
+        onEnd?.();
       }
     };
   }
@@ -272,6 +431,9 @@ export function speakText(
       .then((res) => {
         if (canceled) return;
         if (res.ok && res.audioData) {
+          const isWav = res.audioData.startsWith("data:audio/wav");
+          const mimeForAudio = isWav ? "audio/wav" : "audio/mpeg";
+          void mimeForAudio;
           audio = new Audio(res.audioData);
           activeAudioElement = audio;
           audio.onended = () => {
@@ -280,20 +442,24 @@ export function speakText(
           };
           audio.onerror = () => {
             if (activeAudioElement === audio) activeAudioElement = null;
-            // Fallback to browser synthesis if audio playback failed
-            fallbackBrowserSpeech();
+            onError?.("云端语音播放失败");
+            onEnd?.();
           };
-          audio.play().catch(() => {
-            fallbackBrowserSpeech();
+          audio.play().catch((e) => {
+            const msg = e instanceof Error ? e.message : String(e);
+            onError?.(`云端音频播放失败：${msg}`);
+            onEnd?.();
           });
         } else {
-          // Cloud synthesis failed, fallback to browser speech synthesis
-          fallbackBrowserSpeech();
+          const err = (res as { error?: string }).error || "云端 TTS 失败：请检查 Base URL / 模型 / Key 是否正确";
+          onError?.(err);
+          onEnd?.();
         }
       })
-      .catch(() => {
+      .catch((e) => {
         if (!canceled) {
-          fallbackBrowserSpeech();
+          onError?.(e instanceof Error ? e.message : "云端 TTS 请求失败");
+          onEnd?.();
         }
       });
 
@@ -354,6 +520,97 @@ export function speakText(
   }
 
   return fallbackBrowserSpeech();
+}
+
+function createMimoWavRecorder(
+  stream: MediaStream,
+  onWavBlob: (blob: Blob) => void,
+  onError: (msg: string) => void
+): { stop: () => void } | null {
+  try {
+    const AudioCtx =
+      (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+        .AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return null;
+    const ctx = new AudioCtx();
+    const src = ctx.createMediaStreamSource(stream);
+    const sampleRate = ctx.sampleRate || 16000;
+    const processor = ctx.createScriptProcessor(4096, 1, 1);
+    const chunks: Float32Array[] = [];
+    let stopped = false;
+    processor.onaudioprocess = (e) => {
+      if (stopped) return;
+      const input = e.inputBuffer.getChannelData(0);
+      chunks.push(new Float32Array(input));
+    };
+    src.connect(processor);
+    processor.connect(ctx.destination);
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      try { processor.disconnect(); } catch {}
+      try { src.disconnect(); } catch {}
+      const total = chunks.reduce((s, c) => s + c.length, 0);
+      if (total < 800) {
+        onError("录音过短，请长按 1-2 秒后松开");
+        try { ctx.close(); } catch {}
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      const merged = new Float32Array(total);
+      let off = 0;
+      for (const c of chunks) { merged.set(c, off); off += c.length; }
+      const wavBlob = encodeWavPcm16(merged, sampleRate);
+      try { ctx.close(); } catch {}
+      stream.getTracks().forEach((t) => t.stop());
+      onWavBlob(wavBlob);
+    };
+    return { stop };
+  } catch {
+    return null;
+  }
+}
+
+function encodeWavPcm16(samples: Float32Array, sampleRate: number): Blob {
+  const targetRate = 16000;
+  let pcm: Float32Array = samples;
+  if (sampleRate !== targetRate) {
+    const ratio = sampleRate / targetRate;
+    const newLen = Math.floor(samples.length / ratio);
+    const resampled = new Float32Array(newLen);
+    for (let i = 0; i < newLen; i++) {
+      const idx = i * ratio;
+      const lo = Math.floor(idx);
+      const hi = Math.min(lo + 1, samples.length - 1);
+      const frac = idx - lo;
+      resampled[i] = samples[lo] * (1 - frac) + samples[hi] * frac;
+    }
+    pcm = resampled;
+  }
+  const buf = new ArrayBuffer(44 + pcm.length * 2);
+  const view = new DataView(buf);
+  const writeStr = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + pcm.length * 2, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, targetRate, true);
+  view.setUint32(28, targetRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, "data");
+  view.setUint32(40, pcm.length * 2, true);
+  let off = 44;
+  for (let i = 0; i < pcm.length; i++) {
+    const s = Math.max(-1, Math.min(1, pcm[i]));
+    view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    off += 2;
+  }
+  return new Blob([view], { type: "audio/wav" });
 }
 
 /**

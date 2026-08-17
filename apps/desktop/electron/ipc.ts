@@ -90,18 +90,26 @@ import { loadAppPrefs, saveAppPrefs, type AppPrefs } from "./prefs";
 import {
   fetchAccountBalance,
   fetchRemoteModels,
+  fetchSttModels,
+  fetchTtsModels,
   probeCloud,
   probeOllama,
   synthesizeSpeechMiMo,
   transcribeAudioOpenAi,
 } from "./ai/complete";
 import {
+  deleteCloudProfile,
+  getEffectiveCloudApiKey,
   loadAiSettings,
   publicAiSettings,
   saveAiSettings,
+  saveCloudProfile,
+  setActiveCloudProfileId,
   setCloudApiKey,
+  setProfileApiKey,
   setSttApiKey,
   setTtsApiKey,
+  type AiCloudProfile,
   type AiMode,
   type AiSettingsRecord,
 } from "./ai/settings";
@@ -516,6 +524,8 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle("ai:probeOllama", () => probeOllama());
   ipcMain.handle("ai:probeCloud", () => probeCloud());
   ipcMain.handle("ai:listModels", () => fetchRemoteModels(loadAiSettings()));
+  ipcMain.handle("ai:listSttModels", () => fetchSttModels(loadAiSettings()));
+  ipcMain.handle("ai:listTtsModels", () => fetchTtsModels(loadAiSettings()));
   ipcMain.handle("ai:queryBalance", () => fetchAccountBalance(loadAiSettings()));
   ipcMain.handle("ai:synthesizeSpeech", (_e, payload: { text: string; voice?: string }) =>
     synthesizeSpeechMiMo(payload.text, payload.voice, loadAiSettings())
@@ -523,6 +533,38 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle("ai:transcribeAudio", (_e, payload: { audioData: string; mimeType?: string }) =>
     transcribeAudioOpenAi(payload.audioData, payload.mimeType || "audio/webm", loadAiSettings())
   );
+
+  ipcMain.handle(
+    "ai:saveProfile",
+    (
+      _e,
+      payload: {
+        id?: string;
+        name: string;
+        baseUrl: string;
+        model: string;
+        apiKey?: string;
+        reasoningEffort?: "low" | "medium" | "high";
+        maxTokens?: number;
+        timeoutSeconds?: number;
+      }
+    ) => {
+      const saved = saveCloudProfile(payload);
+      return { profile: saved, settings: publicAiSettings() };
+    }
+  );
+  ipcMain.handle("ai:deleteProfile", (_e, id: string) => {
+    const ok = deleteCloudProfile(id);
+    return { ok, settings: publicAiSettings() };
+  });
+  ipcMain.handle("ai:setActiveProfile", (_e, id: string | null) => {
+    const settings = setActiveCloudProfileId(id);
+    return { ...settings, ...publicAiSettings() };
+  });
+  ipcMain.handle("ai:setProfileApiKey", (_e, id: string, apiKey: string) => {
+    setProfileApiKey(id, apiKey);
+    return publicAiSettings();
+  });
 
   ipcMain.handle("ai:abort", (_e, requestId: string) => abortAiRequest(requestId));
 

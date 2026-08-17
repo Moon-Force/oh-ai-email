@@ -38,11 +38,18 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import MicIcon from "@mui/icons-material/Mic";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { useAiSettings } from "../ai/settingsStore";
 import { useAiAuditStore } from "../ai/auditStore";
 import { SYNC_INTERVAL_OPTIONS, usePrefsStore } from "./prefsStore";
 import {
   aiListModels,
+  aiListSttModels,
+  aiListTtsModels,
   aiProbeCloud,
   aiProbeOllama,
   aiQueryBalance,
@@ -89,6 +96,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     apiKeyDraft,
     setApiKeyDraft,
     hasCloudApiKey,
+    cloudProfiles,
+    activeCloudProfileId,
     cloudPrivacyAck,
     setCloudPrivacyAck,
     reasoningEffort,
@@ -124,6 +133,9 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     learnUserTone,
     hydrate,
     save,
+    saveProfile,
+    deleteProfile,
+    setActiveProfile,
   } = useAiSettings();
   const syncIntervalMin = usePrefsStore((s) => s.syncIntervalMin);
   const setSyncIntervalMin = usePrefsStore((s) => s.setSyncIntervalMin);
@@ -135,12 +147,23 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
   const [probeMsg, setProbeMsg] = useState<string | null>(null);
   const [fetchingModels, setFetchingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [fetchingSttModels, setFetchingSttModels] = useState(false);
+  const [availableSttModels, setAvailableSttModels] = useState<string[]>([]);
+  const [fetchingTtsModels, setFetchingTtsModels] = useState(false);
+  const [availableTtsModels, setAvailableTtsModels] = useState<string[]>([]);
   const [queryingBalance, setQueryingBalance] = useState(false);
   const [balanceInfo, setBalanceInfo] = useState<AiBalanceResult | null>(null);
   const [testingTts, setTestingTts] = useState(false);
   const [testingStt, setTestingStt] = useState(false);
   const [sttTestResult, setSttTestResult] = useState<string | null>(null);
   const sttStopRef = useState<(() => void) | null>(null);
+  const sttBusyRef = useState<{ busy: boolean }>({ busy: false });
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileEditingId, setProfileEditingId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState("");
+  const [profileBaseUrl, setProfileBaseUrl] = useState("");
+  const [profileModel, setProfileModel] = useState("");
+  const [profileApiKey, setProfileApiKey] = useState("");
   const showToast = useToastStore((s) => s.showToast);
   const auditRecords = useAiAuditStore((s) => s.records);
   const clearAuditRecords = useAiAuditStore((s) => s.clearRecords);
@@ -217,6 +240,54 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
       showToast(e instanceof Error ? e.message : "获取模型失败", "error");
     } finally {
       setFetchingModels(false);
+    }
+  }
+
+  async function onFetchSttModels() {
+    setFetchingSttModels(true);
+    try {
+      const res = await aiListSttModels();
+      if (res.ok) {
+        if (res.models.length > 0) {
+          setAvailableSttModels(res.models);
+          if (!res.models.includes(sttModel)) {
+            setSttModel(res.models[0]);
+          }
+          showToast(`成功获取 ${res.models.length} 个 STT 语音模型`, "success");
+        } else {
+          showToast("未拉取到可用 STT 模型", "error");
+        }
+      } else {
+        showToast(res.error, "error");
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "获取 STT 模型失败", "error");
+    } finally {
+      setFetchingSttModels(false);
+    }
+  }
+
+  async function onFetchTtsModels() {
+    setFetchingTtsModels(true);
+    try {
+      const res = await aiListTtsModels();
+      if (res.ok) {
+        if (res.models.length > 0) {
+          setAvailableTtsModels(res.models);
+          if (!res.models.includes(ttsModel)) {
+            setTtsModel(res.models[0]);
+          }
+          showToast(`成功获取 ${res.models.length} 个 TTS 语音模型`, "success");
+        } else {
+          showToast("未拉取到可用 TTS 模型", "error");
+        }
+      } else {
+        showToast(res.error, "error");
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "获取 TTS 模型失败", "error");
+    } finally {
+      setFetchingTtsModels(false);
     }
   }
 
@@ -538,6 +609,247 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
 
             {mode === "cloud" && (
               <>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1.5, borderRadius: 2, bgcolor: "background.paper" }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}
+                  >
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                      <BookmarkIcon color="primary" fontSize="small" />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        云端配置（多配置 · 一键切换）
+                      </Typography>
+                      {activeCloudProfileId && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          icon={<CheckCircleIcon />}
+                          label={
+                            cloudProfiles.find((p) => p.id === activeCloudProfileId)?.name ??
+                            "已启用"
+                          }
+                          sx={{ height: 20, "& .MuiChip-label": { fontSize: "0.68rem" } }}
+                        />
+                      )}
+                    </Stack>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={() => {
+                        setProfileEditingId(null);
+                        setProfileName("");
+                        setProfileBaseUrl(baseUrl);
+                        setProfileModel(model);
+                        setProfileApiKey("");
+                        setProfileDialogOpen(true);
+                      }}
+                    >
+                      新增配置
+                    </Button>
+                  </Stack>
+                  {cloudProfiles.length === 0 ? (
+                    <Alert severity="info" sx={{ py: 0.5 }}>
+                      暂无已保存配置。可点击“新增配置”保存 DeepSeek / 小米 MiMo / OpenAI 等多套 Key 与模型，一键切换无需重复输入。
+                    </Alert>
+                  ) : (
+                    <Stack spacing={1}>
+                      {cloudProfiles.map((p) => {
+                        const active = p.id === activeCloudProfileId;
+                        return (
+                          <Paper
+                            key={p.id}
+                            variant="outlined"
+                            sx={{
+                              p: 1.25,
+                              borderRadius: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              borderColor: active ? "primary.main" : "divider",
+                              bgcolor: active ? "action.hover" : "background.paper",
+                            }}
+                          >
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+                                <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
+                                  {p.name}
+                                </Typography>
+                                {active && (
+                                  <Chip
+                                    size="small"
+                                    color="primary"
+                                    label="当前"
+                                    sx={{ height: 18, fontSize: "0.65rem" }}
+                                  />
+                                )}
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  label={p.hasApiKey ? "已存Key" : "未存Key"}
+                                  color={p.hasApiKey ? "success" : "default"}
+                                  sx={{ height: 18, fontSize: "0.65rem" }}
+                                />
+                              </Stack>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: "block" }}
+                                noWrap
+                              >
+                                {p.baseUrl} · {p.model}
+                              </Typography>
+                            </Box>
+                            <Stack direction="row" spacing={0.5}>
+                              {!active && (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={async () => {
+                                    try {
+                                      await setActiveProfile(p.id);
+                                      showToast(`已切换到「${p.name}」`, "success");
+                                    } catch (e) {
+                                      showToast(e instanceof Error ? e.message : "切换失败", "error");
+                                    }
+                                  }}
+                                >
+                                  启用
+                                </Button>
+                              )}
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<EditIcon fontSize="small" />}
+                                onClick={() => {
+                                  setProfileEditingId(p.id);
+                                  setProfileName(p.name);
+                                  setProfileBaseUrl(p.baseUrl);
+                                  setProfileModel(p.model);
+                                  setProfileApiKey("");
+                                  setProfileDialogOpen(true);
+                                }}
+                              >
+                                编辑
+                              </Button>
+                              <Button
+                                size="small"
+                                color="error"
+                                variant="outlined"
+                                startIcon={<DeleteIcon fontSize="small" />}
+                                onClick={async () => {
+                                  try {
+                                    await deleteProfile(p.id);
+                                    showToast("已删除配置", "success");
+                                  } catch (e) {
+                                    showToast(e instanceof Error ? e.message : "删除失败", "error");
+                                  }
+                                }}
+                              >
+                                删除
+                              </Button>
+                            </Stack>
+                          </Paper>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                    启用后自动将 Base URL / 模型同步到下方输入框；API Key 按配置独立加密保存，切换即生效，无需重复输入。
+                  </Typography>
+                </Paper>
+
+                <Dialog
+                  open={profileDialogOpen}
+                  onClose={() => setProfileDialogOpen(false)}
+                  maxWidth="sm"
+                  fullWidth
+                >
+                  <DialogTitle>{profileEditingId ? "编辑云端配置" : "新增云端配置"}</DialogTitle>
+                  <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <TextField
+                      label="配置名称"
+                      size="small"
+                      fullWidth
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      placeholder="如：DeepSeek 正式 / 小米 MiMo / OpenAI 个人"
+                      autoFocus
+                    />
+                    <TextField
+                      label="Base URL（OpenAI 兼容）"
+                      size="small"
+                      fullWidth
+                      value={profileBaseUrl}
+                      onChange={(e) => setProfileBaseUrl(e.target.value)}
+                      placeholder="https://api.deepseek.com / https://api.xiaomimimo.com/v1"
+                    />
+                    <TextField
+                      label="模型"
+                      size="small"
+                      fullWidth
+                      value={profileModel}
+                      onChange={(e) => setProfileModel(e.target.value)}
+                      placeholder="deepseek-chat / mimo-v2.5 / gpt-4o-mini"
+                    />
+                    <TextField
+                      label={
+                        profileEditingId
+                          ? "API Key（留空则不修改）"
+                          : "API Key"
+                      }
+                      size="small"
+                      fullWidth
+                      type="password"
+                      value={profileApiKey}
+                      onChange={(e) => setProfileApiKey(e.target.value)}
+                      placeholder="sk-…"
+                      autoComplete="off"
+                      helperText="独立按配置加密保存，切换配置自动生效"
+                    />
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={() => setProfileDialogOpen(false)}>取消</Button>
+                    <Button
+                      variant="contained"
+                      onClick={async () => {
+                        const name = profileName.trim();
+                        const bUrl = profileBaseUrl.trim();
+                        const mdl = profileModel.trim();
+                        if (!name || !bUrl || !mdl) {
+                          showToast("名称、Base URL 和模型不能为空", "error");
+                          return;
+                        }
+                        try {
+                          const payload: {
+                            id?: string;
+                            name: string;
+                            baseUrl: string;
+                            model: string;
+                            apiKey?: string;
+                          } = { name, baseUrl: bUrl, model: mdl };
+                          if (profileEditingId) payload.id = profileEditingId;
+                          if (profileApiKey.trim()) payload.apiKey = profileApiKey.trim();
+                          else if (!profileEditingId && !profileApiKey.trim()) {
+                            // allow empty on create but warn
+                          }
+                          await saveProfile(payload);
+                          showToast(profileEditingId ? "配置已更新" : "配置已保存", "success");
+                          setProfileDialogOpen(false);
+                        } catch (e) {
+                          showToast(e instanceof Error ? e.message : "保存失败", "error");
+                        }
+                      }}
+                    >
+                      保存配置
+                    </Button>
+                  </DialogActions>
+                </Dialog>
+
                 <TextField
                   label="Base URL（OpenAI 兼容）"
                   size="small"
@@ -545,7 +857,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   placeholder="https://api.openai.com/v1"
-                  helperText="支持 DeepSeek (https://api.deepseek.com)、小米 MiMo、OpenAI 等"
+                  helperText="支持 DeepSeek (https://api.deepseek.com)、小米 MiMo、OpenAI 等；也可通过上方多配置一键切换"
                 />
                 <TextField
                   label="API Key"
@@ -556,6 +868,11 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   onChange={(e) => setApiKeyDraft(e.target.value)}
                   placeholder={hasCloudApiKey ? "已保存（留空则不修改）" : "sk-…"}
                   autoComplete="off"
+                  helperText={
+                    activeCloudProfileId
+                      ? "当前已启用多配置：上方配置的 Key 优先生效；此处为备用全局 Key"
+                      : undefined
+                  }
                 />
 
                 <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
@@ -927,7 +1244,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     onClick={() => {
                       setSttService("custom");
                       setSttBaseUrl("https://api.xiaomimimo.com/v1");
-                      setSttModel("mimo-asr");
+                      setSttModel("mimo-v2.5-asr");
                     }}
                   >
                     小米 MiMo 语音
@@ -965,14 +1282,43 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                       placeholder="https://api.openai.com/v1"
                       helperText="将自动请求 /audio/transcriptions 接口"
                     />
-                    <TextField
-                      label="STT 模型名称 (Model)"
-                      size="small"
-                      fullWidth
-                      value={sttModel}
-                      onChange={(e) => setSttModel(e.target.value)}
-                      placeholder="whisper-1 / mimo-asr / SenseVoiceSmall"
-                    />
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                      {availableSttModels.length > 0 ? (
+                        <FormControl fullWidth size="small">
+                          <InputLabel id="stt-model-select-label">STT 模型名称 (Model)</InputLabel>
+                          <Select
+                            labelId="stt-model-select-label"
+                            value={sttModel}
+                            label="STT 模型名称 (Model)"
+                            onChange={(e) => setSttModel(e.target.value)}
+                          >
+                            {availableSttModels.map((m) => (
+                              <MenuItem key={m} value={m}>
+                                {m}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      ) : (
+                        <TextField
+                          label="STT 模型名称 (Model)"
+                          size="small"
+                          fullWidth
+                          value={sttModel}
+                          onChange={(e) => setSttModel(e.target.value)}
+                          placeholder="whisper-1 / mimo-v2.5-asr / SenseVoiceSmall"
+                        />
+                      )}
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{ height: 40, whiteSpace: "nowrap" }}
+                        disabled={fetchingSttModels}
+                        onClick={() => void onFetchSttModels()}
+                      >
+                        {fetchingSttModels ? <CircularProgress size={16} /> : "拉取模型"}
+                      </Button>
+                    </Box>
                     <TextField
                       label="STT 专属 API Key（留空则复用通用 AI Key）"
                       size="small"
@@ -992,33 +1338,52 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
 
                 {/* STT Test Box */}
                 <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
-                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                     <Button
                       variant={testingStt ? "contained" : "outlined"}
                       color={testingStt ? "error" : "primary"}
                       size="small"
-                      startIcon={<MicIcon />}
+                      startIcon={testingStt && !sttBusyRef[0].busy ? <MicIcon /> : testingStt ? undefined : <MicIcon />}
+                      disabled={sttBusyRef[0].busy}
                       onClick={() => {
+                        if (sttBusyRef[0].busy) return;
                         if (testingStt) {
-                          if (sttStopRef[0]) {
-                            sttStopRef[0]();
+                          const stop = sttStopRef[0];
+                          if (stop) {
+                            sttBusyRef[0].busy = true;
+                            setSttTestResult("正在上传并识别中，请稍候…");
+                            try { stop(); } catch {}
                             sttStopRef[1](null);
+                            setTimeout(() => {
+                              if (sttBusyRef[0].busy) {
+                                sttBusyRef[0].busy = false;
+                                setTestingStt(false);
+                                setSttTestResult((prev) =>
+                                  prev === "正在上传并识别中，请稍候…" ? "识别超时或无回调，请检查麦克风/模型配置后重试" : prev
+                                );
+                              }
+                            }, 35000);
+                          } else {
+                            setTestingStt(false);
                           }
-                          setTestingStt(false);
                         } else {
                           setTestingStt(true);
                           setSttTestResult("正在聆听录音中，请说话并点击停止…");
                           const stopFn = startSpeechRecognition(
                             (text) => {
+                              sttBusyRef[0].busy = false;
                               setSttTestResult(`识别结果：${text}`);
-                              showToast("语音识别测试成功！", "success", 2000);
+                              showToast("语音识别成功", "success", 2000);
+                              setTestingStt(false);
                             },
                             (err) => {
+                              sttBusyRef[0].busy = false;
                               setSttTestResult(`识别失败：${err}`);
                               showToast(err, "error", 4000);
                               setTestingStt(false);
                             },
                             () => {
+                              sttBusyRef[0].busy = false;
                               setTestingStt(false);
                             }
                           );
@@ -1026,10 +1391,13 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         }
                       }}
                     >
-                      {testingStt ? "停止录音并识别" : "测试录音转写"}
+                      {sttBusyRef[0].busy ? "识别中…" : testingStt ? "停止录音并识别" : "测试录音转写"}
                     </Button>
-                    {testingStt && (
+                    {testingStt && !sttBusyRef[0].busy && (
                       <Chip size="small" label="正在录音…" color="error" variant="outlined" />
+                    )}
+                    {sttBusyRef[0].busy && (
+                      <Chip size="small" label="正在识别（30s超时）…" color="warning" variant="outlined" />
                     )}
                   </Stack>
                   {sttTestResult && (
@@ -1102,7 +1470,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     onClick={() => {
                       setTtsService("custom");
                       setTtsBaseUrl("https://api.xiaomimimo.com/v1");
-                      setTtsModel("mimo-tts");
+                      setTtsModel("mimo-v2.5-tts");
                     }}
                   >
                     小米 MiMo 语音
@@ -1140,15 +1508,33 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                       placeholder="https://api.openai.com/v1"
                       helperText="将自动请求 /audio/speech 接口"
                     />
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <TextField
-                        label="TTS 模型名称 (Model)"
-                        size="small"
-                        sx={{ flex: 2 }}
-                        value={ttsModel}
-                        onChange={(e) => setTtsModel(e.target.value)}
-                        placeholder="tts-1 / mimo-tts / cosyvoice"
-                      />
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                      {availableTtsModels.length > 0 ? (
+                        <FormControl size="small" sx={{ flex: 2 }}>
+                          <InputLabel id="tts-model-select-label">TTS 模型名称 (Model)</InputLabel>
+                          <Select
+                            labelId="tts-model-select-label"
+                            value={ttsModel}
+                            label="TTS 模型名称 (Model)"
+                            onChange={(e) => setTtsModel(e.target.value)}
+                          >
+                            {availableTtsModels.map((m) => (
+                              <MenuItem key={m} value={m}>
+                                {m}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      ) : (
+                        <TextField
+                          label="TTS 模型名称 (Model)"
+                          size="small"
+                          sx={{ flex: 2 }}
+                          value={ttsModel}
+                          onChange={(e) => setTtsModel(e.target.value)}
+                          placeholder="tts-1 / mimo-v2.5-tts / cosyvoice"
+                        />
+                      )}
                       <FormControl size="small" sx={{ flex: 1 }}>
                         <InputLabel id="tts-voice-label">音色 (Voice)</InputLabel>
                         <Select
@@ -1165,6 +1551,15 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                           <MenuItem value="shimmer">Shimmer (清亮温和)</MenuItem>
                         </Select>
                       </FormControl>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{ height: 40, whiteSpace: "nowrap" }}
+                        disabled={fetchingTtsModels}
+                        onClick={() => void onFetchTtsModels()}
+                      >
+                        {fetchingTtsModels ? <CircularProgress size={16} /> : "拉取模型"}
+                      </Button>
                     </Box>
                     <TextField
                       label="TTS 专属 API Key（留空则复用通用 AI Key）"

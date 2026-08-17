@@ -165,46 +165,58 @@ export default function Reader() {
           pb: "52px",
         }}
       >
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{ px: 2, pt: 2, pb: 1.5, alignItems: "flex-start", flexShrink: 0 }}
-        >
-          <Avatar sx={{ bgcolor: "primary.main" }}>{initial}</Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontSize: "1.05rem" }}>
-              {msg.subject}
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-              <Typography variant="caption" color="text.secondary">
-                {msg.fromName} &lt;{msg.from}&gt; · {msg.date}
+        <Box sx={{ px: 2, pt: 2, pb: 1.5, flexShrink: 0 }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+            <Avatar sx={{ bgcolor: "primary.main", flexShrink: 0 }}>{initial}</Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize: "1.05rem",
+                  lineHeight: 1.35,
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                  whiteSpace: "normal",
+                }}
+              >
+                {msg.subject}
               </Typography>
-              {!isSenderInContacts && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<PersonAddAlt1Icon sx={{ fontSize: 13 }} />}
-                  onClick={() =>
-                    openContactCreate({
-                      name: msg.fromName || msg.from.split("@")[0],
-                      email: msg.from,
-                    })
-                  }
-                  sx={{
-                    py: 0,
-                    px: 0.75,
-                    minHeight: 20,
-                    fontSize: "0.68rem",
-                    textTransform: "none",
-                    borderRadius: 1,
-                  }}
-                >
-                  + 加为联系人
-                </Button>
-              )}
-            </Stack>
-          </Box>
-          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexShrink: 0 }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                <Typography variant="caption" color="text.secondary">
+                  {msg.fromName} &lt;{msg.from}&gt; · {msg.date}
+                </Typography>
+                {!isSenderInContacts && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<PersonAddAlt1Icon sx={{ fontSize: 13 }} />}
+                    onClick={() =>
+                      openContactCreate({
+                        name: msg.fromName || msg.from.split("@")[0],
+                        email: msg.from,
+                      })
+                    }
+                    sx={{
+                      py: 0,
+                      px: 0.75,
+                      minHeight: 20,
+                      fontSize: "0.68rem",
+                      textTransform: "none",
+                      borderRadius: 1,
+                    }}
+                  >
+                    + 加为联系人
+                  </Button>
+                )}
+              </Stack>
+            </Box>
+          </Stack>
+          <Stack
+            direction="row"
+            spacing={0.75}
+            useFlexGap
+            sx={{ alignItems: "center", flexWrap: "wrap", mt: 1.25 }}
+          >
             <Tooltip title="将该邮件转为日程安排">
               <Button
                 size="small"
@@ -355,7 +367,7 @@ export default function Reader() {
               归档
             </Button>
           </Stack>
-        </Stack>
+        </Box>
 
         <Divider sx={{ flexShrink: 0 }} />
 

@@ -115,6 +115,10 @@ type Api = {
   mailSaveDraft: (payload: SaveDraftPayload) => Promise<SaveDraftResult>;
   aiGetSettings: () => Promise<AiSettingsDto>;
   aiSaveSettings: (payload: AiSaveSettingsPayload) => Promise<AiSettingsDto>;
+  aiSaveProfile: (payload: AiSaveProfilePayload) => Promise<{ profile: AiCloudProfileDto; settings: AiSettingsDto }>;
+  aiDeleteProfile: (id: string) => Promise<{ ok: boolean; settings: AiSettingsDto }>;
+  aiSetActiveProfile: (id: string | null) => Promise<AiSettingsDto>;
+  aiSetProfileApiKey: (id: string, apiKey: string) => Promise<AiSettingsDto>;
   aiProbeOllama: () => Promise<AiProbeOllamaResult>;
   aiProbeCloud: () => Promise<AiProbeCloudResult>;
   aiAbort: (requestId: string) => Promise<boolean>;
@@ -162,6 +166,8 @@ type Api = {
     callback: (data: unknown) => void
   ) => () => void;
   aiListModels: () => Promise<AiListModelsResult>;
+  aiListSttModels: () => Promise<AiListModelsResult>;
+  aiListTtsModels: () => Promise<AiListModelsResult>;
   aiQueryBalance: () => Promise<AiBalanceResult>;
   aiSynthesizeSpeech: (payload: {
     text: string;
@@ -248,6 +254,19 @@ export type AgentSkillDefinition = {
 
 export type AiModeDto = "cloud" | "local";
 
+export type AiCloudProfileDto = {
+  id: string;
+  name: string;
+  baseUrl: string;
+  model: string;
+  reasoningEffort?: "low" | "medium" | "high";
+  maxTokens?: number;
+  timeoutSeconds?: number;
+  hasApiKey: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type AiSettingsDto = {
   mode: AiModeDto;
   baseUrl: string;
@@ -258,6 +277,7 @@ export type AiSettingsDto = {
   preferLocalWhenAvailable: boolean;
   redactSensitiveData: boolean;
   hasCloudApiKey: boolean;
+  hasEffectiveCloudApiKey?: boolean;
   reasoningEffort: "low" | "medium" | "high";
   maxTokens?: number;
   timeoutSeconds?: number;
@@ -270,6 +290,9 @@ export type AiSettingsDto = {
   ttsVoice: string;
   hasSttApiKey?: boolean;
   hasTtsApiKey?: boolean;
+  cloudProfiles: AiCloudProfileDto[];
+  cloudProfilesWithKey?: AiCloudProfileDto[];
+  activeCloudProfileId: string | null;
 };
 
 export type AiSaveSettingsPayload = Partial<
@@ -616,6 +639,7 @@ export async function aiGetSettings(): Promise<AiSettingsDto> {
       preferLocalWhenAvailable: false,
       redactSensitiveData: false,
       hasCloudApiKey: false,
+      hasEffectiveCloudApiKey: false,
       reasoningEffort: "medium",
       sttService: "custom",
       sttBaseUrl: "https://api.openai.com/v1",
@@ -626,6 +650,8 @@ export async function aiGetSettings(): Promise<AiSettingsDto> {
       ttsVoice: "alloy",
       hasSttApiKey: false,
       hasTtsApiKey: false,
+      cloudProfiles: [],
+      activeCloudProfileId: null,
     };
   }
   return api.aiGetSettings();
@@ -644,6 +670,7 @@ export async function aiSaveSettings(payload: AiSaveSettingsPayload): Promise<Ai
       preferLocalWhenAvailable: payload.preferLocalWhenAvailable ?? false,
       redactSensitiveData: payload.redactSensitiveData ?? false,
       hasCloudApiKey: Boolean(payload.apiKey?.trim()),
+      hasEffectiveCloudApiKey: Boolean(payload.apiKey?.trim()),
       reasoningEffort: payload.reasoningEffort ?? "medium",
       sttService: payload.sttService ?? "custom",
       sttBaseUrl: payload.sttBaseUrl ?? "https://api.openai.com/v1",
@@ -654,9 +681,48 @@ export async function aiSaveSettings(payload: AiSaveSettingsPayload): Promise<Ai
       ttsVoice: payload.ttsVoice ?? "alloy",
       hasSttApiKey: Boolean(payload.sttApiKey?.trim()),
       hasTtsApiKey: Boolean(payload.ttsApiKey?.trim()),
+      cloudProfiles: [],
+      activeCloudProfileId: null,
     };
   }
   return api.aiSaveSettings(payload);
+}
+
+export type AiSaveProfilePayload = {
+  id?: string;
+  name: string;
+  baseUrl: string;
+  model: string;
+  apiKey?: string;
+  reasoningEffort?: "low" | "medium" | "high";
+  maxTokens?: number;
+  timeoutSeconds?: number;
+};
+
+export async function aiSaveProfile(payload: AiSaveProfilePayload): Promise<AiSettingsDto> {
+  const api = getApi();
+  if (!api?.aiSaveProfile) return aiGetSettings();
+  const res = (await api.aiSaveProfile(payload)) as { settings: AiSettingsDto };
+  return res.settings;
+}
+
+export async function aiDeleteProfile(id: string): Promise<AiSettingsDto> {
+  const api = getApi();
+  if (!api?.aiDeleteProfile) return aiGetSettings();
+  const res = (await api.aiDeleteProfile(id)) as { settings: AiSettingsDto };
+  return res.settings;
+}
+
+export async function aiSetActiveProfile(id: string | null): Promise<AiSettingsDto> {
+  const api = getApi();
+  if (!api?.aiSetActiveProfile) return aiGetSettings();
+  return (await api.aiSetActiveProfile(id)) as AiSettingsDto;
+}
+
+export async function aiSetProfileApiKey(id: string, apiKey: string): Promise<AiSettingsDto> {
+  const api = getApi();
+  if (!api?.aiSetProfileApiKey) return aiGetSettings();
+  return (await api.aiSetProfileApiKey(id, apiKey)) as AiSettingsDto;
 }
 
 export async function aiProbeOllama(): Promise<AiProbeOllamaResult> {
@@ -680,6 +746,22 @@ export async function aiListModels(): Promise<AiListModelsResult> {
     };
   }
   return api.aiListModels();
+}
+
+export async function aiListSttModels(): Promise<AiListModelsResult> {
+  const api = getApi();
+  if (!api?.aiListSttModels) {
+    return { ok: true, models: ["whisper-1", "mimo-v2.5-asr", "gpt-4o-transcribe"] };
+  }
+  return api.aiListSttModels();
+}
+
+export async function aiListTtsModels(): Promise<AiListModelsResult> {
+  const api = getApi();
+  if (!api?.aiListTtsModels) {
+    return { ok: true, models: ["tts-1", "tts-1-hd", "mimo-v2.5-tts", "gpt-4o-mini-tts"] };
+  }
+  return api.aiListTtsModels();
 }
 
 export async function aiQueryBalance(): Promise<AiBalanceResult> {

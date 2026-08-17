@@ -1,4 +1,4 @@
-import { getCloudApiKey, loadAiSettings, type AiMode } from "./settings";
+import { getCloudApiKey, getEffectiveCloudApiKey, loadAiSettings, type AiMode } from "./settings";
 import { redactSensitiveData, restoreRedactedData } from "./clean";
 
 export type ToolDefinition = {
@@ -120,12 +120,12 @@ export async function chatComplete(
         tools
       );
     }
-    const key = getCloudApiKey();
+    const key = getEffectiveCloudApiKey() || getCloudApiKey();
     if (!key) {
       return {
         ok: false,
         code: "NO_KEY",
-        error: "未配置云端 API Key，请到设置 → AI 中填写 OpenAI 兼容密钥",
+        error: "未配置云端 API Key，请到设置 → AI 中新建或选择一个云端配置并填写密钥",
       };
     }
 
@@ -658,7 +658,7 @@ export async function probeCloud(): Promise<
   { ok: true } | { ok: false; error: string; code: AiErrorCode }
 > {
   const settings = loadAiSettings();
-  const key = getCloudApiKey();
+  const key = getEffectiveCloudApiKey() || getCloudApiKey();
   if (!key) return { ok: false, code: "NO_KEY", error: "未配置 API Key" };
   // Lightweight models list if available; otherwise a tiny chat is too expensive — just HEAD/models
   try {
@@ -698,6 +698,8 @@ export async function probeCloud(): Promise<
 
 export {
   fetchRemoteModels,
+  fetchSttModels,
+  fetchTtsModels,
   fetchAccountBalance,
   synthesizeSpeechMiMo,
   transcribeAudioOpenAi,

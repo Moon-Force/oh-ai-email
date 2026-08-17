@@ -1,13 +1,19 @@
 import { create } from "zustand";
 import {
+  aiDeleteProfile,
   aiGetSettings,
   aiLearnUserTone,
+  aiSaveProfile,
   aiSaveSettings,
+  aiSetActiveProfile,
+  aiSetProfileApiKey,
+  type AiCloudProfileDto,
   type AiModeDto,
   type AiSettingsDto,
 } from "../../lib/ipc";
 
 export type AiMode = AiModeDto;
+export type AiCloudProfile = AiCloudProfileDto;
 
 type AiSettingsState = {
   mode: AiMode;
@@ -19,22 +25,21 @@ type AiSettingsState = {
   preferLocalWhenAvailable: boolean;
   redactSensitiveData: boolean;
   hasCloudApiKey: boolean;
-  /** Local draft of api key (never reloaded from disk as plaintext). */
+  hasEffectiveCloudApiKey: boolean;
   apiKeyDraft: string;
+  cloudProfiles: AiCloudProfileDto[];
+  activeCloudProfileId: string | null;
 
-  /** Reasoning effort */
   reasoningEffort: "low" | "medium" | "high";
   maxTokens: number;
   timeoutSeconds: number;
 
-  /** Voice STT (Speech-to-Text) configuration */
   sttService: "browser" | "custom";
   sttBaseUrl: string;
   sttModel: string;
   sttApiKeyDraft: string;
   hasSttApiKey: boolean;
 
-  /** Voice TTS (Text-to-Speech) configuration */
   ttsService: "browser" | "custom";
   ttsBaseUrl: string;
   ttsModel: string;
@@ -75,6 +80,19 @@ type AiSettingsState = {
   applyDto: (dto: AiSettingsDto) => void;
   hydrate: () => Promise<void>;
   save: () => Promise<AiSettingsDto>;
+  saveProfile: (input: {
+    id?: string;
+    name: string;
+    baseUrl: string;
+    model: string;
+    apiKey?: string;
+    reasoningEffort?: "low" | "medium" | "high";
+    maxTokens?: number;
+    timeoutSeconds?: number;
+  }) => Promise<AiSettingsDto>;
+  deleteProfile: (id: string) => Promise<AiSettingsDto>;
+  setActiveProfile: (id: string | null) => Promise<AiSettingsDto>;
+  setProfileApiKey: (id: string, apiKey: string) => Promise<AiSettingsDto>;
 };
 
 const PERSONA_STORAGE_KEY = "oh-ai-email:user-persona";
@@ -90,7 +108,10 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   preferLocalWhenAvailable: false,
   redactSensitiveData: false,
   hasCloudApiKey: false,
+  hasEffectiveCloudApiKey: false,
   apiKeyDraft: "",
+  cloudProfiles: [],
+  activeCloudProfileId: null,
 
   reasoningEffort: "medium",
   maxTokens: 32768,
@@ -174,6 +195,9 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       preferLocalWhenAvailable: dto.preferLocalWhenAvailable,
       redactSensitiveData: dto.redactSensitiveData,
       hasCloudApiKey: dto.hasCloudApiKey,
+      hasEffectiveCloudApiKey: dto.hasEffectiveCloudApiKey ?? dto.hasCloudApiKey,
+      cloudProfiles: dto.cloudProfiles ?? dto.cloudProfilesWithKey ?? [],
+      activeCloudProfileId: dto.activeCloudProfileId ?? null,
       reasoningEffort: dto.reasoningEffort ?? "medium",
       maxTokens: dto.maxTokens ?? 32768,
       timeoutSeconds: dto.timeoutSeconds ?? 300,
@@ -241,9 +265,30 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       sttApiKeyDraft: "",
       ttsApiKeyDraft: "",
       hasCloudApiKey: dto.hasCloudApiKey,
+      hasEffectiveCloudApiKey: dto.hasEffectiveCloudApiKey ?? dto.hasCloudApiKey,
       hasSttApiKey: dto.hasSttApiKey,
       hasTtsApiKey: dto.hasTtsApiKey,
     });
+    get().applyDto(dto);
+    return dto;
+  },
+  saveProfile: async (input) => {
+    const dto = await aiSaveProfile(input);
+    get().applyDto(dto);
+    return dto;
+  },
+  deleteProfile: async (id) => {
+    const dto = await aiDeleteProfile(id);
+    get().applyDto(dto);
+    return dto;
+  },
+  setActiveProfile: async (id) => {
+    const dto = await aiSetActiveProfile(id);
+    get().applyDto(dto);
+    return dto;
+  },
+  setProfileApiKey: async (id, apiKey) => {
+    const dto = await aiSetProfileApiKey(id, apiKey);
     get().applyDto(dto);
     return dto;
   },

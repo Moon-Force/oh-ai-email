@@ -217,8 +217,35 @@ const api = {
   aiProbeCloud: (): Promise<{ ok: true } | { ok: false; error: string; code?: string }> =>
     ipcRenderer.invoke("ai:probeCloud"),
 
+  aiSaveProfile: (payload: {
+    id?: string;
+    name: string;
+    baseUrl: string;
+    model: string;
+    apiKey?: string;
+    reasoningEffort?: "low" | "medium" | "high";
+    maxTokens?: number;
+    timeoutSeconds?: number;
+  }): Promise<{ profile: { id: string; name: string }; settings: unknown }> =>
+    ipcRenderer.invoke("ai:saveProfile", payload),
+
+  aiDeleteProfile: (id: string): Promise<{ ok: boolean; settings: unknown }> =>
+    ipcRenderer.invoke("ai:deleteProfile", id),
+
+  aiSetActiveProfile: (id: string | null): Promise<unknown> =>
+    ipcRenderer.invoke("ai:setActiveProfile", id),
+
+  aiSetProfileApiKey: (id: string, apiKey: string): Promise<unknown> =>
+    ipcRenderer.invoke("ai:setProfileApiKey", id, apiKey),
+
   aiListModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
     ipcRenderer.invoke("ai:listModels"),
+
+  aiListSttModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
+    ipcRenderer.invoke("ai:listSttModels"),
+
+  aiListTtsModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
+    ipcRenderer.invoke("ai:listTtsModels"),
 
   aiQueryBalance: (): Promise<AiBalanceResult> => ipcRenderer.invoke("ai:queryBalance"),
 

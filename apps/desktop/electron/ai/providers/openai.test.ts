@@ -9,6 +9,7 @@ import type { AiSettingsRecord } from "../settings";
 
 vi.mock("../settings", () => ({
   getCloudApiKey: vi.fn(() => "test-sk-123456"),
+  getEffectiveCloudApiKey: vi.fn(() => "test-sk-123456"),
   getSttApiKey: vi.fn(() => "test-sk-123456"),
   getTtsApiKey: vi.fn(() => "test-sk-123456"),
 }));
@@ -33,6 +34,8 @@ describe("OpenAI, DeepSeek & MiMo Provider Functions", () => {
     ttsBaseUrl: "https://api.openai.com/v1",
     ttsModel: "tts-1",
     ttsVoice: "alloy",
+    cloudProfiles: [],
+    activeCloudProfileId: null,
   };
 
   beforeEach(() => {
