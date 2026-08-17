@@ -215,6 +215,7 @@ export type AiSettingsDto = {
   preferLocalWhenAvailable: boolean;
   redactSensitiveData: boolean;
   hasCloudApiKey: boolean;
+  reasoningEffort: "low" | "medium" | "high";
   sttService: "browser" | "custom";
   sttBaseUrl: string;
   sttModel: string;
@@ -568,6 +569,7 @@ export async function aiGetSettings(): Promise<AiSettingsDto> {
       preferLocalWhenAvailable: false,
       redactSensitiveData: false,
       hasCloudApiKey: false,
+      reasoningEffort: "medium",
       sttService: "custom",
       sttBaseUrl: "https://api.openai.com/v1",
       sttModel: "whisper-1",
@@ -595,6 +597,7 @@ export async function aiSaveSettings(payload: AiSaveSettingsPayload): Promise<Ai
       preferLocalWhenAvailable: payload.preferLocalWhenAvailable ?? false,
       redactSensitiveData: payload.redactSensitiveData ?? false,
       hasCloudApiKey: Boolean(payload.apiKey?.trim()),
+      reasoningEffort: payload.reasoningEffort ?? "medium",
       sttService: payload.sttService ?? "custom",
       sttBaseUrl: payload.sttBaseUrl ?? "https://api.openai.com/v1",
       sttModel: payload.sttModel ?? "whisper-1",

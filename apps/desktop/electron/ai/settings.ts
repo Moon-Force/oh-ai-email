@@ -4,6 +4,7 @@ import { app } from "electron";
 import { deleteSecret, loadSecret, saveSecret } from "../store";
 
 export type AiMode = "cloud" | "local";
+export type ReasoningEffort = "low" | "medium" | "high";
 
 export type AiSettingsRecord = {
   mode: AiMode;
@@ -20,6 +21,9 @@ export type AiSettingsRecord = {
   preferLocalWhenAvailable: boolean;
   /** Redact emails, phones and ID numbers before sending to cloud */
   redactSensitiveData: boolean;
+
+  /** Reasoning effort for deep thinking models */
+  reasoningEffort: ReasoningEffort;
 
   /** Voice STT (Speech-to-Text) configuration */
   sttService: "browser" | "custom";
@@ -46,6 +50,8 @@ const DEFAULTS: AiSettingsRecord = {
   cloudPrivacyAck: false,
   preferLocalWhenAvailable: false,
   redactSensitiveData: false,
+
+  reasoningEffort: "medium",
 
   sttService: "custom",
   sttBaseUrl: "https://api.openai.com/v1",
@@ -77,6 +83,11 @@ export function loadAiSettings(): AiSettingsRecord {
       cloudPrivacyAck: Boolean(raw.cloudPrivacyAck),
       preferLocalWhenAvailable: Boolean(raw.preferLocalWhenAvailable),
       redactSensitiveData: Boolean(raw.redactSensitiveData),
+
+      reasoningEffort:
+        raw.reasoningEffort === "low" || raw.reasoningEffort === "high"
+          ? raw.reasoningEffort
+          : "medium",
 
       sttService: raw.sttService === "browser" ? "browser" : "custom",
       sttBaseUrl: String(raw.sttBaseUrl || DEFAULTS.sttBaseUrl).replace(/\/+$/, ""),

@@ -91,6 +91,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
     hasCloudApiKey,
     cloudPrivacyAck,
     setCloudPrivacyAck,
+    reasoningEffort,
+    setReasoningEffort,
     sttService,
     setSttService,
     sttBaseUrl,
@@ -628,6 +630,32 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                       ))}
                     </Paper>
                   )}
+
+                {/* Reasoning Effort Selector */}
+                <Box sx={{ mt: 1, p: 1.5, borderRadius: 1.5, bgcolor: "action.hover", border: 1, borderColor: "divider" }}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                    思考推理强度 (Reasoning Effort)
+                  </Typography>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={reasoningEffort}
+                    onChange={(_, v) => v && setReasoningEffort(v)}
+                    aria-label="思考推理强度"
+                    sx={{ mb: 1 }}
+                  >
+                    <ToggleButton value="low">低 (Low · 极速)</ToggleButton>
+                    <ToggleButton value="medium">中 (Medium · 均衡 - 推荐)</ToggleButton>
+                    <ToggleButton value="high">高 (High · 深度)</ToggleButton>
+                  </ToggleButtonGroup>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                    {reasoningEffort === "low"
+                      ? "⚡ 极速响应，思考紧凑精炼，适合日常短邮件快速总结与一键回复。"
+                      : reasoningEffort === "high"
+                        ? "🧠 深度多步推演与严谨反思，适合长线索时间线全景分析、复杂条款审核与重要邮件草拟。"
+                        : "⚖️ 推荐模式：兼顾深度推理质量与响应速度，适合常规邮件分析与回复润色。"}
+                  </Typography>
+                </Box>
 
                 <FormControlLabel
                   control={

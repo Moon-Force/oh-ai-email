@@ -102,7 +102,8 @@ export async function chatComplete(
       settings.model,
       combinedSignal,
       controller.signal,
-      onChunk
+      onChunk,
+      settings.reasoningEffort
     );
 
     if (res.ok && settings.redactSensitiveData && Object.keys(combinedReplacements).length > 0) {
@@ -141,24 +142,30 @@ async function callOpenAiCompatible(
   model: string,
   signal: AbortSignal,
   userAbortSignal?: AbortSignal,
-  onChunk?: StreamChunkCallback
+  onChunk?: StreamChunkCallback,
+  reasoningEffort: "low" | "medium" | "high" = "medium"
 ): Promise<AiResult> {
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
   const isStreaming = Boolean(onChunk);
   let res: Response;
   try {
+    const payloadBody: Record<string, unknown> = {
+      model,
+      messages,
+      temperature: 0.4,
+      stream: isStreaming,
+    };
+    if (reasoningEffort) {
+      payloadBody.reasoning_effort = reasoningEffort;
+    }
+
     res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.4,
-        stream: isStreaming,
-      }),
+      body: JSON.stringify(payloadBody),
       signal,
     });
   } catch (e) {

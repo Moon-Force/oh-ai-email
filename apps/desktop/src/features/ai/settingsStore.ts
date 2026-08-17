@@ -22,6 +22,9 @@ type AiSettingsState = {
   /** Local draft of api key (never reloaded from disk as plaintext). */
   apiKeyDraft: string;
 
+  /** Reasoning effort */
+  reasoningEffort: "low" | "medium" | "high";
+
   /** Voice STT (Speech-to-Text) configuration */
   sttService: "browser" | "custom";
   sttBaseUrl: string;
@@ -50,6 +53,7 @@ type AiSettingsState = {
   setRedactSensitiveData: (v: boolean) => void;
   setApiKeyDraft: (v: string) => void;
   setCloudPrivacyAck: (v: boolean) => void;
+  setReasoningEffort: (effort: "low" | "medium" | "high") => void;
 
   setSttService: (v: "browser" | "custom") => void;
   setSttBaseUrl: (v: string) => void;
@@ -84,6 +88,8 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   hasCloudApiKey: false,
   apiKeyDraft: "",
 
+  reasoningEffort: "medium",
+
   sttService: "custom",
   sttBaseUrl: "https://api.openai.com/v1",
   sttModel: "whisper-1",
@@ -110,6 +116,7 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
   setRedactSensitiveData: (redactSensitiveData) => set({ redactSensitiveData }),
   setApiKeyDraft: (apiKeyDraft) => set({ apiKeyDraft }),
   setCloudPrivacyAck: (cloudPrivacyAck) => set({ cloudPrivacyAck }),
+  setReasoningEffort: (reasoningEffort) => set({ reasoningEffort }),
 
   setSttService: (sttService) => set({ sttService }),
   setSttBaseUrl: (sttBaseUrl) => set({ sttBaseUrl }),
@@ -159,6 +166,7 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       preferLocalWhenAvailable: dto.preferLocalWhenAvailable,
       redactSensitiveData: dto.redactSensitiveData,
       hasCloudApiKey: dto.hasCloudApiKey,
+      reasoningEffort: dto.reasoningEffort ?? "medium",
       sttService: dto.sttService ?? "custom",
       sttBaseUrl: dto.sttBaseUrl ?? "https://api.openai.com/v1",
       sttModel: dto.sttModel ?? "whisper-1",
@@ -197,6 +205,7 @@ export const useAiSettings = create<AiSettingsState>((set, get) => ({
       cloudPrivacyAck: s.cloudPrivacyAck,
       preferLocalWhenAvailable: s.preferLocalWhenAvailable,
       redactSensitiveData: s.redactSensitiveData,
+      reasoningEffort: s.reasoningEffort,
       sttService: s.sttService,
       sttBaseUrl: s.sttBaseUrl,
       sttModel: s.sttModel,
