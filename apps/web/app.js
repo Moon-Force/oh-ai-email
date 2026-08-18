@@ -293,18 +293,20 @@ if (
   let my = -100;
   let rx = -100;
   let ry = -100;
-  let moved = false;
 
-  document.addEventListener("mousemove", (e) => {
-    mx = e.clientX;
-    my = e.clientY;
-    cursorDot.style.transform = `translate(${mx - cursorDot.offsetWidth / 2}px, ${my - cursorDot.offsetHeight / 2}px)`;
-    if (!moved) {
-      moved = true;
+  const showCursor = () => {
+    if (!document.body.classList.contains("cursor-visible")) {
       rx = mx;
       ry = my;
       document.body.classList.add("cursor-visible");
     }
+  };
+
+  document.addEventListener("mousemove", (e) => {
+    mx = e.clientX;
+    my = e.clientY;
+    showCursor();
+    cursorDot.style.transform = `translate(${mx - cursorDot.offsetWidth / 2}px, ${my - cursorDot.offsetHeight / 2}px)`;
   });
 
   document.documentElement.addEventListener("mouseleave", () => {
