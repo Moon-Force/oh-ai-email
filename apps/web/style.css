@@ -148,14 +148,20 @@ body {
 /* ===== Hero ===== */
 .hero {
   position: relative;
-  min-height: 54svh;
+  height: 876px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   text-align: center;
-  padding: 0 1.5rem 2.5vh;
+  padding: 80px 20px;
   overflow: hidden;
+}
+
+@media (max-height: 900px) {
+  .hero {
+    height: 100svh;
+  }
 }
 
 .hero-stage {
@@ -168,8 +174,9 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  top: -6%;
-  height: 68%;
+  top: 50%;
+  height: 400px;
+  transform: translateY(calc(-50% - 165px));
 }
 
 .hero-fallback {
@@ -183,9 +190,9 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 52%;
-  background: linear-gradient(to bottom, transparent, var(--bg) 25%);
+  top: calc(50% + 35px);
+  height: 331px;
+  background: linear-gradient(to top, var(--bg) 37.366%, transparent);
   pointer-events: none;
 }
 
@@ -259,28 +266,37 @@ body {
   filter: blur(1px);
 }
 
-.hero-tagline {
-  position: absolute;
-  top: 54%;
-  left: 0;
-  right: 0;
+.hero-content {
+  position: relative;
   z-index: 2;
-  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
-  font-weight: 500;
-  color: var(--text-2);
-  letter-spacing: 0.01em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 52px;
+  width: calc(100% - 40px);
+  max-width: 739.5px;
+  margin: 0 auto;
+  padding-top: 344px;
+}
+
+.hero-tagline {
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--text-1);
+  opacity: 0.6;
+  letter-spacing: 0.72px;
+  text-align: center;
 }
 
 .hero-input {
   position: relative;
   width: 100%;
-  max-width: 780px;
-  min-height: 92px;
-  margin: 0 auto 1.1rem;
+  min-height: 160px;
+  margin: 0;
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid var(--border);
-  border-radius: 22px;
-  padding: 0.9rem 4.75rem 2.1rem 1.4rem;
+  border-radius: 24px;
+  padding: 1.5rem 5.5rem 3rem 1.75rem;
   text-align: left;
   cursor: pointer;
   transition:
@@ -359,6 +375,31 @@ body {
 
 .pill:hover {
   background: var(--panel-hover);
+}
+
+@media (max-width: 679px) {
+  .hero {
+    height: auto;
+    min-height: 600px;
+    padding: 140px 20px 60px;
+  }
+
+  #hero-unicorn {
+    top: 0;
+    left: 50%;
+    right: auto;
+    width: 960px;
+    transform: translateX(-50%);
+  }
+
+  .hero-stage::after {
+    top: auto;
+    bottom: 0;
+  }
+
+  .hero-content {
+    padding-top: 240px;
+  }
 }
 
 /* ===== Sections ===== */
