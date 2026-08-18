@@ -166,9 +166,10 @@ body {
 
 #hero-unicorn {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 0;
+  right: 0;
+  top: -6%;
+  height: 68%;
 }
 
 .hero-fallback {
@@ -183,8 +184,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 65%;
-  background: linear-gradient(to bottom, transparent, var(--bg) 30%);
+  height: 52%;
+  background: linear-gradient(to bottom, transparent, var(--bg) 25%);
   pointer-events: none;
 }
 
@@ -259,18 +260,21 @@ body {
 }
 
 .hero-tagline {
-  position: relative;
+  position: absolute;
+  top: 56%;
+  left: 0;
+  right: 0;
+  z-index: 2;
   font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   font-weight: 500;
   color: var(--text-2);
   letter-spacing: 0.01em;
-  margin-bottom: 1.25rem;
 }
 
 .hero-input {
   position: relative;
   width: 100%;
-  max-width: 720px;
+  max-width: 780px;
   min-height: 92px;
   margin: 0 auto 1.1rem;
   background: rgba(255, 255, 255, 0.045);
