@@ -3,604 +3,584 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>oh-ai-email — 优雅、轻快、懂你的 AI 智能邮件客户端</title>
+    <title>oh-ai-email — 寻求将邮件转化为行动的最优解</title>
     <meta
       name="description"
-      content="oh-ai-email 是为高效职场人量身打造的现代 AI 邮件客户端。新邮件实时直达，AI 智能提炼长信要点与起草得体回复，隐私安全保存在本机。"
+      content="oh-ai-email 是开源的 AI 智能邮件客户端。一眼看懂长邮件核心要点，一键生成得体回复；新邮件实时直达，密码与数据 100% 保存在本机。"
     />
     <link rel="stylesheet" href="./style.css" />
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='%232563EB'><rect width='32' height='32' rx='6'/><path d='M4 9L16 18L28 9' stroke='white' stroke-width='2.5' fill='none'/></svg>"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/></svg>"
     />
   </head>
   <body>
-    <!-- Top Header -->
-    <header class="header-wrapper">
-      <div class="header-container">
-        <a href="#" class="site-logo">
-          <div class="logo-badge-icon">
+    <header class="site-header">
+      <a class="brand" href="#top">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+          </svg>
+        </span>
+        <span class="brand-name">oh-ai-email</span>
+      </a>
+      <button
+        class="menu-btn"
+        id="menu-btn"
+        aria-label="打开菜单"
+        aria-expanded="false"
+        aria-controls="menu-overlay"
+      >
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+      </button>
+    </header>
+
+    <div class="menu-overlay" id="menu-overlay" aria-hidden="true">
+      <nav class="menu-nav">
+        <a href="#showcase">实时演示</a>
+        <a href="#features">核心特性</a>
+        <a href="#download">下载客户端</a>
+        <a href="#faq">常见问题</a>
+        <a
+          href="https://github.com/Moon-Force/oh-ai-email"
+          target="_blank"
+          rel="noreferrer"
+          >GitHub 源码</a
+        >
+      </nav>
+    </div>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-stage" aria-hidden="true">
+          <div class="marquee">
+            <div class="marquee-track">
+              <span>oh-ai-email</span>
+              <span>oh-ai-email</span>
+            </div>
+          </div>
+          <div class="moon"></div>
+        </div>
+
+        <p class="hero-tagline">寻求将邮件转化为行动的最优解</p>
+
+        <div class="hero-input" id="hero-input">
+          <div class="hero-input-text" aria-live="polite">
+            <span id="hero-prompt-text"></span><span class="hero-cursor"></span>
+          </div>
+          <button class="hero-send" id="hero-send" aria-label="下载客户端">
             <svg
               width="18"
               height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2.3"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             >
-              <rect width="20" height="16" x="2" y="4" rx="3"></rect>
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              <path d="M12 19V5" />
+              <path d="m5 12 7-7 7 7" />
             </svg>
-          </div>
-          <span>oh-ai-email</span>
-        </a>
+          </button>
+        </div>
 
-        <nav class="nav-menu">
-          <a href="#showcase" class="nav-link">功能演示</a>
-          <a href="#features" class="nav-link">核心特性</a>
-          <a href="#faq" class="nav-link">常见问题</a>
+        <div class="hero-pills">
+          <a class="pill" href="#download">下载客户端</a>
           <a
+            class="pill"
             href="https://github.com/Moon-Force/oh-ai-email"
             target="_blank"
             rel="noreferrer"
-            class="nav-link"
-            >开源仓库</a
+            >查看源码</a
           >
-        </nav>
-
-        <div class="nav-actions">
-          <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">☀️</button>
-          <a href="#download" class="btn btn-primary">免费下载</a>
         </div>
-      </div>
-    </header>
+      </section>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="hero-pill-badge">
-        <span class="pulse-indicator"></span>
-        <span>新邮件秒推即达 · 深度思考 AI 读写助手现已就绪</span>
-      </div>
-
-      <h1 class="hero-title">
-        告别繁杂冗长的邮件<br />
-        让处理工作变得轻松愉悦
-      </h1>
-
-      <p class="hero-subtitle">
-        专为高效办公打造的现代邮件客户端。一眼看懂长邮件核心要点，一键生成得体回信；
-        来信即时推达不再反复刷新，邮箱密码与数据 100% 留在你的电脑里。
-      </p>
-
-      <div class="hero-cta-group">
-        <a href="#download" class="btn btn-accent" style="padding: 0.8rem 2rem; font-size: 1rem">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>立即免费下载 (Win / Mac / Linux)</span>
-        </a>
-
-        <a
-          href="https://github.com/Moon-Force/oh-ai-email"
-          target="_blank"
-          rel="noreferrer"
-          class="btn btn-secondary"
-          style="padding: 0.8rem 1.75rem; font-size: 1rem"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
-            ></path>
-            <path d="M9 18c-4.51 2-5-2-7-2"></path>
-          </svg>
-          <span>GitHub 开源免费</span>
-        </a>
-      </div>
-
-      <!-- Natural Everyday Work Prompt Bar -->
-      <div class="hero-prompt-bar">
-        <div style="color: var(--Accent-Blue-Light); display: flex; align-items: center">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.3"
-          >
-            <path
-              d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"
-            ></path>
-          </svg>
+      <section id="showcase" class="block showcase-block">
+        <div class="section-head reveal">
+          <h2>一眼看懂，一键处理</h2>
+          <p>点击左侧任意来信，体验 AI 提炼重点、生成回复、提取待办与翻译</p>
         </div>
-        <div class="prompt-typing-text">
-          <span id="hero-prompt-text"
-            >帮我总结这封长邮件的核心要点，并列出我需要完成的待办事项</span
-          >
-          <span class="prompt-cursor"></span>
-        </div>
-        <div
-          style="
-            font-size: 0.75rem;
-            color: var(--Labels-Tertiary);
-            font-family: var(--font-mono);
-            white-space: nowrap;
-          "
-        >
-          AI 助手在线
-        </div>
-      </div>
-    </section>
 
-    <!-- Interactive Showcase Window -->
-    <section id="showcase" class="showcase-container">
-      <div class="window-shell">
-        <div class="window-topbar">
-          <div class="traffic-lights">
-            <span class="light-dot red"></span>
-            <span class="light-dot yellow"></span>
-            <span class="light-dot green"></span>
+        <div class="window-shell reveal">
+          <div class="window-topbar">
+            <div class="traffic-lights">
+              <span class="light-dot red"></span>
+              <span class="light-dot yellow"></span>
+              <span class="light-dot green"></span>
+            </div>
+            <div class="window-center-tab">
+              <span>oh-ai-email — 沉浸式主工作区</span>
+              <span class="status-badge-live">● 实时在线</span>
+            </div>
+            <div class="window-side-note">本地安全存储已开启</div>
           </div>
-          <div class="window-center-tab">
-            <span>oh-ai-email — 沉浸式主工作区 (Live Demo)</span>
-            <span class="status-badge-live">● 实时在线</span>
-          </div>
-          <div style="font-size: 0.75rem; color: var(--Labels-Tertiary)">本地安全存储已开启</div>
-        </div>
 
-        <div class="app-grid">
-          <!-- Sidebar -->
-          <div class="app-sidebar">
-            <div class="sidebar-row active">
-              <span>📥 收件箱</span>
-              <span
-                style="
-                  font-size: 0.75rem;
-                  background: var(--Fills-F2);
-                  padding: 1px 6px;
-                  border-radius: 4px;
-                "
-                >12</span
-              >
-            </div>
-            <div class="sidebar-row">
-              <span>⭐ 重要邮件</span>
-              <span
-                style="
-                  font-size: 0.75rem;
-                  background: var(--Fills-F2);
-                  padding: 1px 6px;
-                  border-radius: 4px;
-                "
-                >3</span
-              >
-            </div>
-            <div class="sidebar-row">
-              <span>⏰ 稍后处理</span>
-              <span
-                style="
-                  font-size: 0.75rem;
-                  background: var(--Fills-F2);
-                  padding: 1px 6px;
-                  border-radius: 4px;
-                "
-                >2</span
-              >
-            </div>
-            <div class="sidebar-row">
-              <span>📌 置顶关注</span>
-            </div>
-            <div class="sidebar-row">
-              <span>📤 已发送</span>
-            </div>
-            <div class="sidebar-row">
-              <span>🗑️ 已删除</span>
-            </div>
-            <div
-              style="
-                margin-top: auto;
-                border-top: 1px solid var(--Separators-S1);
-                padding-top: 0.75rem;
-              "
-            >
+          <div class="app-grid">
+            <div class="app-sidebar">
+              <div class="sidebar-row active">
+                <span>📥 收件箱</span>
+                <span class="count-pill">12</span>
+              </div>
               <div class="sidebar-row">
-                <span>⚙️ 账户与设置</span>
+                <span>⭐ 重要邮件</span>
+                <span class="count-pill">3</span>
+              </div>
+              <div class="sidebar-row">
+                <span>⏰ 稍后处理</span>
+                <span class="count-pill">2</span>
+              </div>
+              <div class="sidebar-row">
+                <span>📌 置顶关注</span>
+              </div>
+              <div class="sidebar-row">
+                <span>📤 已发送</span>
+              </div>
+              <div class="sidebar-row">
+                <span>🗑️ 已删除</span>
+              </div>
+              <div class="sidebar-footer">
+                <div class="sidebar-row">
+                  <span>⚙️ 账户与设置</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Thread List -->
-          <div class="app-thread-list">
-            <div class="thread-item selected" data-scenario="project">
-              <div class="thread-sender">
-                <span>张经理 (产品部)</span>
-                <span style="font-size: 0.75rem; color: var(--Labels-Tertiary)">10:30</span>
-              </div>
-              <div class="thread-subject">【重要】新版产品上线排期与各部门配合事项</div>
-              <div class="thread-preview">
-                经过团队两周的集中攻坚，新版本的主流程已全部完成自测...
-              </div>
-            </div>
-
-            <div class="thread-item" data-scenario="client">
-              <div class="thread-sender">
-                <span>王总 (星云科技)</span>
-                <span style="font-size: 0.75rem; color: var(--Labels-Tertiary)">09:15</span>
-              </div>
-              <div class="thread-subject">关于年度企业服务方案与合作意向沟通</div>
-              <div class="thread-preview">在行业展会上了解到贵团队的效率工具，体验非常出色...</div>
-            </div>
-
-            <div class="thread-item" data-scenario="global">
-              <div class="thread-sender">
-                <span>Emma Watson</span>
-                <span style="font-size: 0.75rem; color: var(--Labels-Tertiary)">昨天</span>
-              </div>
-              <div class="thread-subject">Feedback on the new UI & Collaboration Proposal</div>
-              <div class="thread-preview">
-                I've been using your AI email client for the past two weeks...
-              </div>
-            </div>
-          </div>
-
-          <!-- Reader + Copilot -->
-          <div class="app-reader">
-            <div>
-              <div class="reader-header-area">
-                <h2 class="reader-subject" id="reader-subject-text">
-                  【重要】新版产品上线排期与各部门配合事项
-                </h2>
-                <div class="reader-meta-info" id="reader-meta-text">
-                  发件人：张经理 (产品研发部) &lt;zhang.pm@company.com&gt; · 10:30
+            <div class="app-thread-list">
+              <div class="thread-item selected" data-scenario="project">
+                <div class="thread-sender">
+                  <span>张经理 (产品部)</span>
+                  <span class="thread-time">10:30</span>
+                </div>
+                <div class="thread-subject">【重要】新版产品上线排期与各部门配合事项</div>
+                <div class="thread-preview">
+                  经过团队两周的集中攻坚，新版本的主流程已全部完成自测...
                 </div>
               </div>
 
-              <div class="reader-mail-body" id="reader-body-text">
-                各位同事好：<br />
-                经过团队两周的集中攻坚，新版本的主流程已全部完成自测。下周二下午 3
-                点我们将正式开启全量上线。<br /><br />
-                为了确保平稳发布，请市场组在周五前准备好发版推文与海报；请客服组周一前完成常见问题手册更新；研发组请做好发布当天的监控值班安排。<br /><br />
-                感谢大家的辛苦付出！
-              </div>
-            </div>
-
-            <!-- Everyday Friendly Copilot -->
-            <div class="lumen-copilot-card">
-              <div class="copilot-controls">
-                <div class="copilot-brand-title">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.3"
-                  >
-                    <path
-                      d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"
-                    ></path>
-                  </svg>
-                  <span>AI 智能办公助手</span>
+              <div class="thread-item" data-scenario="client">
+                <div class="thread-sender">
+                  <span>王总 (星云科技)</span>
+                  <span class="thread-time">09:15</span>
                 </div>
-                <label
-                  style="
-                    font-size: 0.8rem;
-                    color: var(--Labels-Secondary);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.4rem;
-                    cursor: pointer;
-                  "
-                >
-                  <input type="checkbox" id="toggle-think" checked />
-                  <span>显示思考过程</span>
-                </label>
+                <div class="thread-subject">关于年度企业服务方案与合作意向沟通</div>
+                <div class="thread-preview">在行业展会上了解到贵团队的效率工具，体验非常出色...</div>
               </div>
 
-              <div class="chip-bar">
-                <button class="agent-chip active" data-action="summary">✨ 提炼重点</button>
-                <button class="agent-chip" data-action="reply">✍️ 生成得体回复</button>
-                <button class="agent-chip" data-action="action">📋 提取待办清单</button>
-                <button class="agent-chip" data-action="translate">🌐 译为英文</button>
+              <div class="thread-item" data-scenario="global">
+                <div class="thread-sender">
+                  <span>Emma Watson</span>
+                  <span class="thread-time">昨天</span>
+                </div>
+                <div class="thread-subject">Feedback on the new UI &amp; Collaboration Proposal</div>
+                <div class="thread-preview">
+                  I've been using your AI email client for the past two weeks...
+                </div>
+              </div>
+            </div>
+
+            <div class="app-reader">
+              <div>
+                <div class="reader-header-area">
+                  <h3 class="reader-subject" id="reader-subject-text">
+                    【重要】新版产品上线排期与各部门配合事项
+                  </h3>
+                  <div class="reader-meta-info" id="reader-meta-text">
+                    发件人：张经理 (产品研发部) &lt;zhang.pm@company.com&gt; · 10:30
+                  </div>
+                </div>
+
+                <div class="reader-mail-body" id="reader-body-text">
+                  各位同事好：<br />
+                  经过团队两周的集中攻坚，新版本的主流程已全部完成自测。下周二下午 3
+                  点我们将正式开启全量上线。<br /><br />
+                  为了确保平稳发布，请市场组在周五前准备好发版推文与海报；请客服组周一前完成常见问题手册更新；研发组请做好发布当天的监控值班安排。<br /><br />
+                  感谢大家的辛苦付出！
+                </div>
               </div>
 
-              <div class="thinking-stream-panel active" id="thinking-panel"></div>
-              <div class="copilot-output-box" id="copilot-output">正在生成分析...</div>
+              <div class="lumen-copilot-card">
+                <div class="copilot-controls">
+                  <div class="copilot-brand-title">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.3"
+                    >
+                      <path
+                        d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"
+                      ></path>
+                    </svg>
+                    <span>AI 智能办公助手</span>
+                  </div>
+                  <label class="think-toggle">
+                    <input type="checkbox" id="toggle-think" checked />
+                    <span>显示思考过程</span>
+                  </label>
+                </div>
+
+                <div class="chip-bar">
+                  <button class="agent-chip active" data-action="summary">
+                    ✨ 提炼重点
+                  </button>
+                  <button class="agent-chip" data-action="reply">
+                    ✍️ 生成得体回复
+                  </button>
+                  <button class="agent-chip" data-action="action">📋 提取待办清单</button>
+                  <button class="agent-chip" data-action="translate">🌐 译为英文</button>
+                </div>
+
+                <div class="thinking-stream-panel active" id="thinking-panel"></div>
+                <div class="copilot-output-box" id="copilot-output">正在生成分析...</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ============================================================= -->
-    <!-- Kimi-Style Feature Rows (Left Text, Right High-Res Screenshot) -->
-    <!-- ============================================================= -->
-    <section id="features" class="features-container">
-      <!-- Feature 1: Snooze -->
-      <div class="feature-showcase-row">
-        <div class="feature-text-block">
-          <span class="feature-badge-label">稍后处理 · INBOX ZERO</span>
-          <h2 class="feature-heading">设置即忘，稍后提醒<br />随时找回清爽收件箱</h2>
-          <p class="feature-paragraph">
-            手头有紧急工作无法立刻回复？一键将邮件推迟至今晚、明天上午或指定周末。到点后自动温柔唤醒并推至收件箱顶部，平时绝不占用你的注意力。
-          </p>
-          <div class="feature-points-list">
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>预设多个常用时间（今晚 18:00、明天 09:00、本周末）</span>
+      <section id="features" class="block features-block">
+        <div class="section-head reveal">
+          <h2>轻松搞定邮件工作</h2>
+          <p>以 AI 深度思考为基座，长信提炼、回复起草、稍后提醒、发信把关，让复杂工作化繁为简</p>
+        </div>
+
+        <div class="feature-showcase-row reveal">
+          <div class="feature-text-block">
+            <span class="feature-badge-label">AI 深度思考 · 智能办公</span>
+            <h3 class="feature-heading">一眼看懂长邮件<br />一键生成恰当回复</h3>
+            <p class="feature-paragraph">
+              面对几百字、几千字的大篇幅邮件或多轮往来回复，AI
+              瞬间为你提取核心要点与待办截止时间。不再为回信措辞而纠结，无论是商务礼貌还是地道英文，秒级为你拟出恰到好处的草稿。
+            </p>
+            <div class="feature-points-list">
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>智能提炼核心摘要，3 秒掌握复杂来信全貌</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>自动抽取责任人与截止时间，直接转为待办清单</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>支持多语气润色与跨国英文沟通，草稿随心修改</span>
+              </div>
             </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>到点自动桌面弹窗通知，重要事务绝不遗漏</span>
-            </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>减少不必要的焦虑，随时保持收件箱清爽干净</span>
-            </div>
+          </div>
+
+          <div class="feature-image-block">
+            <img
+              src="./assets/feature_ai.png"
+              alt="Lumen AI 智能读写助手截图"
+              class="feature-screenshot-img"
+            />
           </div>
         </div>
 
-        <div class="feature-image-block">
-          <img
-            src="./assets/feature_snooze.png"
-            alt="Snooze 稍后处理界面截图"
-            class="feature-screenshot-img"
-          />
-        </div>
-      </div>
+        <div class="feature-showcase-row reverse reveal">
+          <div class="feature-text-block">
+            <span class="feature-badge-label">稍后处理 · INBOX ZERO</span>
+            <h3 class="feature-heading">设置即忘，稍后提醒<br />随时找回清爽收件箱</h3>
+            <p class="feature-paragraph">
+              手头有紧急工作无法立刻回复？一键将邮件推迟至今晚、明天上午或指定周末。到点后自动温柔唤醒并推至收件箱顶部，平时绝不占用你的注意力。
+            </p>
+            <div class="feature-points-list">
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>预设多个常用时间（今晚 18:00、明天 09:00、本周末）</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>到点自动桌面弹窗通知，重要事务绝不遗漏</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>减少不必要的焦虑，随时保持收件箱清爽干净</span>
+              </div>
+            </div>
+          </div>
 
-      <!-- Feature 2: AI Lumen Capsule (Reverse Layout) -->
-      <div class="feature-showcase-row reverse">
-        <div class="feature-text-block">
-          <span class="feature-badge-label">AI 深度思考 · 智能办公</span>
-          <h2 class="feature-heading">一眼看懂长邮件<br />一键生成恰当回复</h2>
-          <p class="feature-paragraph">
-            面对几百字、几千字的大篇幅邮件或多轮往来回复，AI 瞬间为你提取 3
-            条核心要点与待办截止时间。不再为回信措辞而纠结，无论是商务礼貌还是地道英文，秒级为你拟出恰到好处的草稿。
-          </p>
-          <div class="feature-points-list">
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>智能提炼核心摘要，3 秒掌握复杂来信全貌</span>
-            </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>自动抽取责任人与截止时间，直接转为待办清单</span>
-            </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>支持多语气润色与跨国英文沟通，草稿随心修改</span>
-            </div>
+          <div class="feature-image-block">
+            <img
+              src="./assets/feature_snooze.png"
+              alt="Snooze 稍后处理界面截图"
+              class="feature-screenshot-img"
+            />
           </div>
         </div>
 
-        <div class="feature-image-block">
-          <img
-            src="./assets/feature_ai.png"
-            alt="Lumen AI 智能读写助手截图"
-            class="feature-screenshot-img"
-          />
-        </div>
-      </div>
+        <div class="feature-showcase-row reveal">
+          <div class="feature-text-block">
+            <span class="feature-badge-label">发信守门人 · 贴心把关</span>
+            <h3 class="feature-heading">智能安全守门<br />告别遗漏附件的尴尬</h3>
+            <p class="feature-paragraph">
+              正文提及“详见附件”却忘记上传文件？无意中输入了内部敏感信息？发信前智能安全把关系统会自动检测并温柔拦截，规避职场失误。
+            </p>
+            <div class="feature-points-list">
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>发信前自动分析正文意图，智能检测附件是否遗漏</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>外部陌生联系人安全校验与敏感词智能提示</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>坚守人机协同底线，最终发信必须由你亲手确认</span>
+              </div>
+            </div>
+          </div>
 
-      <!-- Feature 3: Pre-send Guard -->
-      <div class="feature-showcase-row">
-        <div class="feature-text-block">
-          <span class="feature-badge-label">发信守门人 · 贴心把关</span>
-          <h2 class="feature-heading">智能安全守门<br />告别遗漏附件的尴尬</h2>
-          <p class="feature-paragraph">
-            正文提及“详见附件”却忘记上传文件？无意中输入了内部敏感信息？在发信前智能安全把关系统会自动检测并温柔拦截，规避职场失误。
-          </p>
-          <div class="feature-points-list">
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>发信前自动分析正文意图，智能检测附件是否遗漏</span>
-            </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>外部陌生联系人安全校验与敏感词智能提示</span>
-            </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>坚守人机协同底线，最终发信必须由你亲手确认</span>
-            </div>
+          <div class="feature-image-block">
+            <img
+              src="./assets/feature_presend.png"
+              alt="发信前智能安全把关截图"
+              class="feature-screenshot-img"
+            />
           </div>
         </div>
 
-        <div class="feature-image-block">
-          <img
-            src="./assets/feature_presend.png"
-            alt="发信前智能安全把关截图"
-            class="feature-screenshot-img"
-          />
-        </div>
-      </div>
+        <div class="feature-showcase-row reverse reveal">
+          <div class="feature-text-block">
+            <span class="feature-badge-label">隐私与安全 · 本地直连</span>
+            <h3 class="feature-heading">各大主流邮箱直连<br />密码与数据 100% 存本机</h3>
+            <p class="feature-paragraph">
+              全面支持 QQ 邮箱、网易 163、腾讯企业邮、阿里企业邮、Outlook 与
+              Gmail。不设立任何第三方中转代理服务器，你的所有邮箱密码均由电脑操作系统的安全芯片加密保管。
+            </p>
+            <div class="feature-points-list">
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>新邮件秒推即达，像即时聊天一样灵敏省电</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>所有邮箱密码通过 Windows / Mac 系统安全库硬件级加密</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>支持完全离线运行本机大模型，邮件内容绝不上云</span>
+              </div>
+            </div>
+          </div>
 
-      <!-- Feature 4: Security & Accounts (Reverse Layout) -->
-      <div class="feature-showcase-row reverse">
-        <div class="feature-text-block">
-          <span class="feature-badge-label">隐私与安全 · 本地直连</span>
-          <h2 class="feature-heading">各大主流邮箱直连<br />密码与数据 100% 存本机</h2>
-          <p class="feature-paragraph">
-            全面支持 QQ 邮箱、网易 163、腾讯企业邮、阿里企业邮、Outlook 与
-            Gmail。不设立任何第三方中转代理服务器，你的所有邮箱密码均由电脑操作系统的安全芯片加密保管。
-          </p>
-          <div class="feature-points-list">
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>新邮件秒推即达，像即时聊天一样灵敏省电</span>
+          <div class="feature-image-block">
+            <img
+              src="./assets/feature_security.png"
+              alt="账户直连与本地加密存储截图"
+              class="feature-screenshot-img"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section id="download" class="cta">
+        <div class="grid-floor" aria-hidden="true"></div>
+        <div class="cta-inner">
+          <h2 class="reveal">为高效而生，现已可用。</h2>
+          <p class="cta-sub reveal">完全开源免费（MIT 协议），选择你的操作系统直接安装体验</p>
+
+          <div class="download-grid">
+            <div class="download-tile reveal">
+              <div class="os-badge-icon">🪟</div>
+              <div class="os-title">Windows 版</div>
+              <div class="os-meta">适用于 Windows 10 / 11</div>
+              <a
+                href="https://github.com/Moon-Force/oh-ai-email/releases"
+                target="_blank"
+                rel="noreferrer"
+                class="dl-btn"
+              >
+                下载 Windows 安装包 (.exe)
+              </a>
             </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>所有邮箱密码通过 Windows / Mac 系统安全库硬件级加密</span>
+
+            <div class="download-tile reveal">
+              <div class="os-badge-icon">🍎</div>
+              <div class="os-title">macOS 版</div>
+              <div class="os-meta">支持 M 系列芯片 &amp; Intel 芯片</div>
+              <a
+                href="https://github.com/Moon-Force/oh-ai-email/releases"
+                target="_blank"
+                rel="noreferrer"
+                class="dl-btn"
+              >
+                下载 macOS 镜像 (.dmg)
+              </a>
             </div>
-            <div class="feature-point-item">
-              <span class="point-check-icon">✓</span>
-              <span>支持完全离线运行本机大模型，邮件内容绝不上云</span>
+
+            <div class="download-tile reveal">
+              <div class="os-badge-icon">🐧</div>
+              <div class="os-title">Linux 版</div>
+              <div class="os-meta">适用于 Ubuntu / Debian / Fedora 等</div>
+              <a
+                href="https://github.com/Moon-Force/oh-ai-email/releases"
+                target="_blank"
+                rel="noreferrer"
+                class="dl-btn"
+              >
+                下载 Linux 产物 (.AppImage / .deb)
+              </a>
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="feature-image-block">
-          <img
-            src="./assets/feature_security.png"
-            alt="账户直连与本地加密存储截图"
-            class="feature-screenshot-img"
-          />
-        </div>
-      </div>
-    </section>
-
-    <!-- Download Matrix -->
-    <section id="download" class="download-section">
-      <h2 class="feature-heading" style="text-align: center; margin-bottom: 0.5rem">
-        立即下载桌面客户端
-      </h2>
-      <p class="feature-paragraph" style="text-align: center; margin-bottom: 0">
-        完全开源免费 (MIT 协议)，选择你的电脑操作系统直接安装体验
-      </p>
-
-      <div class="download-cards-grid">
-        <!-- Windows -->
-        <div class="download-tile">
-          <div class="os-badge-icon">🪟</div>
-          <div class="os-title">Windows 版</div>
-          <div class="os-meta">适用于 Windows 10 / 11</div>
-          <a
-            href="https://github.com/Moon-Force/oh-ai-email/releases"
-            target="_blank"
-            rel="noreferrer"
-            class="btn btn-primary"
-            style="width: 100%"
-          >
-            下载 Windows 安装包 (.exe)
-          </a>
-          <span style="font-size: 0.78rem; color: var(--Labels-Tertiary); margin-top: 0.75rem">
-            一键安装向导 / 绿色便携版
-          </span>
+      <section id="faq" class="block faq-block">
+        <div class="section-head reveal" style="text-align: center">
+          <h2>常见问题</h2>
         </div>
 
-        <!-- macOS -->
-        <div class="download-tile">
-          <div class="os-badge-icon">🍎</div>
-          <div class="os-title">macOS 版</div>
-          <div class="os-meta">支持 M系列芯片 & Intel 芯片</div>
-          <a
-            href="https://github.com/Moon-Force/oh-ai-email/releases"
-            target="_blank"
-            rel="noreferrer"
-            class="btn btn-primary"
-            style="width: 100%"
-          >
-            下载 macOS 镜像 (.dmg)
-          </a>
-          <span style="font-size: 0.78rem; color: var(--Labels-Tertiary); margin-top: 0.75rem">
-            双架构通用 DMG
-          </span>
-        </div>
+        <div class="faq-wrap">
+          <div class="faq-row active">
+            <div class="faq-q">
+              <span>支持哪些邮箱账户？</span>
+              <span class="faq-chevron">▼</span>
+            </div>
+            <div class="faq-a">
+              支持几乎所有常见邮箱！包括 QQ 邮箱、163 网易邮箱、腾讯企业邮、阿里企业邮、Outlook、Gmail
+              以及所有支持标准 IMAP/SMTP 协议的企事业单位邮箱。
+            </div>
+          </div>
 
-        <!-- Linux -->
-        <div class="download-tile">
-          <div class="os-badge-icon">🐧</div>
-          <div class="os-title">Linux 版</div>
-          <div class="os-meta">适用于 Ubuntu / Debian / Fedora 等</div>
-          <a
-            href="https://github.com/Moon-Force/oh-ai-email/releases"
-            target="_blank"
-            rel="noreferrer"
-            class="btn btn-primary"
-            style="width: 100%"
-          >
-            下载 Linux 产物 (.AppImage / .deb)
-          </a>
-          <span style="font-size: 0.78rem; color: var(--Labels-Tertiary); margin-top: 0.75rem">
-            AppImage 单文件 / Deb 安装包
-          </span>
-        </div>
-      </div>
-    </section>
+          <div class="faq-row">
+            <div class="faq-q">
+              <span>我的邮箱密码安全吗？</span>
+              <span class="faq-chevron">▼</span>
+            </div>
+            <div class="faq-a">
+              非常安全。客户端采用直连模式，直接与你的邮件服务商（如腾讯、网易）建立加密连接。密码使用你电脑系统的安全芯片/加密库进行加密存储，不会上传到任何中间服务器。
+            </div>
+          </div>
 
-    <!-- FAQ Accordion -->
-    <section id="faq" class="faq-wrap">
-      <h2 class="feature-heading" style="text-align: center; margin-bottom: 2rem">常见问题解答</h2>
+          <div class="faq-row">
+            <div class="faq-q">
+              <span>AI 会不会在我不知情的情况下自动把邮件发出去？</span>
+              <span class="faq-chevron">▼</span>
+            </div>
+            <div class="faq-a">
+              <strong>绝对不会。</strong> AI
+              生成的回复只会作为建议和草稿放入编辑框中，你可以随时修改、调整或删除，最终必须由你手动点击“发送”按钮才会发出。
+            </div>
+          </div>
 
-      <div class="faq-row active">
-        <div class="faq-q">
-          <span>支持哪些邮箱账户？</span>
-          <span class="faq-chevron">▼</span>
+          <div class="faq-row">
+            <div class="faq-q">
+              <span>可以完全免费使用吗？</span>
+              <span class="faq-chevron">▼</span>
+            </div>
+            <div class="faq-a">
+              是的！oh-ai-email 是基于 MIT
+              协议的完全免费开源软件。你可以自由下载使用、添加多个邮箱账户。如果使用 AI
+              功能，可以直接填入你自己的大模型 Key，也可以搭配本机免费的 Ollama 离线模型使用。
+            </div>
+          </div>
         </div>
-        <div class="faq-a">
-          支持几乎所有常见邮箱！包括 QQ 邮箱、163 网易邮箱、腾讯企业邮、阿里企业邮、Outlook、Gmail
-          以及所有支持标准 IMAP/SMTP 协议的企事业单位邮箱。
-        </div>
-      </div>
+      </section>
+    </main>
 
-      <div class="faq-row">
-        <div class="faq-q">
-          <span>我的邮箱密码安全吗？</span>
-          <span class="faq-chevron">▼</span>
-        </div>
-        <div class="faq-a">
-          非常安全。客户端采用直连模式，直接与你的邮件服务商（如腾讯、网易）建立加密连接。密码使用你电脑系统的安全芯片/加密库进行加密存储，不会上传到任何中间服务器。
-        </div>
-      </div>
-
-      <div class="faq-row">
-        <div class="faq-q">
-          <span>AI 会不会在我不知情的情况下自动把邮件发出去？</span>
-          <span class="faq-chevron">▼</span>
-        </div>
-        <div class="faq-a">
-          <strong>绝对不会。</strong> AI
-          生成的回复只会作为建议和草稿放入编辑框中，你可以随时修改、调整或删除，最终必须由你手动点击“发送”按钮才会发出。
-        </div>
-      </div>
-
-      <div class="faq-row">
-        <div class="faq-q">
-          <span>可以完全免费使用吗？</span>
-          <span class="faq-chevron">▼</span>
-        </div>
-        <div class="faq-a">
-          是的！oh-ai-email 是基于 MIT
-          协议的完全免费开源软件。你可以自由下载使用、添加多个邮箱账户。如果使用 AI
-          功能，可以直接填入你自己的大模型 Key，也可以搭配本机免费的 Ollama 离线模型使用。
-        </div>
-      </div>
-    </section>
-
-    <!-- Footer -->
     <footer class="site-footer">
-      <div>© 2026 <strong>oh-ai-email</strong> · Moon-Force. 遵循 MIT 开源协议.</div>
-      <div class="footer-nav">
-        <a href="https://github.com/Moon-Force/oh-ai-email" target="_blank" rel="noreferrer"
-          >GitHub 源码</a
-        >
-        <a
-          href="https://github.com/Moon-Force/oh-ai-email/releases"
-          target="_blank"
-          rel="noreferrer"
-          >版本发布</a
-        >
-        <a href="https://github.com/Moon-Force/oh-ai-email/issues" target="_blank" rel="noreferrer"
-          >问题反馈</a
-        >
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="#top">
+            <span class="brand-mark" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+              </svg>
+            </span>
+            <span class="brand-name">oh-ai-email</span>
+          </a>
+          <div class="copy">
+            Copyright © 2026 oh-ai-email · Moon-Force
+            <br />Co-created with Lumen AI
+          </div>
+          <div class="socials">
+            <a
+              class="social-btn"
+              href="https://github.com/Moon-Force/oh-ai-email"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+                ></path>
+                <path d="M9 18c-4.51 2-5-2-7-2"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="footer-cols">
+          <div class="footer-col">
+            <h4>产品</h4>
+            <a href="#download">桌面客户端</a>
+            <a
+              href="https://github.com/Moon-Force/oh-ai-email/releases"
+              target="_blank"
+              rel="noreferrer"
+              >版本发布</a
+            >
+            <a
+              href="https://github.com/Moon-Force/oh-ai-email"
+              target="_blank"
+              rel="noreferrer"
+              >GitHub 仓库</a
+            >
+          </div>
+          <div class="footer-col">
+            <h4>功能</h4>
+            <a href="#features">AI 读写助手</a>
+            <a href="#features">稍后处理</a>
+            <a href="#features">发信守门人</a>
+            <a href="#features">隐私与安全</a>
+          </div>
+          <div class="footer-col">
+            <h4>关于我们</h4>
+            <a
+              href="https://github.com/Moon-Force/oh-ai-email/blob/main/LICENSE"
+              target="_blank"
+              rel="noreferrer"
+              >开源协议</a
+            >
+            <a
+              href="https://github.com/Moon-Force/oh-ai-email/issues"
+              target="_blank"
+              rel="noreferrer"
+              >问题反馈</a
+            >
+            <a
+              href="https://github.com/Moon-Force/oh-ai-email/blob/main/SECURITY.md"
+              target="_blank"
+              rel="noreferrer"
+              >安全政策</a
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-legal">
+        <span>© 2026 oh-ai-email · Moon-Force</span>
+        <span>|</span>
+        <span>遵循 MIT 开源协议</span>
+        <span>|</span>
+        <span>邮箱密码与数据 100% 保存在本机</span>
       </div>
     </footer>
 

@@ -1,24 +1,25 @@
-// Theme switcher
-const themeBtn = document.getElementById("theme-toggle");
-let currentTheme = localStorage.getItem("theme") || "dark";
-document.documentElement.setAttribute("data-theme", currentTheme);
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-function updateThemeIcon() {
-  if (themeBtn) {
-    themeBtn.textContent = currentTheme === "dark" ? "☀️" : "🌙";
-  }
-}
-updateThemeIcon();
+const menuBtn = $("#menu-btn");
+const menuOverlay = $("#menu-overlay");
 
-themeBtn?.addEventListener("click", () => {
-  currentTheme = currentTheme === "dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme", currentTheme);
-  localStorage.setItem("theme", currentTheme);
-  updateThemeIcon();
+menuBtn?.addEventListener("click", () => {
+  const open = menuOverlay?.classList.toggle("open");
+  menuBtn.classList.toggle("open", !!open);
+  menuBtn.setAttribute("aria-expanded", String(!!open));
+  menuOverlay?.setAttribute("aria-hidden", String(!open));
 });
 
-// Dynamic Rotating Prompt Bar (Natural, everyday work prompts)
-const promptSuggestions = [
+menuOverlay?.querySelectorAll("a").forEach((a) =>
+  a.addEventListener("click", () => {
+    menuOverlay.classList.remove("open");
+    menuBtn.classList.remove("open");
+    menuBtn.setAttribute("aria-expanded", "false");
+  }),
+);
+
+const prompts = [
   "帮我总结这封长邮件的核心要点，并列出我需要完成的待办事项",
   "帮我用诚恳、专业的语气写一封商务合作确认回信",
   "把这封海外客户的英文需求邮件翻译成中文，并生成地道英文回复",
@@ -26,31 +27,44 @@ const promptSuggestions = [
   "帮我将这封重要的邮件推迟到明天上午 9 点再提醒我处理",
 ];
 
+const promptEl = $("#hero-prompt-text");
+const heroInput = $("#hero-input");
+const heroSend = $("#hero-send");
 let promptIdx = 0;
-const promptTextEl = document.getElementById("hero-prompt-text");
 
-function cyclePrompt() {
-  if (!promptTextEl) return;
-  const targetText = promptSuggestions[promptIdx];
-  let charIdx = 0;
-  promptTextEl.textContent = "";
+function typePrompt() {
+  if (!promptEl) return;
+  const target = prompts[promptIdx];
+  let i = 0;
+  promptEl.textContent = "";
+  heroInput?.classList.remove("has-text");
 
-  const typeTimer = setInterval(() => {
-    if (charIdx < targetText.length) {
-      promptTextEl.textContent += targetText.charAt(charIdx);
-      charIdx++;
-    } else {
-      clearInterval(typeTimer);
+  const timer = setInterval(() => {
+    i++;
+    promptEl.textContent = target.slice(0, i);
+    if (i >= target.length) {
+      clearInterval(timer);
+      heroInput?.classList.add("has-text");
       setTimeout(() => {
-        promptIdx = (promptIdx + 1) % promptSuggestions.length;
-        cyclePrompt();
-      }, 3500);
+        promptIdx = (promptIdx + 1) % prompts.length;
+        setTimeout(typePrompt, 1000);
+      }, 3800);
     }
-  }, 35);
+  }, 45);
 }
-cyclePrompt();
 
-// Realistic Everyday Scenarios
+typePrompt();
+
+const scrollToDownload = () =>
+  $("#download")?.scrollIntoView({ behavior: "smooth" });
+
+heroSend?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  scrollToDownload();
+});
+
+heroInput?.addEventListener("click", scrollToDownload);
+
 const scenarios = {
   project: {
     sender: "张经理 (产品研发部) <zhang.pm@company.com>",
@@ -130,26 +144,22 @@ let currentScenarioKey = "project";
 let currentActionKey = "summary";
 let isThinkingEnabled = true;
 
-const threadItems = document.querySelectorAll(".thread-item");
-const readerTitle = document.getElementById("reader-subject-text");
-const readerMeta = document.getElementById("reader-meta-text");
-const readerBody = document.getElementById("reader-body-text");
-
-const agentChips = document.querySelectorAll(".agent-chip");
-const thinkingPanel = document.getElementById("thinking-panel");
-const outputBox = document.getElementById("copilot-output");
-const thinkToggle = document.getElementById("toggle-think");
-
+const threadItems = $$(".thread-item");
+const readerTitle = $("#reader-subject-text");
+const readerMeta = $("#reader-meta-text");
+const readerBody = $("#reader-body-text");
+const agentChips = $$(".agent-chip");
+const thinkingPanel = $("#thinking-panel");
+const outputBox = $("#copilot-output");
+const thinkToggle = $("#toggle-think");
 let typingTimer = null;
 
 function renderCurrentScenario() {
   const data = scenarios[currentScenarioKey];
   if (!data) return;
-
   if (readerTitle) readerTitle.textContent = data.title;
   if (readerMeta) readerMeta.textContent = `发件人：${data.sender} · ${data.time}`;
   if (readerBody) readerBody.textContent = data.body;
-
   triggerAction(currentActionKey);
 }
 
@@ -158,7 +168,6 @@ function triggerAction(action) {
   const data = scenarios[currentScenarioKey];
   const aiData = data.aiOutputs[action] || data.aiOutputs.summary;
 
-  // Thinking panel
   if (isThinkingEnabled && thinkingPanel) {
     thinkingPanel.textContent = aiData.think;
     thinkingPanel.classList.add("active");
@@ -166,7 +175,6 @@ function triggerAction(action) {
     thinkingPanel.classList.remove("active");
   }
 
-  // Stream output
   if (typingTimer) clearInterval(typingTimer);
   if (!outputBox) return;
   outputBox.textContent = "";
@@ -208,18 +216,27 @@ thinkToggle?.addEventListener("change", (e) => {
   triggerAction(currentActionKey);
 });
 
-// FAQ Accordion
-const faqRows = document.querySelectorAll(".faq-row");
+const faqRows = $$(".faq-row");
 faqRows.forEach((row) => {
   const q = row.querySelector(".faq-q");
   q?.addEventListener("click", () => {
     const isActive = row.classList.contains("active");
     faqRows.forEach((r) => r.classList.remove("active"));
-    if (!isActive) {
-      row.classList.add("active");
-    }
+    if (!isActive) row.classList.add("active");
   });
 });
 
-// Init
+const revealObserver = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in");
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  },
+  { threshold: 0.12 },
+);
+$$(".reveal").forEach((el) => revealObserver.observe(el));
+
 renderCurrentScenario();
