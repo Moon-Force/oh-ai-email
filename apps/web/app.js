@@ -243,11 +243,22 @@ function initHeroLens() {
   tg.fillRect(0, 0, TEX_W, TEX_H);
   tg.font = `700 ${FONT_PX}px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
   tg.textBaseline = "middle";
-  tg.filter = "blur(12px)";
-  tg.fillStyle = "rgba(255, 255, 255, 0.6)";
   const label = "oh-ai-email";
   const tw = tg.measureText(label).width;
-  tg.fillText(label, (TEX_W - tw) / 2, TEX_H / 2 + 10);
+  const cx = (TEX_W - tw) / 2;
+  const cy = TEX_H / 2 + 10;
+  tg.filter = "blur(3px)";
+  tg.fillStyle = "rgba(255, 0, 0, 0.25)";
+  tg.fillText(label, cx, cy + 3);
+  tg.fillStyle = "rgba(0, 0, 255, 0.25)";
+  tg.fillText(label, cx, cy - 3);
+  tg.fillStyle = "rgba(255, 255, 255, 0.55)";
+  tg.fillText(label, cx, cy);
+  tg.filter = "none";
+  tg.globalCompositeOperation = "multiply";
+  tg.fillStyle = "rgba(0, 0, 0, 0.5)";
+  for (let y = 0; y < TEX_H; y += 3) tg.fillRect(0, y, TEX_W, 1);
+  tg.globalCompositeOperation = "source-over";
 
   const vsSrc = "attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }";
   const fsSrc = `
@@ -281,20 +292,20 @@ function initHeroLens() {
     void main() {
       vec2 p = gl_FragCoord.xy / uDpr;
       vec3 col;
-      col.r = sampleBg(p, 0.92);
-      col.g = sampleBg(p, 0.94);
-      col.b = sampleBg(p, 0.96);
+      col.r = sampleBg(p, 1.08);
+      col.g = sampleBg(p, 1.12);
+      col.b = sampleBg(p, 1.16);
 
       vec2 rel = p - uCenter;
       float d = length(rel);
       float t = d / uRadius;
-      col *= pow(smoothstep(0.1, 1.0, t), 1.5);
+      col *= 0.3 + 0.7 * smoothstep(0.05, 0.8, t);
 
-      float rimMod = 1.0 + 0.3 * (d > 1e-4 ? -rel.y / d : 0.0);
+      float rimMod = 1.0 + 0.55 * (d > 1e-4 ? -rel.x / d : 0.0);
       float ring = exp(-pow((d - uRadius) / (uRadius * 0.045), 2.0));
       col += vec3(1.0) * ring * 0.55 * rimMod;
       float halo = exp(-max(d - uRadius, 0.0) / (uRadius * 0.55));
-      col += vec3(1.0) * halo * 0.05;
+      col += vec3(1.0) * halo * 0.04;
 
       gl_FragColor = vec4(col, 1.0);
     }
