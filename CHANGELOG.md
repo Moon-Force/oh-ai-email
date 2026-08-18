@@ -4,6 +4,39 @@
 
 ---
 
+## [Unreleased] · `feat/calendar` — 本地日历、通讯录与邮件跨功能联动
+
+> 分支：`feat/calendar`（待合入 `main` 发 v0.2.0+）。全量本地优先、零云依赖；与 `main` 的差异见 `git diff main --stat`（约 60 文件 · 8k+ 行新增）。
+
+### 日历套件 (Calendar)
+
+- **四视图日历**：`MonthView` / `WeekView` / `DayView` / `AgendaView` + 统一工具栏（`CalendarView`）支持 `month|week|day|agenda` 切换与周期导航（`next/prev/goToday`）。
+- **标准 ICS 互通**：`electron/calendar/service.ts` 实现 `exportEventsToIcs` / `parseIcsContent` / `importIcsEvents`（RFC 5545，`VCALENDAR/VEVENT`，支持折叠行与缺 `DTEND` 默认 +1h）。
+- **日程编辑**：`EventDialog` 三态（新建/编辑/查看）支持标题/时间/分类/颜色/地点/状态/参与人/重复/提醒。
+- **提醒调度器**：`electron/calendar/scheduler.ts` 在 `main.ts` 启动，30s 轮询 `getUpcomingReminders(now, 60s)`，到期触发 `Notification`，点击通过 `calendar:open-event` 深链到日程。
+- **IPC**：`calendar:list/get/create/update/delete/importIcs/exportIcs/exportIcsDialog` + 事件 `calendar:open-event`；`src/lib/ipc.ts` 与 `preload.ts` 完整透出。
+
+### 通讯录套件 (Contacts)
+
+- **三栏通讯录**：`ContactsView` 左分类/标签侧栏 + 中搜索列表（星标优先） + 右详情；`ContactDetail` / `ContactDialog` / `VcfImportDialog` / `ContactHarvesterDialog` 四组件。
+- **标准 VCF 互通**：`electron/contacts/service.ts` 实现 `exportContactsToVcf` / `parseVcfContent` / `importVcfContacts`（vCard 3.0，`FN/N/EMAIL/TEL/ORG/TITLE/NOTE/CATEGORIES`，按邮箱去重合并标签）。
+- **智能收割**：`harvestContactsFromMessages(limit)` 聚合 `messages.from_addr` 去重、排除已入库邮箱，按 `lastDateMs` 排序返回候选，一键入库。
+- **IPC**：`contacts:list/get/create/update/delete/toggleStar/harvest/importVcf/exportVcf/*Dialog` 全链路贯通。
+
+### 跨功能联动 (Mail ↔ Calendar/Contacts)
+
+- **读信 → 日历**：`Reader` 顶部「转为日程」按钮 + `.ics` 附件检测横幅（`Paper` + `一键写入日历`）→ `useCalendarStore.openCreateDialog({ sourceMessageId })`。
+- **读信 → 通讯录**：发件人行「+ 加为联系人」芯片（发件人不在库时展示）→ `useContactsStore.openCreateDialog({ name/email })`。
+- **写信 → 自动补全**：`Composer` 收件人/抄送 `Autocomplete freeSolo` 以 `contacts` 为 `options`，支持手输未入库邮箱。
+- **壳层联动**：`Sidebar` 新增日历/通讯录三视图导航（`todayEvents()` 今日计数 `Badge` / `contacts.length`），`App.tsx` `folderTitle` 三态与 `onCalendarOpenEvent` 提醒回链；`electron/main.ts` 启停 `CalendarScheduler`。
+
+### AI / 语音 / 存储
+
+- **语音本地链路**：`voiceService.ts` 新增云端优先逻辑——`sttService === "custom"` 且有麦克风权限时走 `MediaRecorder` / MiMo WAV 直采 → `ai:transcribeAudio`，兜底 `Web Speech API`；`speakText` 云端优先走 `ai:synthesizeSpeech` → `Audio` 播放。
+- **存储**：`db.ts` 新增 `calendar_events` / `contacts` 两表及 `agent_*`/`drafts`/`custom_skills`/`attachments` 的索引与迁移；`ipc.ts` 新增日历/通讯录/AI 语音全量 `handle`。
+
+---
+
 ## [0.2.0] - 2026-08-17
 
 ### 🚀 智能体架构升级与生态赋能：Pi Agent · MCP 协议 · 黑曜石碳暗色系统
