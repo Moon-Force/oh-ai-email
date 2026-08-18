@@ -840,9 +840,7 @@ body {
 
 @keyframes grid-flow {
   to {
-    background-position:
-      0 0,
-      0 72px;
+    transform: perspective(420px) rotateX(58deg) translateY(72px);
   }
 }
 

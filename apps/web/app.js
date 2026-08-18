@@ -247,9 +247,9 @@ function initHeroUnicorn() {
   UnicornStudio.addScene({
     filePath: "hero-scene.json",
     element: host,
-    fps: 60,
-    dpi: 1.5,
-    scale: 1,
+    fps: 30,
+    dpi: 1,
+    scale: 0.75,
     altText: "oh-ai-email 动态背景",
     ariaLabel: "oh-ai-email 动态背景",
   }).catch(fail);
