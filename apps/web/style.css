@@ -154,7 +154,7 @@ body {
   align-items: center;
   justify-content: flex-end;
   text-align: center;
-  padding: 0 1.5rem 4vh;
+  padding: 0 1.5rem 2.5vh;
   overflow: hidden;
 }
 
@@ -175,6 +175,17 @@ body {
   position: absolute;
   inset: 0;
   display: none;
+}
+
+.hero-stage::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 65%;
+  background: linear-gradient(to bottom, transparent, var(--bg) 30%);
+  pointer-events: none;
 }
 
 .no-webgl .hero-fallback {
