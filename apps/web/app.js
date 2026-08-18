@@ -216,188 +216,46 @@ thinkToggle?.addEventListener("change", (e) => {
   triggerAction(currentActionKey);
 });
 
-function initHeroLens() {
-  const canvas = document.getElementById("hero-canvas");
-  const stage = canvas?.parentElement;
-  if (!canvas || !stage) return;
+function initHeroUnicorn() {
+  const stage = document.querySelector(".hero-stage");
+  const host = document.getElementById("hero-unicorn");
+  if (!stage || !host) return;
 
-  const gl = canvas.getContext("webgl", {
-    antialias: false,
-    alpha: false,
-    powerPreference: "high-performance",
-  });
-  if (!gl) {
-    stage.classList.add("no-webgl");
-    canvas.remove();
+  const fail = () => stage.classList.add("no-webgl");
+
+  if (typeof UnicornStudio === "undefined") {
+    fail();
     return;
   }
 
-  const TEX_W = 2048;
-  const TEX_H = 512;
-  const FONT_PX = 320;
-  const texCanvas = document.createElement("canvas");
-  texCanvas.width = TEX_W;
-  texCanvas.height = TEX_H;
-  const tg = texCanvas.getContext("2d");
-  tg.fillStyle = "#000";
-  tg.fillRect(0, 0, TEX_W, TEX_H);
-  tg.font = `700 ${FONT_PX}px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
-  tg.textBaseline = "middle";
-  const label = "oh-ai-email";
-  const tw = tg.measureText(label).width;
-  const cx = (TEX_W - tw) / 2;
-  const cy = TEX_H / 2 + 10;
-  tg.filter = "blur(3px)";
-  tg.fillStyle = "rgba(255, 0, 0, 0.25)";
-  tg.fillText(label, cx, cy + 3);
-  tg.fillStyle = "rgba(0, 0, 255, 0.25)";
-  tg.fillText(label, cx, cy - 3);
-  tg.fillStyle = "rgba(255, 255, 255, 0.55)";
-  tg.fillText(label, cx, cy);
-  tg.filter = "none";
-  tg.globalCompositeOperation = "multiply";
-  tg.fillStyle = "rgba(0, 0, 0, 0.5)";
-  for (let y = 0; y < TEX_H; y += 3) tg.fillRect(0, y, TEX_W, 1);
-  tg.globalCompositeOperation = "source-over";
-
-  const vsSrc = "attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }";
-  const fsSrc = `
-    precision highp float;
-    uniform float uDpr;
-    uniform float uTime;
-    uniform float uSpeed;
-    uniform vec2  uCenter;
-    uniform float uRadius;
-    uniform float uTile;
-    uniform float uBandH;
-    uniform sampler2D uTex;
-
-    vec2 lensSrc(vec2 p, float power) {
-      vec2 rel = p - uCenter;
-      float d = length(rel);
-      float t = d / uRadius;
-      if (t >= 1.0) return p;
-      float srcD = uRadius / pow(max(t, 0.03), power);
-      vec2 dir = d > 1e-4 ? rel / d : vec2(1.0, 0.0);
-      return uCenter + dir * srcD;
-    }
-
-    float sampleBg(vec2 p, float power) {
-      vec2 s = lensSrc(p, power) + vec2(uSpeed * uTime, 0.0);
-      float x = mod(s.x, uTile) / uTile;
-      float y = 0.5 + (s.y - uCenter.y) / uBandH;
-      return texture2D(uTex, vec2(x, y)).r;
-    }
-
-    void main() {
-      vec2 p = gl_FragCoord.xy / uDpr;
-      vec3 col;
-      col.r = sampleBg(p, 1.08);
-      col.g = sampleBg(p, 1.12);
-      col.b = sampleBg(p, 1.16);
-
-      vec2 rel = p - uCenter;
-      float d = length(rel);
-      float t = d / uRadius;
-      col *= 0.3 + 0.7 * smoothstep(0.05, 0.8, t);
-
-      float rimMod = 1.0 + 0.55 * (d > 1e-4 ? -rel.x / d : 0.0);
-      float ring = exp(-pow((d - uRadius) / (uRadius * 0.045), 2.0));
-      col += vec3(1.0) * ring * 0.55 * rimMod;
-      float halo = exp(-max(d - uRadius, 0.0) / (uRadius * 0.55));
-      col += vec3(1.0) * halo * 0.04;
-
-      gl_FragColor = vec4(col, 1.0);
-    }
-  `;
-
-  function compile(type, src) {
-    const sh = gl.createShader(type);
-    gl.shaderSource(sh, src);
-    gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      console.error(gl.getShaderInfoLog(sh));
-      return null;
-    }
-    return sh;
-  }
-
-  const vs = compile(gl.VERTEX_SHADER, vsSrc);
-  const fs = compile(gl.FRAGMENT_SHADER, fsSrc);
-  if (!vs || !fs) {
-    stage.classList.add("no-webgl");
-    canvas.remove();
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    fail();
     return;
   }
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    stage.classList.add("no-webgl");
-    canvas.remove();
+
+  let webgl2 = false;
+  try {
+    webgl2 = !!document.createElement("canvas").getContext("webgl2");
+  } catch {
+    webgl2 = false;
+  }
+  if (!webgl2) {
+    fail();
     return;
   }
-  gl.useProgram(prog);
 
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const aPos = gl.getAttribLocation(prog, "aPos");
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texCanvas);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.activeTexture(gl.TEXTURE0);
-  gl.uniform1i(gl.getUniformLocation(prog, "uTex"), 0);
-
-  const U = {
-    dpr: gl.getUniformLocation(prog, "uDpr"),
-    time: gl.getUniformLocation(prog, "uTime"),
-    speed: gl.getUniformLocation(prog, "uSpeed"),
-    center: gl.getUniformLocation(prog, "uCenter"),
-    radius: gl.getUniformLocation(prog, "uRadius"),
-    tile: gl.getUniformLocation(prog, "uTile"),
-    band: gl.getUniformLocation(prog, "uBandH"),
-  };
-
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = stage.clientWidth;
-    const h = stage.clientHeight;
-    canvas.width = Math.max(1, Math.round(w * dpr));
-    canvas.height = Math.max(1, Math.round(h * dpr));
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    const scale = Math.min(0.17 * w, 190) / FONT_PX;
-    gl.uniform1f(U.dpr, dpr);
-    gl.uniform2f(U.center, w / 2, h * 0.37);
-    gl.uniform1f(U.radius, Math.min(0.36 * Math.min(w, h), 320));
-    gl.uniform1f(U.tile, TEX_W * scale);
-    gl.uniform1f(U.band, TEX_H * scale);
-    gl.uniform1f(U.speed, reduced ? 0 : (TEX_W * scale) / 45);
-  }
-  resize();
-  window.addEventListener("resize", resize);
-
-  const t0 = performance.now();
-  (function frame(now) {
-    gl.uniform1f(U.time, (now - t0) / 1000);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    requestAnimationFrame(frame);
-  })(t0);
+  UnicornStudio.addScene({
+    filePath: "hero-scene.json",
+    element: host,
+    fps: 60,
+    dpi: 1.5,
+    scale: 1,
+    altText: "oh-ai-email 动态背景",
+    ariaLabel: "oh-ai-email 动态背景",
+  }).catch(fail);
 }
 
-initHeroLens();
+initHeroUnicorn();
 
 const faqRows = $$(".faq-row");
 faqRows.forEach((row) => {
