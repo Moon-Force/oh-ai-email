@@ -831,6 +831,61 @@ body {
   line-height: 1.6;
 }
 
+/* ===== Feature staggered reveal ===== */
+.feature-badge-label,
+.feature-heading,
+.feature-paragraph {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.7s var(--ease-out),
+    transform 0.7s var(--ease-out);
+}
+
+.feature-showcase-row.in .feature-badge-label {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.05s;
+}
+
+.feature-showcase-row.in .feature-heading {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.14s;
+}
+
+.feature-showcase-row.in .feature-paragraph {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.24s;
+}
+
+.feature-point-item {
+  opacity: 0;
+  transform: translateX(-16px);
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.6s var(--ease-out);
+}
+
+.feature-showcase-row.in .feature-point-item:nth-child(1) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.36s;
+}
+
+.feature-showcase-row.in .feature-point-item:nth-child(2) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.48s;
+}
+
+.feature-showcase-row.in .feature-point-item:nth-child(3) {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.6s;
+}
+
 .feature-image-block {
   position: relative;
   display: flex;
@@ -1116,6 +1171,70 @@ body {
   color: var(--text-3);
 }
 
+/* ===== Custom cursor ===== */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+}
+
+body.cursor-visible .cursor-dot,
+body.cursor-visible .cursor-ring {
+  opacity: 1;
+}
+
+html.custom-cursor,
+html.custom-cursor * {
+  cursor: none !important;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--text-1);
+  transition:
+    opacity 0.3s ease,
+    width 0.25s var(--ease-out),
+    height 0.25s var(--ease-out);
+}
+
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transition:
+    opacity 0.3s ease,
+    width 0.25s var(--ease-out),
+    height 0.25s var(--ease-out),
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+body.cursor-hover .cursor-dot {
+  width: 9px;
+  height: 9px;
+}
+
+body.cursor-hover .cursor-ring {
+  width: 56px;
+  height: 56px;
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}
+
 /* ===== Reveal on scroll ===== */
 .reveal {
   opacity: 0;
@@ -1145,5 +1264,14 @@ body {
   .grid-floor,
   .hero-cursor {
     animation: none;
+  }
+
+  .feature-badge-label,
+  .feature-heading,
+  .feature-paragraph,
+  .feature-point-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

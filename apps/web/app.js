@@ -280,4 +280,52 @@ const revealObserver = new IntersectionObserver(
 );
 $$(".reveal").forEach((el) => revealObserver.observe(el));
 
+const cursorDot = $(".cursor-dot");
+const cursorRing = $(".cursor-ring");
+if (
+  cursorDot &&
+  cursorRing &&
+  window.matchMedia("(pointer: fine)").matches
+) {
+  document.documentElement.classList.add("custom-cursor");
+  const snap = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let mx = -100;
+  let my = -100;
+  let rx = -100;
+  let ry = -100;
+  let moved = false;
+
+  document.addEventListener("mousemove", (e) => {
+    mx = e.clientX;
+    my = e.clientY;
+    cursorDot.style.transform = `translate(${mx - cursorDot.offsetWidth / 2}px, ${my - cursorDot.offsetHeight / 2}px)`;
+    if (!moved) {
+      moved = true;
+      rx = mx;
+      ry = my;
+      document.body.classList.add("cursor-visible");
+    }
+  });
+
+  document.documentElement.addEventListener("mouseleave", () => {
+    document.body.classList.remove("cursor-visible");
+  });
+
+  const hoverSelector =
+    "a, button, [role='button'], input, label, .thread-item, .faq-q";
+  document.addEventListener("mouseover", (e) => {
+    const interactive = e.target.closest(hoverSelector);
+    document.body.classList.toggle("cursor-hover", !!interactive);
+  });
+
+  const trackRing = () => {
+    const k = snap ? 1 : 0.16;
+    rx += (mx - rx) * k;
+    ry += (my - ry) * k;
+    cursorRing.style.transform = `translate(${rx - cursorRing.offsetWidth / 2}px, ${ry - cursorRing.offsetHeight / 2}px)`;
+    requestAnimationFrame(trackRing);
+  };
+  requestAnimationFrame(trackRing);
+}
+
 renderCurrentScenario();
