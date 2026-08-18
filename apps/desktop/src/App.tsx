@@ -23,6 +23,8 @@ import ConnectionBanner from "./features/shell/ConnectionBanner";
 import Composer from "./features/composer/Composer";
 import Settings from "./features/settings/Settings";
 import AddAccount from "./features/accounts/AddAccount";
+import CalendarView from "./features/calendar/CalendarView";
+import ContactsView from "./features/contacts/ContactsView";
 import PaneTransition from "./features/shell/PaneTransition";
 import AppToast from "./features/shell/AppToast";
 import ErrorBoundary from "./features/shell/ErrorBoundary";
@@ -163,17 +165,25 @@ export default function App() {
   }, [syncIntervalMin, accounts.length, syncNow]);
 
   const folderTitle =
-    activeFolderId === "inbox"
-      ? "收件箱"
-      : activeFolderId === "snoozed"
-        ? "稍后处理"
-        : activeFolderId === "sent"
-          ? "已发送"
-          : activeFolderId === "drafts"
-            ? "草稿"
-            : activeFolderId === "archive"
-              ? "归档"
-              : "垃圾箱";
+    view === "calendar"
+      ? "日历日程"
+      : view === "contacts"
+        ? "通讯录"
+        : view === "settings"
+          ? "设置中心"
+          : view === "add-account"
+            ? "添加账户"
+            : activeFolderId === "inbox"
+              ? "收件箱"
+              : activeFolderId === "snoozed"
+                ? "稍后处理"
+                : activeFolderId === "sent"
+                  ? "已发送"
+                  : activeFolderId === "drafts"
+                    ? "草稿"
+                    : activeFolderId === "archive"
+                      ? "归档"
+                      : "垃圾箱";
 
   /** Top-level surface: settings / account / compose / mail */
   const surfaceKey = composeOpen ? "compose" : view;
@@ -355,6 +365,10 @@ export default function App() {
                           onAdded={() => setView("mail")}
                         />
                       </Box>
+                    ) : view === "calendar" ? (
+                      <CalendarView />
+                    ) : view === "contacts" ? (
+                      <ContactsView />
                     ) : (
                       <Box sx={{ display: "flex", height: "100%", minHeight: 0 }}>
                         <Box

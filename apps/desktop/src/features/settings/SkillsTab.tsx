@@ -15,7 +15,6 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
-  Grid,
   IconButton,
   Snackbar,
   Stack,
@@ -158,9 +157,20 @@ export default function SkillsTab(): React.ReactElement {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Top Banner & Header */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
+          >
             <ExtensionIcon color="primary" /> 智能体技能生态 (Skills Ecosystem)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -181,11 +191,32 @@ export default function SkillsTab(): React.ReactElement {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         {skills.map((skill) => (
           <Box key={skill.id}>
-            <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <Card
+              variant="outlined"
+              sx={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
               <CardContent>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
-                    <SmartToyIcon fontSize="small" color={skill.isCustom ? "secondary" : "primary"} />
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    mb: 1,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
+                  >
+                    <SmartToyIcon
+                      fontSize="small"
+                      color={skill.isCustom ? "secondary" : "primary"}
+                    />
                     {skill.name}
                   </Typography>
                   <Chip
@@ -200,16 +231,28 @@ export default function SkillsTab(): React.ReactElement {
                 </Typography>
 
                 <Box sx={{ mb: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mb: 0.5 }}
+                  >
                     允许调用的工具：
                   </Typography>
                   <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
                     {skill.allowedTools && skill.allowedTools.length > 0 ? (
                       skill.allowedTools.map((t) => (
-                        <Chip key={t} label={t} size="small" variant="outlined" sx={{ fontSize: 11 }} />
+                        <Chip
+                          key={t}
+                          label={t}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontSize: 11 }}
+                        />
                       ))
                     ) : (
-                      <Typography variant="caption" color="text.secondary">无工具限制</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        无工具限制
+                      </Typography>
                     )}
                   </Stack>
                 </Box>
@@ -217,7 +260,12 @@ export default function SkillsTab(): React.ReactElement {
                 {skill.tags && skill.tags.length > 0 && (
                   <Stack direction="row" spacing={0.5} sx={{ mt: 1 }}>
                     {skill.tags.map((tag) => (
-                      <Chip key={tag} label={`#${tag}`} size="small" sx={{ fontSize: 10, height: 20 }} />
+                      <Chip
+                        key={tag}
+                        label={`#${tag}`}
+                        size="small"
+                        sx={{ fontSize: 10, height: 20 }}
+                      />
                     ))}
                   </Stack>
                 )}
@@ -258,8 +306,13 @@ export default function SkillsTab(): React.ReactElement {
       {/* Model Context Protocol (MCP) Integration Section */}
       <Card variant="outlined" sx={{ bgcolor: "background.paper", mt: 2 }}>
         <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
+            >
               <HubIcon color="secondary" /> Model Context Protocol (MCP) 邮件服务
             </Typography>
             <Button
@@ -272,11 +325,13 @@ export default function SkillsTab(): React.ReactElement {
             </Button>
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            oh-ai-email 内置标准 MCP 协议端点。你可以将本地邮件检索、未读概览和草稿拟定能力暴露给 Claude Desktop、Cursor 或自定义智能体。
+            oh-ai-email 内置标准 MCP 协议端点。你可以将本地邮件检索、未读概览和草稿拟定能力暴露给
+            Claude Desktop、Cursor 或自定义智能体。
           </Typography>
 
           <Alert severity="info" sx={{ mb: 2 }}>
-            <strong>安全红线承诺</strong>：MCP 服务仅提供邮件只读检索与本地草稿创建能力，<strong>绝不暴露无监督直接发送邮件接口</strong>。
+            <strong>安全红线承诺</strong>：MCP 服务仅提供邮件只读检索与本地草稿创建能力，
+            <strong>绝不暴露无监督直接发送邮件接口</strong>。
           </Alert>
 
           <Box
@@ -349,7 +404,11 @@ export default function SkillsTab(): React.ReactElement {
                       onChange={() => toggleTool(tool.id)}
                     />
                   }
-                  label={<Typography variant="body2">{tool.label} (<code>{tool.id}</code>)</Typography>}
+                  label={
+                    <Typography variant="body2">
+                      {tool.label} (<code>{tool.id}</code>)
+                    </Typography>
+                  }
                 />
               ))}
             </FormGroup>

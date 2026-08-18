@@ -29,7 +29,8 @@ describe("Compaction Module", () => {
   });
 
   it("compacts historical messages when exceeding token budget", async () => {
-    const longText = "这是一段非常冗长的邮件历史背景讨论，包含了大量详细技术细节和历史决策过程。".repeat(20);
+    const longText =
+      "这是一段非常冗长的邮件历史背景讨论，包含了大量详细技术细节和历史决策过程。".repeat(20);
     const messages: MessageToCompact[] = [
       { role: "user", content: longText },
       { role: "assistant", content: "收到，已了解上述技术细节。" },

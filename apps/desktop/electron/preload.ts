@@ -217,8 +217,35 @@ const api = {
   aiProbeCloud: (): Promise<{ ok: true } | { ok: false; error: string; code?: string }> =>
     ipcRenderer.invoke("ai:probeCloud"),
 
+  aiSaveProfile: (payload: {
+    id?: string;
+    name: string;
+    baseUrl: string;
+    model: string;
+    apiKey?: string;
+    reasoningEffort?: "low" | "medium" | "high";
+    maxTokens?: number;
+    timeoutSeconds?: number;
+  }): Promise<{ profile: { id: string; name: string }; settings: unknown }> =>
+    ipcRenderer.invoke("ai:saveProfile", payload),
+
+  aiDeleteProfile: (id: string): Promise<{ ok: boolean; settings: unknown }> =>
+    ipcRenderer.invoke("ai:deleteProfile", id),
+
+  aiSetActiveProfile: (id: string | null): Promise<unknown> =>
+    ipcRenderer.invoke("ai:setActiveProfile", id),
+
+  aiSetProfileApiKey: (id: string, apiKey: string): Promise<unknown> =>
+    ipcRenderer.invoke("ai:setProfileApiKey", id, apiKey),
+
   aiListModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
     ipcRenderer.invoke("ai:listModels"),
+
+  aiListSttModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
+    ipcRenderer.invoke("ai:listSttModels"),
+
+  aiListTtsModels: (): Promise<{ ok: boolean; models: string[]; error?: string }> =>
+    ipcRenderer.invoke("ai:listTtsModels"),
 
   aiQueryBalance: (): Promise<AiBalanceResult> => ipcRenderer.invoke("ai:queryBalance"),
 
@@ -369,6 +396,45 @@ const api = {
   },
 
   agentAbort: (requestId: string): Promise<boolean> => ipcRenderer.invoke("agent:abort", requestId),
+
+  // Calendar
+  calendarList: (startMs?: number, endMs?: number) =>
+    ipcRenderer.invoke("calendar:list", startMs, endMs),
+  calendarGet: (id: string) => ipcRenderer.invoke("calendar:get", id),
+  calendarCreate: (payload: any) => ipcRenderer.invoke("calendar:create", payload),
+  calendarUpdate: (id: string, patch: any) => ipcRenderer.invoke("calendar:update", id, patch),
+  calendarDelete: (id: string) => ipcRenderer.invoke("calendar:delete", id),
+  calendarImportIcs: (icsContent: string) => ipcRenderer.invoke("calendar:importIcs", icsContent),
+  calendarExportIcs: (eventIds?: string[]) => ipcRenderer.invoke("calendar:exportIcs", eventIds),
+  calendarExportIcsDialog: (eventIds?: string[]) =>
+    ipcRenderer.invoke("calendar:exportIcsDialog", eventIds),
+  onCalendarOpenEvent: (
+    callback: (payload: { eventId: string; sourceMessageId?: string }) => void
+  ) => {
+    const handler = (
+      _e: Electron.IpcRendererEvent,
+      data: { eventId: string; sourceMessageId?: string }
+    ) => callback(data);
+    ipcRenderer.on("calendar:open-event", handler);
+    return () => {
+      ipcRenderer.removeListener("calendar:open-event", handler);
+    };
+  },
+
+  // Contacts
+  contactsList: (filter?: { query?: string; tag?: string; starredOnly?: boolean }) =>
+    ipcRenderer.invoke("contacts:list", filter),
+  contactsGet: (id: string) => ipcRenderer.invoke("contacts:get", id),
+  contactsCreate: (payload: any) => ipcRenderer.invoke("contacts:create", payload),
+  contactsUpdate: (id: string, patch: any) => ipcRenderer.invoke("contacts:update", id, patch),
+  contactsDelete: (id: string) => ipcRenderer.invoke("contacts:delete", id),
+  contactsToggleStar: (id: string) => ipcRenderer.invoke("contacts:toggleStar", id),
+  contactsHarvest: (limit?: number) => ipcRenderer.invoke("contacts:harvest", limit),
+  contactsImportVcf: (vcfContent: string) => ipcRenderer.invoke("contacts:importVcf", vcfContent),
+  contactsExportVcf: (contactIds?: string[]) =>
+    ipcRenderer.invoke("contacts:exportVcf", contactIds),
+  contactsExportVcfDialog: (contactIds?: string[]) =>
+    ipcRenderer.invoke("contacts:exportVcfDialog", contactIds),
 };
 
 export type AgentType =

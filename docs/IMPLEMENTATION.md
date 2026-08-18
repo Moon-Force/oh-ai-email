@@ -272,6 +272,50 @@
 
 ---
 
+## 阶段 9：三期 — 增强与生态（探索）
+
+| ID  | 任务                                    | 状态 |
+| --- | --------------------------------------- | ---- |
+| 9.1 | JMAP 支持                               | [ ]  |
+| 9.2 | 附件预览与安全下载中心                  | [x]  |
+| 9.3 | 日历轻集成                              | [x]  |
+| 9.4 | Agent 工作流（用户确认后的批量操作）    | [x]  |
+| 9.5 | 插件 / MCP 工具暴露（搜邮、摘要）       | [x]  |
+| 9.6 | 设置/标签多设备同步（不含强制上传全文） | [ ]  |
+
+---
+
+## 阶段 10：一期增强 — 日历、通讯录与跨功能联动（`feat/calendar`）
+
+**目标**：在 MVP 之上补齐本地套件与邮件的显式联动，零云依赖、可离线使用。
+
+| ID    | 任务                                                        | 产出 / 验收                                                                                   | 状态 |
+| ----- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---- |
+| 10.1  | SQLite `calendar_events` 模型与迁移                         | `db.ts:migrate()` 建表 + 索引 `idx_calendar_start/remind/source_msg`                        | [x]  |
+| 10.2  | RFC 5545 ICS 服务（导入 / 导出 / 解析）                     | `electron/calendar/service.ts`：`exportEventsToIcs` / `parseIcsContent` / `importIcsEvents` | [x]  |
+| 10.3  | 日历调度器与原生提醒                                        | `electron/calendar/scheduler.ts` 30s 轮询 + `Notification` 点击深链 `calendar:open-event`   | [x]  |
+| 10.4  | 日历 IPC 通道                                               | `calendar:list/get/create/update/delete/importIcs/exportIcs/exportIcsDialog` + `calendar:open-event` 事件 | [x]  |
+| 10.5  | 日历 UI 四视图（月 / 周 / 日 / 清单）+ 工具栏                | `CalendarView` / `MonthView` / `WeekView` / `DayView` / `AgendaView` + 视图切换与周期导航   | [x]  |
+| 10.6  | 日程编辑对话框（新建 / 编辑 / 查看三态）                    | `EventDialog`：标题/时间/分类/颜色/地点/状态/参与人/重复/提醒                               | [x]  |
+| 10.7  | ICS 导入对话框                                              | `IcsImportDialog`：粘贴/文件导入，展示导入计数                                              | [x]  |
+| 10.8  | 日历 Zustand Store                                          | `calendarStore.ts`：`loadEvents/saveEvent/removeEvent/importIcs/exportIcs/todayEvents` 等   | [x]  |
+| 10.9  | SQLite `contacts` 模型与迁移                                | `db.ts:migrate()` 建表 + 索引 `email/name/starred` + `avatarColor` 确定性配色              | [x]  |
+| 10.10 | vCard 3.0 VCF 服务（导入 / 导出 / 解析）                    | `electron/contacts/service.ts`：`exportContactsToVcf` / `parseVcfContent` / `importVcfContacts` | [x]  |
+| 10.11 | 通讯录智能收割（邮件发件人聚合）                            | `harvestContactsFromMessages(limit)`：按发件人聚合去重，排除已入库，按 `lastDateMs` 排序    | [x]  |
+| 10.12 | 通讯录 IPC 通道                                             | `contacts:list/get/create/update/delete/toggleStar/harvest/importVcf/exportVcf/*Dialog`     | [x]  |
+| 10.13 | 通讯录 UI（三栏：分类/列表/详情）                           | `ContactsView` + `ContactDetail` + `ContactDialog` + `VcfImportDialog` + `ContactHarvesterDialog` | [x]  |
+| 10.14 | 通讯录 Store 与标签/星标/搜索                               | `contactsStore.ts`：`filteredContacts/allTags/getSelectedContact/importHarvestedContact`   | [x]  |
+| 10.15 | 跨功能：读信 → 日历（转为日程 / ICS 横幅一键写入）          | `Reader.tsx` 顶部「转为日程」+ ICS 附件横幅 `Paper` + `useCalendarStore.openCreateDialog`   | [x]  |
+| 10.16 | 跨功能：读信 → 通讯录（+ 加为联系人）                       | `Reader.tsx` 发件人行「+ 加为联系人」芯片，`useContactsStore.openCreateDialog`              | [x]  |
+| 10.17 | 跨功能：写信收件人/抄送自动补全                             | `Composer.tsx` `Autocomplete freeSolo` 以 `contacts` 为 `options`                           | [x]  |
+| 10.18 | 侧栏与顶栏联动（日历/通讯录入口 + 今日日程 Badge）          | `Sidebar.tsx` 三视图导航 + `App.tsx` `folderTitle` 三态 + `todayEvents()` 计数              | [x]  |
+| 10.19 | 生命流程与 IPC 集成（`main.ts` 调度器启停）                 | `main.ts` `startCalendarScheduler/stopCalendarScheduler` + `preload.ts` / `src/lib/ipc.ts` 完整封装 | [x]  |
+| 10.20 | 单测覆盖（日历/通讯录 Store + ICS/VCF 解析）                | `calendar.test.ts` / `contacts.test.ts` / `CalendarView.test.tsx` / `ContactsView.test.tsx` | [x]  |
+
+**阶段 10 完成标准**：本地日历四视图可增删改查、ICS 标准互通、到期原生提醒可点击回链；通讯录可增删改查、标签/星标/VCF 互通、邮件一键收割；读信与写信与两套件显式联动；`feat/calendar` 分支可跑 `pnpm -C apps/desktop dev` 验证全链路。
+
+---
+
 ## 文档维护
 
 | 何时         | 做什么                                    |
@@ -280,5 +324,6 @@
 | 重大决策变更 | 同步改 PRODUCT.md / ARCHITECTURE.md       |
 | 发版         | IMPLEMENTATION 顶部可加「当前版本：vX.Y」 |
 
-**当前版本目标**：v0.1.0 Desktop MVP（Spark 向）  
-**当前进度**：阶段 0 文档部分完成；代码脚手架未开始。
+**当前版本目标**：v0.2.0+ Desktop（Spark 向 + 本地日历/通讯录 + 跨功能联动）  
+**当前分支**：`feat/calendar`（基于 `main` 的 10.1–10.20 增量）  
+**当前进度**：阶段 0–7 已完成并发布 v0.1.0；阶段 9 的 9.2–9.5 已随 `feat/calendar` 与 v0.2.0 提前达成；阶段 10 日历/通讯录/联动已在 `feat/calendar` 完成待合入 `main`。

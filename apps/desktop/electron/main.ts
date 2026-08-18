@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { registerIpc } from "./ipc";
 import { destroyTray, initTray } from "./tray";
 import { startIdleManager, stopIdleManager } from "./mail/idle";
+import { startCalendarScheduler, stopCalendarScheduler } from "./calendar/scheduler";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -71,6 +72,7 @@ function createWindow() {
   });
 
   void startIdleManager(win);
+  startCalendarScheduler(win);
 }
 
 app.whenReady().then(async () => {
@@ -85,6 +87,7 @@ app.whenReady().then(async () => {
 app.on("before-quit", () => {
   (app as unknown as { isQuitting: boolean }).isQuitting = true;
   void stopIdleManager();
+  stopCalendarScheduler();
   destroyTray();
 });
 

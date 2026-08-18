@@ -10,7 +10,7 @@
 | [ARCHITECTURE.md](./ARCHITECTURE.md)                     | 技术栈、分层架构、数据流与 AI 路由设计                        |
 | [AI_TODO.md](./AI_TODO.md)                               | **AI 冻结决策 + Wave TODO**（权威清单）                       |
 | [AGENT_WORKFLOW.md](./AGENT_WORKFLOW.md)                 | **Agent 流与工作流规范**：HITL 安全门、沙箱工具、双层流式     |
-| [IMPLEMENTATION.md](./IMPLEMENTATION.md)                 | **实施名单**：分阶段任务、验收标准、交付状态（全阶段完成）    |
+| [IMPLEMENTATION.md](./IMPLEMENTATION.md)                 | **实施名单**：分阶段任务、验收标准、交付状态（含 `feat/calendar` 阶段 10 增量） |
 | [DISTRIBUTION.md](./DISTRIBUTION.md)                     | **分发与打包**：跨平台安装包构建、签名与 GitHub Actions CI/CD |
 | [DESIGN.md](./DESIGN.md)                                 | **UI 规范**：MUI Material UI + 布局/文案/无障碍               |
 | [../apps/desktop/src/theme/](../apps/desktop/src/theme/) | MUI 主题源码（`createAppTheme`）                              |
@@ -29,6 +29,6 @@
 | 一期端 | 桌面 Win / macOS / Linux                                     |
 | 二期端 | iOS / Android / 鸿蒙                                         |
 | AI     | 混合：云端默认 + 本机 Ollama 可选                            |
-| 栈     | Electron + React/TS + **MUI** + Node.js/TS 邮件核心 + SQLite |
+| 栈     | Electron + React/TS + **MUI** + Node.js/TS 邮件核心 + SQLite（`messages/contacts/calendar_events`） |
 
 从 [IMPLEMENTATION.md](./IMPLEMENTATION.md) 按阶段推进；UI 以 [DESIGN.md](./DESIGN.md) 与 MUI 主题代码为准。

@@ -73,17 +73,22 @@ oh-ai-email/
 ├── apps/
 │   └── desktop/               # Electron + React + TypeScript + MUI 桌面端主应用
 │       ├── electron/          # 主进程代码 (IPC 通信、安全存储 safeStorage、AI 服务、邮件同步与解析)
-│       │   └── ai/            # AI 核心 (Providers 适配器、Prompt 工程、Agent 引擎与工具沙箱)
-│       │       └── agent/     # 智能体引擎 (engine, tools, types, 调度器)
+│       │   ├── ai/            # AI 核心 (Providers 适配器、Prompt 工程、Agent 引擎与工具沙箱)
+│       │   │   └── agent/     # 智能体引擎 (engine, tools, types, 调度器)
+│       │   ├── calendar/      # 日历服务 (RFC 5545 ICS 导入导出) + 提醒调度器 (scheduler)
+│       │   ├── contacts/      # 通讯录服务 (vCard 导入导出、智能收割 harvest)
+│       │   └── mail/          # 邮件同步 (sync/IMAP/SMTP)、IDLE 推信、附件落盘
 │       └── src/               # 渲染进程前端 UI
 │           ├── features/      # 按业务域自包含模块 (UI 组件 + Store + 单测)
 │           │   ├── accounts/  # 账户管理与认证
 │           │   ├── ai/        # AI 胶囊 (LumenCapsule)、Agent 抽屉 (AgentDrawer)、路由与审计
-│           │   ├── composer/  # 写信编辑器、附件、语音听写
-│           │   ├── mail/      # 邮件列表、邮件详情、搜索
+│           │   ├── calendar/  # 日历视图 (Month/Week/Day/Agenda)、EventDialog、ICS 导入导出、Zustand Store
+│           │   ├── composer/  # 写信编辑器、附件、语音听写、联系人自动补全
+│           │   ├── contacts/  # 通讯录 (列表/详情/标签/星标、VCF 导入导出、邮件收割)
+│           │   ├── mail/      # 邮件列表、邮件详情 (Reader 跨功能入口)、搜索
 │           │   ├── settings/  # 设置中心 (AI Provider 预设、拉取模型、余额查询)
-│           │   ├── voice/     # Web Speech STT 语音识别与 TTS 朗读
-│           │   └── shell/     # 主界面框架与侧边栏
+│           │   ├── voice/     # Web Speech STT 语音识别与 TTS 朗读 (含 MiMo WAV 直采)
+│           │   └── shell/     # 主界面框架与侧边栏 (邮件/日历/通讯录三视图导航)
 │           ├── theme/         # MUI 主题源 (createAppTheme.ts, AppThemeProvider.tsx)
 │           └── lib/           # IPC 客户端安全封装 (ipc.ts) 与公用工具
 ├── docs/                      # 权威设计、架构与 TODO 规范文档

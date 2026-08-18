@@ -152,13 +152,9 @@ export async function runAgentWorkflow(
     if (agentType === "translate") {
       const isChineseSource =
         (contextBody.match(/[\u4e00-\u9fa5]/g) || []).length >
-        (contextBody.replace(/\s/g, "").length * 0.15);
+        contextBody.replace(/\s/g, "").length * 0.15;
       const targetLang =
-        typeof context.targetLang === "string"
-          ? context.targetLang
-          : isChineseSource
-            ? "en"
-            : "zh";
+        typeof context.targetLang === "string" ? context.targetLang : isChineseSource ? "en" : "zh";
 
       systemPrompt = `You are a professional executive email translator.
 Translate the provided email text directly into ${targetLang === "zh" ? "Simplified Chinese (简体中文)" : "English"}.
@@ -564,7 +560,8 @@ Generate ONLY the rewritten text without explanations.`;
 
     return proposalData;
   } catch (err: unknown) {
-    const isAbort = controller.signal.aborted || (err instanceof Error && err.name === "AbortError");
+    const isAbort =
+      controller.signal.aborted || (err instanceof Error && err.name === "AbortError");
     const errorEvt: AgentErrorEvent = {
       type: "error",
       code: isAbort ? "ABORTED" : "AGENT_EXECUTION_FAILED",

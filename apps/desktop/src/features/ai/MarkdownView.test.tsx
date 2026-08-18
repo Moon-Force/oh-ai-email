@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import MarkdownView, { renderInlineMarkdown } from "./MarkdownView";
+import MarkdownView from "./MarkdownView";
 
 describe("MarkdownView Component", () => {
   it("renders headers and paragraph content cleanly", () => {

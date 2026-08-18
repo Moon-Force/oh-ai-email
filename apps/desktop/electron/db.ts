@@ -167,7 +167,9 @@ function migrate() {
       created_at INTEGER NOT NULL
     );
   `);
-  d.run(`CREATE INDEX IF NOT EXISTS idx_agent_messages_session ON agent_messages(session_id, created_at ASC);`);
+  d.run(
+    `CREATE INDEX IF NOT EXISTS idx_agent_messages_session ON agent_messages(session_id, created_at ASC);`
+  );
 
   d.run(`
     CREATE TABLE IF NOT EXISTS drafts (
@@ -206,6 +208,61 @@ function migrate() {
     );
   `);
   d.run(`CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments(message_id);`);
+
+  d.run(`
+    CREATE TABLE IF NOT EXISTS calendar_events (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      location TEXT,
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      start_ms INTEGER NOT NULL,
+      end_ms INTEGER NOT NULL,
+      all_day INTEGER NOT NULL DEFAULT 0,
+      category TEXT NOT NULL DEFAULT 'meeting',
+      color TEXT NOT NULL DEFAULT '#2563eb',
+      status TEXT NOT NULL DEFAULT 'confirmed',
+      attendees_json TEXT,
+      source_message_id TEXT,
+      source_message_subject TEXT,
+      ics_uid TEXT,
+      recurrence TEXT DEFAULT 'none',
+      remind_minutes_before INTEGER DEFAULT 15,
+      is_reminded INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+  d.run(`CREATE INDEX IF NOT EXISTS idx_calendar_start ON calendar_events(start_ms);`);
+  d.run(
+    `CREATE INDEX IF NOT EXISTS idx_calendar_remind ON calendar_events(start_ms, is_reminded);`
+  );
+  d.run(
+    `CREATE INDEX IF NOT EXISTS idx_calendar_source_msg ON calendar_events(source_message_id);`
+  );
+
+  d.run(`
+    CREATE TABLE IF NOT EXISTS contacts (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      secondary_emails_json TEXT,
+      phone TEXT,
+      company TEXT,
+      job_title TEXT,
+      avatar_color TEXT,
+      notes TEXT,
+      tags_json TEXT,
+      is_starred INTEGER NOT NULL DEFAULT 0,
+      last_contacted_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+  d.run(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);`);
+  d.run(`CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(name);`);
+  d.run(`CREATE INDEX IF NOT EXISTS idx_contacts_starred ON contacts(is_starred);`);
 }
 
 function getDb(): SqlJsDatabase {
@@ -451,8 +508,12 @@ export function searchMessagesFts(query: string, accountId?: string): MessageRec
   const d = getDb();
   const pattern = `%${query.trim()}%`;
   const stmt = accountId
-    ? d.prepare(`SELECT * FROM messages WHERE account_id = ? AND (subject LIKE ? OR snippet LIKE ? OR from_addr LIKE ? OR from_name LIKE ?) ORDER BY date_ms DESC;`)
-    : d.prepare(`SELECT * FROM messages WHERE subject LIKE ? OR snippet LIKE ? OR from_addr LIKE ? OR from_name LIKE ? ORDER BY date_ms DESC;`);
+    ? d.prepare(
+        `SELECT * FROM messages WHERE account_id = ? AND (subject LIKE ? OR snippet LIKE ? OR from_addr LIKE ? OR from_name LIKE ?) ORDER BY date_ms DESC;`
+      )
+    : d.prepare(
+        `SELECT * FROM messages WHERE subject LIKE ? OR snippet LIKE ? OR from_addr LIKE ? OR from_name LIKE ? ORDER BY date_ms DESC;`
+      );
   if (accountId) {
     stmt.bind([accountId, pattern, pattern, pattern, pattern]);
   } else {
@@ -621,7 +682,9 @@ export function createAgentSession(session: AgentSessionRecord): void {
 export function listAgentSessions(): AgentSessionRecord[] {
   const d = getDb();
   const rows = rowsFrom(
-    d.prepare(`SELECT id, title, skill_id, created_at, updated_at, compacted_summary FROM agent_sessions ORDER BY updated_at DESC;`)
+    d.prepare(
+      `SELECT id, title, skill_id, created_at, updated_at, compacted_summary FROM agent_sessions ORDER BY updated_at DESC;`
+    )
   );
   return rows.map((r) => ({
     id: String(r.id),
@@ -635,7 +698,9 @@ export function listAgentSessions(): AgentSessionRecord[] {
 
 export function getAgentSession(id: string): AgentSessionRecord | null {
   const d = getDb();
-  const stmt = d.prepare(`SELECT id, title, skill_id, created_at, updated_at, compacted_summary FROM agent_sessions WHERE id = ?;`);
+  const stmt = d.prepare(
+    `SELECT id, title, skill_id, created_at, updated_at, compacted_summary FROM agent_sessions WHERE id = ?;`
+  );
   stmt.bind([id]);
   if (!stmt.step()) {
     stmt.free();
@@ -744,7 +809,9 @@ export function saveCustomSkill(skill: CustomSkillDbRecord): void {
 
 export function listCustomSkills(): CustomSkillDbRecord[] {
   const d = getDb();
-  const stmt = d.prepare(`SELECT id, name, description, allowed_tools, system_prompt, tags, created_at, updated_at FROM custom_skills ORDER BY updated_at DESC;`);
+  const stmt = d.prepare(
+    `SELECT id, name, description, allowed_tools, system_prompt, tags, created_at, updated_at FROM custom_skills ORDER BY updated_at DESC;`
+  );
   const rows: CustomSkillDbRecord[] = [];
   while (stmt.step()) {
     const r = stmt.getAsObject();
@@ -779,7 +846,9 @@ export function listCustomSkills(): CustomSkillDbRecord[] {
 
 export function getCustomSkill(id: string): CustomSkillDbRecord | null {
   const d = getDb();
-  const stmt = d.prepare(`SELECT id, name, description, allowed_tools, system_prompt, tags, created_at, updated_at FROM custom_skills WHERE id = ?;`);
+  const stmt = d.prepare(
+    `SELECT id, name, description, allowed_tools, system_prompt, tags, created_at, updated_at FROM custom_skills WHERE id = ?;`
+  );
   stmt.bind([id]);
   if (!stmt.step()) {
     stmt.free();
@@ -856,7 +925,9 @@ export function upsertDraft(draft: DraftRecord): void {
 
 export function getDraft(id: string): DraftRecord | null {
   const d = getDb();
-  const stmt = d.prepare(`SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts WHERE id = ?;`);
+  const stmt = d.prepare(
+    `SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts WHERE id = ?;`
+  );
   stmt.bind([id]);
   if (!stmt.step()) {
     stmt.free();
@@ -878,8 +949,12 @@ export function getDraft(id: string): DraftRecord | null {
 export function listDrafts(accountId?: string): DraftRecord[] {
   const d = getDb();
   const stmt = accountId
-    ? d.prepare(`SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts WHERE account_id = ? ORDER BY updated_at DESC;`)
-    : d.prepare(`SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts ORDER BY updated_at DESC;`);
+    ? d.prepare(
+        `SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts WHERE account_id = ? ORDER BY updated_at DESC;`
+      )
+    : d.prepare(
+        `SELECT id, account_id, to_addr, subject, body, reply_to_message_id, updated_at FROM drafts ORDER BY updated_at DESC;`
+      );
   if (accountId) {
     stmt.bind([accountId]);
   }
@@ -906,5 +981,539 @@ export function deleteDraft(id: string): void {
   persist();
 }
 
+// -----------------------------------------------------------------------------
+// Calendar Events Database Operations
+// -----------------------------------------------------------------------------
 
+export type CalendarEventCategory = "meeting" | "work" | "personal" | "reminder" | "travel";
 
+export type CalendarEventRecord = {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  startTime: string;
+  endTime: string;
+  startMs: number;
+  endMs: number;
+  allDay: boolean;
+  category: CalendarEventCategory;
+  color: string;
+  status: "confirmed" | "tentative" | "cancelled";
+  attendees: string[];
+  sourceMessageId?: string;
+  sourceMessageSubject?: string;
+  icsUid?: string;
+  recurrence: "none" | "daily" | "weekly" | "monthly";
+  remindMinutesBefore: number;
+  isReminded: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+function rowToCalendarEvent(r: Record<string, unknown>): CalendarEventRecord {
+  let attendees: string[] = [];
+  if (typeof r.attendees_json === "string" && r.attendees_json.trim()) {
+    try {
+      attendees = JSON.parse(r.attendees_json);
+    } catch {
+      attendees = [];
+    }
+  }
+  return {
+    id: String(r.id),
+    title: String(r.title),
+    description: r.description != null ? String(r.description) : undefined,
+    location: r.location != null ? String(r.location) : undefined,
+    startTime: String(r.start_time),
+    endTime: String(r.end_time),
+    startMs: Number(r.start_ms),
+    endMs: Number(r.end_ms),
+    allDay: Number(r.all_day) === 1,
+    category: (String(r.category) as CalendarEventCategory) || "meeting",
+    color: String(r.color || "#2563eb"),
+    status: (String(r.status) as "confirmed" | "tentative" | "cancelled") || "confirmed",
+    attendees,
+    sourceMessageId: r.source_message_id != null ? String(r.source_message_id) : undefined,
+    sourceMessageSubject:
+      r.source_message_subject != null ? String(r.source_message_subject) : undefined,
+    icsUid: r.ics_uid != null ? String(r.ics_uid) : undefined,
+    recurrence: (String(r.recurrence) as "none" | "daily" | "weekly" | "monthly") || "none",
+    remindMinutesBefore: r.remind_minutes_before != null ? Number(r.remind_minutes_before) : 15,
+    isReminded: Number(r.is_reminded) === 1,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+  };
+}
+
+export function createCalendarEvent(
+  event: Omit<CalendarEventRecord, "id" | "createdAt" | "updatedAt"> & {
+    id?: string;
+    createdAt?: number;
+    updatedAt?: number;
+  }
+): CalendarEventRecord {
+  const d = getDb();
+  const id = event.id || `evt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const now = Date.now();
+  const createdAt = event.createdAt || now;
+  const updatedAt = event.updatedAt || now;
+
+  d.run(
+    `INSERT INTO calendar_events (
+      id, title, description, location, start_time, end_time, start_ms, end_ms,
+      all_day, category, color, status, attendees_json, source_message_id, source_message_subject,
+      ics_uid, recurrence, remind_minutes_before, is_reminded, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+    [
+      id,
+      event.title,
+      event.description ?? null,
+      event.location ?? null,
+      event.startTime,
+      event.endTime,
+      event.startMs,
+      event.endMs,
+      event.allDay ? 1 : 0,
+      event.category || "meeting",
+      event.color || "#2563eb",
+      event.status || "confirmed",
+      JSON.stringify(event.attendees || []),
+      event.sourceMessageId ?? null,
+      event.sourceMessageSubject ?? null,
+      event.icsUid ?? null,
+      event.recurrence || "none",
+      event.remindMinutesBefore ?? 15,
+      event.isReminded ? 1 : 0,
+      createdAt,
+      updatedAt,
+    ]
+  );
+  persist();
+  return getCalendarEventById(id)!;
+}
+
+export function updateCalendarEvent(
+  id: string,
+  patch: Partial<CalendarEventRecord>
+): CalendarEventRecord | null {
+  const existing = getCalendarEventById(id);
+  if (!existing) return null;
+
+  const d = getDb();
+  const updated: CalendarEventRecord = {
+    ...existing,
+    ...patch,
+    updatedAt: Date.now(),
+  };
+
+  // If time or reminder changed, reset isReminded if startMs is in future
+  const isReminded =
+    patch.startMs !== undefined || patch.remindMinutesBefore !== undefined
+      ? (patch.isReminded ?? false)
+      : patch.isReminded !== undefined
+        ? patch.isReminded
+        : existing.isReminded;
+
+  d.run(
+    `UPDATE calendar_events SET
+      title = ?, description = ?, location = ?, start_time = ?, end_time = ?,
+      start_ms = ?, end_ms = ?, all_day = ?, category = ?, color = ?, status = ?,
+      attendees_json = ?, source_message_id = ?, source_message_subject = ?,
+      ics_uid = ?, recurrence = ?, remind_minutes_before = ?, is_reminded = ?, updated_at = ?
+    WHERE id = ?;`,
+    [
+      updated.title,
+      updated.description ?? null,
+      updated.location ?? null,
+      updated.startTime,
+      updated.endTime,
+      updated.startMs,
+      updated.endMs,
+      updated.allDay ? 1 : 0,
+      updated.category,
+      updated.color,
+      updated.status,
+      JSON.stringify(updated.attendees || []),
+      updated.sourceMessageId ?? null,
+      updated.sourceMessageSubject ?? null,
+      updated.icsUid ?? null,
+      updated.recurrence,
+      updated.remindMinutesBefore,
+      isReminded ? 1 : 0,
+      updated.updatedAt,
+      id,
+    ]
+  );
+  persist();
+  return getCalendarEventById(id);
+}
+
+export function deleteCalendarEvent(id: string): boolean {
+  const d = getDb();
+  d.run(`DELETE FROM calendar_events WHERE id = ?;`, [id]);
+  persist();
+  return true;
+}
+
+export function getCalendarEventById(id: string): CalendarEventRecord | null {
+  const d = getDb();
+  const stmt = d.prepare(`SELECT * FROM calendar_events WHERE id = ?;`);
+  stmt.bind([id]);
+  if (!stmt.step()) {
+    stmt.free();
+    return null;
+  }
+  const r = stmt.getAsObject();
+  stmt.free();
+  return rowToCalendarEvent(r);
+}
+
+export function listCalendarEvents(startMs?: number, endMs?: number): CalendarEventRecord[] {
+  const d = getDb();
+  let sql = `SELECT * FROM calendar_events`;
+  const params: unknown[] = [];
+
+  if (startMs !== undefined && endMs !== undefined) {
+    sql += ` WHERE (end_ms >= ? AND start_ms <= ?)`;
+    params.push(startMs, endMs);
+  } else if (startMs !== undefined) {
+    sql += ` WHERE end_ms >= ?`;
+    params.push(startMs);
+  } else if (endMs !== undefined) {
+    sql += ` WHERE start_ms <= ?`;
+    params.push(endMs);
+  }
+
+  sql += ` ORDER BY start_ms ASC, all_day DESC;`;
+  const stmt = d.prepare(sql);
+  if (params.length > 0) {
+    stmt.bind(params);
+  }
+
+  const events: CalendarEventRecord[] = [];
+  while (stmt.step()) {
+    events.push(rowToCalendarEvent(stmt.getAsObject()));
+  }
+  stmt.free();
+  return events;
+}
+
+export function getUpcomingReminders(nowMs: number, lookaheadMs = 60_000): CalendarEventRecord[] {
+  const d = getDb();
+  // Events where remindMinutesBefore >= 0 and not yet reminded
+  // target reminder timestamp = start_ms - (remind_minutes_before * 60000)
+  // Check if reminder timestamp is <= nowMs + lookaheadMs and start_ms >= nowMs - 300000 (not expired more than 5 min ago)
+  const stmt = d.prepare(`
+    SELECT * FROM calendar_events
+    WHERE is_reminded = 0
+      AND remind_minutes_before >= 0
+      AND (start_ms - (remind_minutes_before * 60000)) <= ?
+      AND start_ms >= ?
+    ORDER BY start_ms ASC;
+  `);
+  stmt.bind([nowMs + lookaheadMs, nowMs - 300_000]);
+
+  const events: CalendarEventRecord[] = [];
+  while (stmt.step()) {
+    events.push(rowToCalendarEvent(stmt.getAsObject()));
+  }
+  stmt.free();
+  return events;
+}
+
+export function markCalendarEventReminded(id: string): void {
+  const d = getDb();
+  d.run(`UPDATE calendar_events SET is_reminded = 1 WHERE id = ?;`, [id]);
+  persist();
+}
+
+// -----------------------------------------------------------------------------
+// Contacts Database Operations
+// -----------------------------------------------------------------------------
+
+export type ContactRecord = {
+  id: string;
+  name: string;
+  email: string;
+  secondaryEmails: string[];
+  phone?: string;
+  company?: string;
+  jobTitle?: string;
+  avatarColor?: string;
+  notes?: string;
+  tags: string[];
+  isStarred: boolean;
+  lastContactedAt?: number;
+  createdAt: number;
+  updatedAt: number;
+};
+
+const AVATAR_COLORS = [
+  "#2563EB", // Blue
+  "#7C3AED", // Violet
+  "#DB2777", // Pink
+  "#EA580C", // Orange
+  "#16A34A", // Green
+  "#0D9488", // Teal
+  "#0284C7", // Sky
+  "#4F46E5", // Indigo
+];
+
+export function getDeterministicAvatarColor(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
+
+function rowToContact(r: Record<string, unknown>): ContactRecord {
+  let secondaryEmails: string[] = [];
+  if (typeof r.secondary_emails_json === "string" && r.secondary_emails_json.trim()) {
+    try {
+      secondaryEmails = JSON.parse(r.secondary_emails_json);
+    } catch {
+      secondaryEmails = [];
+    }
+  }
+
+  let tags: string[] = [];
+  if (typeof r.tags_json === "string" && r.tags_json.trim()) {
+    try {
+      tags = JSON.parse(r.tags_json);
+    } catch {
+      tags = [];
+    }
+  }
+
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    email: String(r.email),
+    secondaryEmails,
+    phone: r.phone != null ? String(r.phone) : undefined,
+    company: r.company != null ? String(r.company) : undefined,
+    jobTitle: r.job_title != null ? String(r.job_title) : undefined,
+    avatarColor: r.avatar_color != null ? String(r.avatar_color) : undefined,
+    notes: r.notes != null ? String(r.notes) : undefined,
+    tags,
+    isStarred: Number(r.is_starred) === 1,
+    lastContactedAt: r.last_contacted_at != null ? Number(r.last_contacted_at) : undefined,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+  };
+}
+
+export function createContact(
+  contact: Omit<ContactRecord, "id" | "createdAt" | "updatedAt"> & {
+    id?: string;
+    createdAt?: number;
+    updatedAt?: number;
+  }
+): ContactRecord {
+  const d = getDb();
+  const id = contact.id || `cnt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const now = Date.now();
+  const createdAt = contact.createdAt || now;
+  const updatedAt = contact.updatedAt || now;
+  const avatarColor =
+    contact.avatarColor || getDeterministicAvatarColor(contact.name || contact.email);
+
+  d.run(
+    `INSERT INTO contacts (
+      id, name, email, secondary_emails_json, phone, company, job_title, avatar_color,
+      notes, tags_json, is_starred, last_contacted_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+    [
+      id,
+      contact.name.trim() || contact.email.split("@")[0],
+      contact.email.trim().toLowerCase(),
+      JSON.stringify(contact.secondaryEmails || []),
+      contact.phone?.trim() ?? null,
+      contact.company?.trim() ?? null,
+      contact.jobTitle?.trim() ?? null,
+      avatarColor,
+      contact.notes?.trim() ?? null,
+      JSON.stringify(contact.tags || []),
+      contact.isStarred ? 1 : 0,
+      contact.lastContactedAt ?? null,
+      createdAt,
+      updatedAt,
+    ]
+  );
+  persist();
+  return getContactById(id)!;
+}
+
+export function updateContact(id: string, patch: Partial<ContactRecord>): ContactRecord | null {
+  const existing = getContactById(id);
+  if (!existing) return null;
+
+  const d = getDb();
+  const updated: ContactRecord = {
+    ...existing,
+    ...patch,
+    updatedAt: Date.now(),
+  };
+
+  d.run(
+    `UPDATE contacts SET
+      name = ?, email = ?, secondary_emails_json = ?, phone = ?, company = ?,
+      job_title = ?, avatar_color = ?, notes = ?, tags_json = ?, is_starred = ?,
+      last_contacted_at = ?, updated_at = ?
+    WHERE id = ?;`,
+    [
+      updated.name.trim(),
+      updated.email.trim().toLowerCase(),
+      JSON.stringify(updated.secondaryEmails || []),
+      updated.phone?.trim() ?? null,
+      updated.company?.trim() ?? null,
+      updated.jobTitle?.trim() ?? null,
+      updated.avatarColor || existing.avatarColor,
+      updated.notes?.trim() ?? null,
+      JSON.stringify(updated.tags || []),
+      updated.isStarred ? 1 : 0,
+      updated.lastContactedAt ?? null,
+      updated.updatedAt,
+      id,
+    ]
+  );
+  persist();
+  return getContactById(id);
+}
+
+export function deleteContact(id: string): boolean {
+  const d = getDb();
+  d.run(`DELETE FROM contacts WHERE id = ?;`, [id]);
+  persist();
+  return true;
+}
+
+export function getContactById(id: string): ContactRecord | null {
+  const d = getDb();
+  const stmt = d.prepare(`SELECT * FROM contacts WHERE id = ?;`);
+  stmt.bind([id]);
+  if (!stmt.step()) {
+    stmt.free();
+    return null;
+  }
+  const r = stmt.getAsObject();
+  stmt.free();
+  return rowToContact(r);
+}
+
+export function getContactByEmail(email: string): ContactRecord | null {
+  const d = getDb();
+  const normalized = email.trim().toLowerCase();
+  const stmt = d.prepare(`SELECT * FROM contacts WHERE LOWER(email) = ? LIMIT 1;`);
+  stmt.bind([normalized]);
+  if (!stmt.step()) {
+    stmt.free();
+    return null;
+  }
+  const r = stmt.getAsObject();
+  stmt.free();
+  return rowToContact(r);
+}
+
+export function listContacts(filter?: {
+  query?: string;
+  tag?: string;
+  starredOnly?: boolean;
+}): ContactRecord[] {
+  const d = getDb();
+  let sql = `SELECT * FROM contacts WHERE 1=1`;
+  const params: unknown[] = [];
+
+  if (filter?.starredOnly) {
+    sql += ` AND is_starred = 1`;
+  }
+  if (filter?.tag) {
+    sql += ` AND tags_json LIKE ?`;
+    params.push(`%"${filter.tag}"%`);
+  }
+  if (filter?.query && filter.query.trim()) {
+    const q = `%${filter.query.trim().toLowerCase()}%`;
+    sql += ` AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(company) LIKE ? OR LOWER(notes) LIKE ?)`;
+    params.push(q, q, q, q);
+  }
+
+  sql += ` ORDER BY is_starred DESC, name COLLATE NOCASE ASC;`;
+  const stmt = d.prepare(sql);
+  if (params.length > 0) {
+    stmt.bind(params);
+  }
+
+  const contacts: ContactRecord[] = [];
+  while (stmt.step()) {
+    contacts.push(rowToContact(stmt.getAsObject()));
+  }
+  stmt.free();
+  return contacts;
+}
+
+export function toggleContactStarred(id: string): boolean {
+  const existing = getContactById(id);
+  if (!existing) return false;
+  const newStarred = !existing.isStarred;
+  updateContact(id, { isStarred: newStarred });
+  return newStarred;
+}
+
+export function touchContactLastContacted(email: string, dateMs = Date.now()): void {
+  const existing = getContactByEmail(email);
+  if (existing) {
+    updateContact(existing.id, { lastContactedAt: dateMs });
+  }
+}
+
+/**
+ * Harvest unique sender and recipient email addresses from messages table
+ * that are not yet explicitly saved in contacts.
+ */
+export function harvestContactsFromMessages(limit = 50): Array<{
+  name: string;
+  email: string;
+  count: number;
+  lastDateMs: number;
+}> {
+  const d = getDb();
+  // Aggregate from_addr and from_name
+  const stmt = d.prepare(`
+    SELECT from_addr, from_name, COUNT(*) as msg_count, MAX(date_ms) as latest_date
+    FROM messages
+    WHERE from_addr != '' AND from_addr IS NOT NULL
+    GROUP BY LOWER(from_addr)
+    ORDER BY latest_date DESC
+    LIMIT 200;
+  `);
+
+  const existingContacts = listContacts();
+  const existingEmails = new Set<string>();
+  for (const c of existingContacts) {
+    existingEmails.add(c.email.toLowerCase());
+    for (const sec of c.secondaryEmails) {
+      existingEmails.add(sec.toLowerCase());
+    }
+  }
+
+  const candidates: Array<{ name: string; email: string; count: number; lastDateMs: number }> = [];
+  while (stmt.step()) {
+    const r = stmt.getAsObject();
+    const email = String(r.from_addr || "")
+      .trim()
+      .toLowerCase();
+    const name = String(r.from_name || "").trim() || email.split("@")[0];
+    const count = Number(r.msg_count || 1);
+    const lastDateMs = Number(r.latest_date || Date.now());
+
+    if (email && email.includes("@") && !existingEmails.has(email)) {
+      candidates.push({ name, email, count, lastDateMs });
+      if (candidates.length >= limit) break;
+    }
+  }
+  stmt.free();
+  return candidates;
+}

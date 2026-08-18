@@ -39,4 +39,4 @@ export type MailMessage = {
   attachments?: MailAttachment[];
 };
 
-export type ShellView = "mail" | "settings" | "add-account";
+export type ShellView = "mail" | "settings" | "add-account" | "calendar" | "contacts";

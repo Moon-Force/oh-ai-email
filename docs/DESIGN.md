@@ -50,22 +50,28 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ AppBar：文件夹标题 · 搜索 · 写新邮件 · 主题切换            │
+│ AppBar：视图标题 · 搜索 · 同步 · AI Agent · 写新邮件 · 主题切换          │
 ├──────────┬──────────────────┬───────────────────────────┤
-│ Drawer/  │ Message list     │ Reader                    │
-│ 侧栏     │ （发件人/主题/   │ 主题 · 发件人 · 正文 iframe │
-│ 分箱/    │  摘要/时间）     │ AI 助手面板               │
-│ 邮箱/    │                  │                           │
-│ 设置入口 │                  │                           │
+│ Drawer/  │ Message list     │ Reader / Calendar /       │
+│ 侧栏     │ （发件人/主题/   │ Contacts / Settings       │
+│ 核心视图 │  摘要/时间）     │                           │
+│ 邮件/日历│                  │ Reader: 主题·发件人·正文   │
+│ 通讯录   │                  │  + 转为日程 / +联系人/     │
+│ 分箱/    │                  │  ICS 横幅 · AI 助手面板    │
+│ 邮箱/    │                  │ Calendar: 工具栏 + 四视图  │
+│ 设置入口 │                  │ Contacts: 三栏(分类/列表/  │
+│ 今日日程 │                  │  详情) + VCF/收割          │
 └──────────┴──────────────────┴───────────────────────────┘
 ```
 
 | 区域        | MUI 建议                                                | 说明                                        |
 | ----------- | ------------------------------------------------------- | ------------------------------------------- |
-| 侧栏        | `List` / `ListItemButton` / `ListSubheader`             | 分箱 + 文件夹；选中态用 theme `selected`    |
-| 顶栏        | `AppBar` + `Toolbar`                                    | 搜索 `TextField`，主按钮 `Button contained` |
+| 侧栏        | `List` / `ListItemButton` / `ListSubheader` + `Badge`   | 三视图（邮件/日历/通讯录） + 分箱 + 文件夹；今日日程/未读用 `Badge`，选中态用 theme `selected` |
+| 顶栏        | `AppBar` + `Toolbar`                                    | 视图标题随 `view` 切换；搜索 `TextField`，同步 `IconButton`，`AI Agent` + `写新邮件` 双 CTA |
 | 列表        | `List` + `ListItemButton`                               | 未读可用左边框 / 字重区分                   |
-| 读信        | `Typography` + 沙箱 `iframe`                            | HTML 邮件隔离渲染                           |
+| 读信        | `Typography` + 沙箱 `iframe` + `Paper` 横幅              | HTML 隔离渲染；`转为日程` 按钮、`+ 加为联系人` 芯片、`.ics` 附件横幅均为 `Paper`/`Chip`/`Button` |
+| 日历        | `ToggleButtonGroup` + `ButtonGroup` + 4 视图容器         | 月/周/日/清单切换；导入 `.ics` / 导出 / 新建日程；`EventDialog` 三态 + `IcsImportDialog` |
+| 通讯录      | `List`/`Avatar`/`TextField` 搜索 + 三栏布局             | 左分类/标签、中列表(星标Badge)、右详情；`ContactDialog`/`VcfImportDialog`/`HarvesterDialog` |
 | AI          | `Paper` / `Chip` / `Button` / `CircularProgress`        | 空闲 · 思考 · 展开                          |
 | 设置 / 表单 | `TextField` / `Select` / `Switch` / `ToggleButtonGroup` | 标准 Material 表单                          |
 
@@ -135,10 +141,18 @@
 
 ---
 
-## 7. 自检清单（PR 前）
+## 7. 日历与通讯录视图规范
+
+- 侧栏三视图入口：**邮件 / 日历 / 通讯录**为并列 `ListItemButton`（`selected={view === ...}`），日历显示今日日程数 `Badge`，通讯录显示总人数。
+- 读信跨功能操作：仅在满足条件时展示（发件人不在库 → `+ 加为联系人`；`.ics` 附件 → 顶部横幅），样式为 `outlined` 小按钮/芯片，不抢主操作视觉。
+- 写信自动补全：收件人/抄送均使用 `Autocomplete freeSolo`，`options` 来自通讯录；允许手输未入库邮箱。
+- 日历/通讯录导入导出：均使用 `dialog.showSaveDialog` 落盘文件（`.ics` / `.vcf`），失败仅 Toast 提示，不阻断主流程。
+
+## 8. 自检清单（PR 前）
 
 - [ ] 新 UI 是否用 MUI 组件，而非自造玻璃层？
 - [ ] 明暗主题是否可读？
 - [ ] 主按钮是否 `contained` 且文案为动作词？
 - [ ] AI 是否仍不会自动发送？
+- [ ] 邮件 → 日历/联系人的联动是否为显式点击触发（无后台自动扫描）？
 - [ ] `pnpm -C apps/desktop test` 是否通过？

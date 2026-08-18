@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   AppBar,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -30,6 +31,7 @@ import MicOffIcon from "@mui/icons-material/MicOff";
 import { mailSend, mailSaveDraft, hasDesktopApi } from "../../lib/ipc";
 import { useAccountsStore } from "../accounts/store";
 import { useMailStore } from "../mail/store";
+import { useContactsStore } from "../contacts/contactsStore";
 import type { MailMessage } from "../mail/types";
 import { useToastStore } from "../shell/toastStore";
 import {
@@ -85,6 +87,7 @@ export default function Composer({
   const seedTo = composeSeed?.to ?? initialTo;
   const seedSubject = composeSeed?.subject ?? initialSubject;
   const seedBody = composeSeed?.body ?? initialBody;
+  const contacts = useContactsStore((s) => s.contacts);
 
   const [to, setTo] = useState(seedTo);
   const [cc, setCc] = useState("");
@@ -561,23 +564,47 @@ export default function Composer({
       />
 
       <Stack spacing={1.5} sx={{ p: 2, flex: 1, overflow: "auto", minHeight: 0 }}>
-        <TextField
-          label="收件人"
-          placeholder="添加收件人…"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          fullWidth
-          size="small"
-          slotProps={{ htmlInput: { "aria-label": "收件人" } }}
+        <Autocomplete
+          freeSolo
+          options={contacts.map((c) => ({
+            label: `${c.name} <${c.email}>`,
+            value: c.email,
+            email: c.email,
+          }))}
+          getOptionLabel={(opt) => (typeof opt === "string" ? opt : opt.label)}
+          inputValue={to}
+          onInputChange={(_e, val) => setTo(val)}
+          onChange={(_e, val) => {
+            if (typeof val === "string") setTo(val);
+            else if (val) setTo(val.email);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="收件人"
+              placeholder="输入收件人姓名或邮箱…"
+              fullWidth
+              size="small"
+            />
+          )}
         />
-        <TextField
-          label="抄送"
-          placeholder="可选"
-          value={cc}
-          onChange={(e) => setCc(e.target.value)}
-          fullWidth
-          size="small"
-          slotProps={{ htmlInput: { "aria-label": "抄送" } }}
+        <Autocomplete
+          freeSolo
+          options={contacts.map((c) => ({
+            label: `${c.name} <${c.email}>`,
+            value: c.email,
+            email: c.email,
+          }))}
+          getOptionLabel={(opt) => (typeof opt === "string" ? opt : opt.label)}
+          inputValue={cc}
+          onInputChange={(_e, val) => setCc(val)}
+          onChange={(_e, val) => {
+            if (typeof val === "string") setCc(val);
+            else if (val) setCc(val.email);
+          }}
+          renderInput={(params) => (
+            <TextField {...params} label="抄送" placeholder="可选抄送人…" fullWidth size="small" />
+          )}
         />
         <TextField
           label="主题"

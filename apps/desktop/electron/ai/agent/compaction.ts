@@ -35,17 +35,19 @@ export function estimateTokens(text: string): number {
  */
 export function estimateMessagesTokens(messages: MessageToCompact[]): number {
   return messages.reduce((acc, m) => {
-    return acc + estimateTokens(m.content) + (m.thinkingContent ? estimateTokens(m.thinkingContent) : 0) + 10;
+    return (
+      acc +
+      estimateTokens(m.content) +
+      (m.thinkingContent ? estimateTokens(m.thinkingContent) : 0) +
+      10
+    );
   }, 0);
 }
 
 /**
  * Checks whether message history should be compacted.
  */
-export function shouldCompact(
-  messages: MessageToCompact[],
-  budget: number = 6000
-): boolean {
+export function shouldCompact(messages: MessageToCompact[], budget: number = 6000): boolean {
   if (messages.length <= 4) return false;
   const totalTokens = estimateMessagesTokens(messages);
   return totalTokens > budget;

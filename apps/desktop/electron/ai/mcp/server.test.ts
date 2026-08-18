@@ -38,7 +38,9 @@ describe("Mail MCP Server (Model Context Protocol)", () => {
     expect(res.id).toBe(2);
     expect(res.result.tools.length).toBe(MAIL_MCP_TOOLS.length);
     expect(res.result.tools.some((t: { name: string }) => t.name === "search_messages")).toBe(true);
-    expect(res.result.tools.some((t: { name: string }) => t.name === "create_mail_draft")).toBe(true);
+    expect(res.result.tools.some((t: { name: string }) => t.name === "create_mail_draft")).toBe(
+      true
+    );
   });
 
   it("executes search_messages and get_message_context tool calls", async () => {

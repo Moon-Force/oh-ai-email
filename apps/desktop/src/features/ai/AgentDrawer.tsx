@@ -22,7 +22,6 @@ import {
   StepLabel,
   Stepper,
   TextField,
-  Tooltip,
   Typography,
   Snackbar,
 } from "@mui/material";
@@ -34,7 +33,6 @@ import EventIcon from "@mui/icons-material/Event";
 import ReplyIcon from "@mui/icons-material/Reply";
 import LabelIcon from "@mui/icons-material/Label";
 import StarIcon from "@mui/icons-material/Star";
-import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -269,7 +267,11 @@ export default function AgentDrawer() {
                 label="智能分箱"
                 size="small"
                 clickable
-                color={selectedSkillId === "smart_sorter" || selectedSkillId === "batch_triage" ? "primary" : "default"}
+                color={
+                  selectedSkillId === "smart_sorter" || selectedSkillId === "batch_triage"
+                    ? "primary"
+                    : "default"
+                }
                 onClick={() => {
                   selectSkill("smart_sorter");
                   setAgentType("smart_sorter");
@@ -485,7 +487,11 @@ export default function AgentDrawer() {
                   </Typography>
                 </Stack>
                 <IconButton size="small">
-                  {showThinking ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                  {showThinking ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
                 </IconButton>
               </Box>
 
@@ -529,7 +535,11 @@ export default function AgentDrawer() {
                   </Typography>
                 </Stack>
                 <IconButton size="small">
-                  {showLog ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                  {showLog ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
                 </IconButton>
               </Box>
 
@@ -690,13 +700,7 @@ export default function AgentDrawer() {
   );
 }
 
-function ProposalItemCard({
-  item,
-  onToggle,
-}: {
-  item: AgentProposalItem;
-  onToggle: () => void;
-}) {
+function ProposalItemCard({ item, onToggle }: { item: AgentProposalItem; onToggle: () => void }) {
   if (item.kind === "calendar_event") {
     return (
       <Card variant="outlined" sx={{ borderRadius: 2 }}>

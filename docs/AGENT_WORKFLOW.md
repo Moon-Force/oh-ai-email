@@ -682,12 +682,14 @@ export interface AgentAuditRecord {
 系统解耦融入了开源智能体项目 [pi](https://github.com/earendil-works/pi) 的核心架构，实现标准化事件流、技能包插件与长上下文生命周期治理：
 
 ### 9.1 AgentLoop 事件驱动循环 (`loop.ts`)
+
 - **事件分发**：支持 `thinking_token`、`token`、`tool_start`、`tool_update`、`tool_end`、`compaction`、`proposal`、`done` 等强类型通道。
 - **生命周期沙箱钩子**：
   - `beforeToolCall`：前置拦截高危未授权写操作（如禁止直接无确认外发）；
   - `afterToolCall`：后置脱敏与结果修剪，保证传回 LLM 上下文的清洁度。
 
 ### 9.2 场景专属技能系统 (Skills Manager)
+
 - **定义格式**：支持 Markdown + YAML Frontmatter（定义 `id`, `name`, `description`, `allowedTools`, `tags`, `systemPrompt`）；
 - **内置 4 大核心 Skills**：
   1. 📅 **会议日程提取 (`meeting_extractor`)**
@@ -697,9 +699,10 @@ export interface AgentAuditRecord {
 - **动态发现**：支持从本地 `.skills/` 目录加载自定义技能 Markdown 文件。
 
 ### 9.3 长上下文自适应压缩 (Compaction)
+
 - **Token 估算器**：采用中英混合字符权重的精准估算算法；
 - **自适应摘要**：当多轮会话累积 Token 超过设定阈值（默认 6,000 tokens）时，自动触发分段摘要快照，保留最近 N 轮精细上下文，确保长对话流畅不溢出。
 
 ### 9.4 本地会话持久化 (SQLite Persistence)
-- 在 SQLite 中建立 `agent_sessions` 与 `agent_messages` 表，完整记录会话元数据、思维链（Thinking Process）、工具调用日志与提议状态，支持多轮历史回放。
 
+- 在 SQLite 中建立 `agent_sessions` 与 `agent_messages` 表，完整记录会话元数据、思维链（Thinking Process）、工具调用日志与提议状态，支持多轮历史回放。
