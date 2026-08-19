@@ -312,11 +312,71 @@
           </div>
 
           <div class="feature-image-block">
-            <img
-              src="./assets/feature_agent_skills.png"
-              alt="AI Agent 智能体工作流：场景技能与任务配置截图"
-              class="feature-screenshot-img"
-            />
+            <div class="mock-stage compact" aria-hidden="true">
+              <div class="mock-app">
+                <div class="mock-app-bar">
+                  <span class="mock-tl"></span><span class="mock-tl"></span><span class="mock-tl"></span>
+                  <span class="mock-app-title">oh-ai-email</span>
+                </div>
+                <div class="mock-app-body">
+                  <div class="mock-app-side">
+                    <span class="mock-line w70"></span>
+                    <span class="mock-line w55 on"></span>
+                    <span class="mock-line w62"></span>
+                    <span class="mock-line w48"></span>
+                    <span class="mock-line w58"></span>
+                    <span class="mock-line w66"></span>
+                  </div>
+                  <div class="mock-app-main">
+                    <span class="mock-line w88 thick"></span>
+                    <div class="mock-cal">
+                      <span class="mock-cal-event"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mock-drawer">
+                <div class="mock-drawer-head">
+                  <span class="mock-spark">✦</span>
+                  <span class="mock-drawer-title">AI 智能体工作流</span>
+                  <span class="mock-chip neutral">就绪</span>
+                </div>
+
+                <div class="mock-panel">
+                  <div class="mock-panel-label">场景专属技能（Skills）</div>
+                  <div class="mock-chip-bar">
+                    <span class="mock-chip">每日简报</span>
+                    <span class="mock-chip active">会议提取</span>
+                    <span class="mock-chip">跟进草稿</span>
+                    <span class="mock-chip">智能分箱</span>
+                    <span class="mock-chip">发票报销</span>
+                    <span class="mock-chip">商务外联</span>
+                  </div>
+                </div>
+
+                <div class="mock-context">
+                  <span class="mock-chip small">全局模式</span>
+                  <span class="mock-context-text">AI 可自主通过检索工具查询所有本地邮件</span>
+                </div>
+
+                <div class="mock-field">
+                  <span class="mock-field-label">工作流类型</span>
+                  <span class="mock-field-value">会议提取与日历生成</span>
+                </div>
+
+                <div class="mock-field">
+                  <span class="mock-field-label">自定义指令</span>
+                  <span class="mock-field-text"
+                    >找出今天未读邮件中的会议安排，提取时间、地点与参会人，并生成日历日程提案</span
+                  >
+                </div>
+
+                <div class="mock-drawer-foot">
+                  <span class="mock-btn primary">▶ 开始运行</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -345,11 +405,90 @@
           </div>
 
           <div class="feature-image-block">
-            <img
-              src="./assets/feature_agent_review.png"
-              alt="AI Agent 执行完成后的提议审阅界面：采纳已选与全部采纳"
-              class="feature-screenshot-img"
-            />
+            <div class="mock-stage" aria-hidden="true">
+              <div class="mock-app">
+                <div class="mock-app-bar">
+                  <span class="mock-tl"></span><span class="mock-tl"></span><span class="mock-tl"></span>
+                  <span class="mock-app-title">oh-ai-email</span>
+                </div>
+                <div class="mock-app-body">
+                  <div class="mock-app-side">
+                    <span class="mock-line w70"></span>
+                    <span class="mock-line w55 on"></span>
+                    <span class="mock-line w62"></span>
+                    <span class="mock-line w48"></span>
+                    <span class="mock-line w58"></span>
+                    <span class="mock-line w66"></span>
+                  </div>
+                  <div class="mock-app-main">
+                    <span class="mock-line w88 thick"></span>
+                    <span class="mock-line w96"></span>
+                    <span class="mock-line w72"></span>
+                    <span class="mock-line w88"></span>
+                    <span class="mock-line w60"></span>
+                    <span class="mock-line w80"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mock-drawer">
+                <div class="mock-drawer-head">
+                  <span class="mock-spark">✦</span>
+                  <span class="mock-drawer-title">AI 智能体工作流</span>
+                  <span class="mock-chip warn">待审阅</span>
+                </div>
+
+                <div class="mock-steps">
+                  <span class="mock-step done"><i>✓</i>规划检索</span>
+                  <span class="mock-step-line done"></span>
+                  <span class="mock-step done"><i>✓</i>工具执行</span>
+                  <span class="mock-step-line"></span>
+                  <span class="mock-step now"><i>3</i>生成提议</span>
+                </div>
+
+                <div class="mock-log">
+                  <div class="mock-log-head">工作流执行流</div>
+                  <div class="mock-log-body">
+                    <span>▸ 检索本地邮件，命中 12 封未读</span>
+                    <span>▸ 调用 meeting_extractor，解析出 2 个会议</span>
+                    <span>▸ 生成 2 项操作提议，等待人工审阅</span>
+                  </div>
+                </div>
+
+                <div class="mock-proposal-head">
+                  <span class="mock-proposal-title">Agent 工作流提议</span>
+                  <span class="mock-count">2 项提议</span>
+                </div>
+
+                <div class="mock-item">
+                  <span class="mock-check">✓</span>
+                  <div class="mock-item-main">
+                    <div class="mock-item-top">
+                      <span class="mock-item-title">项目上线评审会</span>
+                      <span class="mock-tag info">日历日程</span>
+                    </div>
+                    <span class="mock-item-sub">08-19 14:00–15:00 · 会议室 302</span>
+                  </div>
+                </div>
+
+                <div class="mock-item">
+                  <span class="mock-check">✓</span>
+                  <div class="mock-item-main">
+                    <div class="mock-item-top">
+                      <span class="mock-item-title">Re: 项目上线评审会</span>
+                      <span class="mock-tag success">回复草稿</span>
+                    </div>
+                    <span class="mock-item-sub">好的，评审材料已备妥，届时同步发布计划与值班安排…</span>
+                  </div>
+                </div>
+
+                <div class="mock-drawer-foot spread">
+                  <span class="mock-btn ghost">忽略放弃</span>
+                  <span class="mock-btn outline">采纳已选（2）</span>
+                  <span class="mock-btn primary">全部采纳</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
