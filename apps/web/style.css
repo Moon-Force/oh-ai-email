@@ -1005,7 +1005,10 @@ body {
 }
 
 .os-badge-icon {
-  font-size: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
   margin-bottom: 1.1rem;
 }
 
@@ -1496,6 +1499,137 @@ body.cursor-hover .cursor-ring {
   font-size: 0.6rem;
   color: var(--text-1);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.mock-chip.ok {
+  border-color: transparent;
+  background: rgba(52, 211, 153, 0.14);
+  color: #34d399;
+}
+
+.mock-lock {
+  color: #34d399;
+  flex-shrink: 0;
+}
+
+.mock-think {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.62rem;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.mock-think i {
+  font-style: normal;
+  font-size: 0.5rem;
+  color: #c084fc;
+}
+
+.mock-output {
+  padding: 0.6rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 0.66rem;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+
+.mock-output b {
+  color: var(--text-1);
+}
+
+.mock-acct {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mock-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.mock-avatar.qq {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.mock-avatar.net {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+
+.mock-acct-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mock-status {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #34d399;
+  white-space: nowrap;
+}
+
+.mock-status::before {
+  content: "●";
+  font-size: 0.55rem;
+  margin-right: 0.3rem;
+}
+
+.mock-secure {
+  padding: 0.6rem 0.65rem;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 10px;
+  background: rgba(52, 211, 153, 0.07);
+}
+
+.mock-secure-title {
+  margin-bottom: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #34d399;
+}
+
+.mock-secure-text {
+  font-size: 0.62rem;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.mock-foot-chips {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mock-foot-chips .mock-chip {
+  margin-left: 0;
+  font-size: 0.58rem;
 }
 
 .mock-panel {
