@@ -887,6 +887,20 @@ body {
 }
 
 .feature-image-block {
+  opacity: 0;
+  transform: translateY(36px);
+  transition:
+    opacity 0.9s var(--ease-out),
+    transform 0.9s var(--ease-out);
+  transition-delay: 0.18s;
+}
+
+.feature-showcase-row.in .feature-image-block {
+  opacity: 1;
+  transform: none;
+}
+
+.feature-image-block {
   position: relative;
   display: flex;
   align-items: center;
@@ -1004,12 +1018,33 @@ body {
   transform: translateY(-2px);
 }
 
+.download-grid .download-tile:nth-child(2) {
+  transition-delay: 0.12s;
+}
+
+.download-grid .download-tile:nth-child(3) {
+  transition-delay: 0.24s;
+}
+
 .os-badge-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 54px;
   margin-bottom: 1.1rem;
+}
+
+.os-badge-tux {
+  box-sizing: border-box;
+  display: block;
+  height: 54px;
+  width: auto;
+  padding: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #e9ecf1 62%, #ccd3dc 100%);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .os-title {
@@ -1272,7 +1307,8 @@ body.cursor-hover .cursor-ring {
   .feature-badge-label,
   .feature-heading,
   .feature-paragraph,
-  .feature-point-item {
+  .feature-point-item,
+  .feature-image-block {
     opacity: 1;
     transform: none;
     transition: none;
@@ -1663,6 +1699,65 @@ body.cursor-hover .cursor-ring {
   border-color: transparent;
   background: var(--text-1);
   color: #000;
+}
+
+.mock-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mock-skill-row + .mock-skill-row {
+  margin-top: 0.3rem;
+}
+
+.mock-skill-row.custom {
+  border-color: rgba(192, 132, 252, 0.42);
+  background: rgba(192, 132, 252, 0.07);
+}
+
+.mock-skill-name {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 0.66rem;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mock-skill-tag {
+  font-size: 0.56rem;
+  font-weight: 600;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.mock-skill-row.custom .mock-skill-tag {
+  color: #c084fc;
+}
+
+.mock-code {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 0.6rem;
+  line-height: 1.7;
+  color: var(--text-2);
+  white-space: pre;
+  overflow: hidden;
+}
+
+.mock-code b {
+  font-weight: 600;
+  color: #c084fc;
 }
 
 .mock-context {

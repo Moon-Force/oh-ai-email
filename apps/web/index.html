@@ -9,6 +9,19 @@
       content="oh-ai-email 是开源的 AI 智能邮件客户端。AI Agent 一句话搞定每日简报、会议日程、发票整理与智能分箱；读信提炼、回复起草一应俱全；所有操作先提议后确认，密码与数据 100% 保存在本机。"
     />
     <link rel="stylesheet" href="./style.css" />
+    <noscript>
+      <style>
+        .reveal,
+        .feature-badge-label,
+        .feature-heading,
+        .feature-paragraph,
+        .feature-point-item,
+        .feature-image-block {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      </style>
+    </noscript>
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/></svg>"
@@ -542,6 +555,98 @@
           </div>
         </div>
 
+        <div class="feature-showcase-row reveal">
+          <div class="feature-text-block">
+            <span class="feature-badge-label">Pi Agent · Skills 技能框架</span>
+            <h3 class="feature-heading">像装插件一样<br />给 AI 管家装上新技能</h3>
+            <p class="feature-paragraph">
+              Agent 核心构建于开放的 Pi-Agent
+              框架之上，内置 14 项场景技能，覆盖摘要提炼、回复起草、会议日程、发票报销与跨语种外联。每个技能都是一个人类可读的
+              Markdown 文件：头部声明名称、说明与允许调用的工具白名单。你可以像发送文档一样导入、导出、分享技能，也可以亲手为它创造新技能。
+            </p>
+            <div class="feature-points-list">
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>14 项内置技能开箱即用：摘要、回复、待办、会议、发票、外联全覆盖</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>技能即一个 Markdown 文件：新建、导入、导出、分享，像传文件一样简单</span>
+              </div>
+              <div class="feature-point-item">
+                <span class="point-check-icon">✓</span>
+                <span>工具白名单沙箱：每个技能只能调用声明过的本地工具，绝不越权</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="feature-image-block">
+            <div class="mock-stage compact" aria-hidden="true">
+              <div class="mock-app">
+                <div class="mock-app-bar">
+                  <span class="mock-tl"></span><span class="mock-tl"></span><span class="mock-tl"></span>
+                  <span class="mock-app-title">oh-ai-email</span>
+                </div>
+                <div class="mock-app-body">
+                  <div class="mock-app-side">
+                    <span class="mock-line w70"></span>
+                    <span class="mock-line w55 on"></span>
+                    <span class="mock-line w62"></span>
+                    <span class="mock-line w48"></span>
+                    <span class="mock-line w58"></span>
+                    <span class="mock-line w66"></span>
+                  </div>
+                  <div class="mock-app-main">
+                    <span class="mock-line w88 thick"></span>
+                    <span class="mock-line w96"></span>
+                    <span class="mock-line w72"></span>
+                    <span class="mock-line w88"></span>
+                    <span class="mock-line w60"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mock-drawer">
+                <div class="mock-drawer-head">
+                  <span class="mock-spark">✦</span>
+                  <span class="mock-drawer-title">Skills 技能中心</span>
+                  <span class="mock-chip neutral">14 内置 + 自定义</span>
+                </div>
+
+                <div class="mock-panel">
+                  <div class="mock-panel-label">技能文件</div>
+                  <div class="mock-skill-row">
+                    <span class="mock-skill-name">summarize.md</span>
+                    <span class="mock-skill-tag">智能邮件摘要 · 内置</span>
+                  </div>
+                  <div class="mock-skill-row">
+                    <span class="mock-skill-name">meeting_extractor.md</span>
+                    <span class="mock-skill-tag">会议日程提取 · 内置</span>
+                  </div>
+                  <div class="mock-skill-row">
+                    <span class="mock-skill-name">invoice_scanner.md</span>
+                    <span class="mock-skill-tag">发票报销整理 · 内置</span>
+                  </div>
+                  <div class="mock-skill-row custom">
+                    <span class="mock-skill-name">法务条款审查.md</span>
+                    <span class="mock-skill-tag">自定义 · 刚刚创建</span>
+                  </div>
+                </div>
+
+                <div class="mock-code"><b>name:</b> 法务条款审查助手
+<b>description:</b> 审查合同邮件中的免责条款
+<b>allowedTools:</b> [search_messages]</div>
+
+                <div class="mock-drawer-foot spread">
+                  <span class="mock-btn ghost">导入 .md</span>
+                  <span class="mock-btn ghost">导出</span>
+                  <span class="mock-btn primary">+ 新建技能</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="feature-showcase-row reverse reveal">
           <div class="feature-text-block">
             <span class="feature-badge-label">隐私与安全 · 本地直连</span>
@@ -557,7 +662,7 @@
               </div>
               <div class="feature-point-item">
                 <span class="point-check-icon">✓</span>
-                <span>所有邮箱密码通过 Windows / Mac 系统安全库硬件级加密</span>
+                <span>所有邮箱密码由 Windows / Mac 系统安全库（DPAPI / Keychain）加密保管</span>
               </div>
               <div class="feature-point-item">
                 <span class="point-check-icon">✓</span>
@@ -628,7 +733,7 @@
                   <div class="mock-secure-title">100% 纯客户端直连保护</div>
                   <span class="mock-secure-text"
                     >邮箱密码由 Windows DPAPI / macOS Keychain
-                    芯片级加密保管，绝不经过任何第三方服务器中转。</span
+                    系统安全库加密保管，绝不经过任何第三方服务器中转。</span
                   >
                 </div>
 
@@ -699,23 +804,13 @@
 
             <div class="download-tile reveal">
               <div class="os-badge-icon" aria-hidden="true">
-                <svg width="52" height="52" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    fill="#151515"
-                    stroke="rgba(255,255,255,0.25)"
-                    stroke-width="1"
-                    d="M32 3C22.6 3 16.5 11.4 16.5 21.2c0 6.6-2.3 11.5-5.2 16.5C7.6 44.4 4.5 49.5 4.5 55c0 6 4.1 10.5 9.3 10.5 3.4 0 5.7-1.8 8.6-1.8s5 1.8 9.6 1.8 6.7-1.8 9.6-1.8 5.2 1.8 8.6 1.8c5.2 0 9.3-4.5 9.3-10.5 0-5.5-3.1-10.6-6.8-17.3-2.9-5-5.2-9.9-5.2-16.5C47.5 11.4 41.4 3 32 3z"
-                  />
-                  <ellipse cx="32" cy="45" rx="12.5" ry="15" fill="#ffffff" />
-                  <ellipse cx="32" cy="22" rx="10.5" ry="9" fill="#ffffff" />
-                  <circle cx="28.6" cy="20" r="2.6" fill="#151515" />
-                  <circle cx="35.4" cy="20" r="2.6" fill="#151515" />
-                  <path fill="#f7941d" d="M27.5 24.5h9c-1.6 3-3.4 4.5-4.5 4.5s-2.9-1.5-4.5-4.5z" />
-                  <path
-                    fill="#f7941d"
-                    d="M19 58.5c-2.4 1.6-2 4 .8 4 2.3 0 4-1.3 6-1.3s3 1.3 5 1.3c2.8 0 3.2-2.4.8-4-1.9-1.2-9.6-1.6-12.6 0zM45 58.5c-2.4 1.6-2 4 .8 4 2.3 0 4-1.3 6-1.3s3 1.3 5 1.3c2.8 0 3.2-2.4.8-4-1.9-1.2-9.6-1.6-12.6 0z"
-                  />
-                </svg>
+                <img
+                  class="os-badge-tux"
+                  src="./tux.svg"
+                  alt=""
+                  width="44"
+                  height="54"
+                />
               </div>
               <div class="os-title">Linux 版</div>
               <div class="os-meta">适用于 Ubuntu / Debian / Fedora 等</div>
@@ -858,6 +953,7 @@
             <h4>功能</h4>
             <a href="#features">AI 读写助手</a>
             <a href="#features">AI Agent 工作流</a>
+            <a href="#features">Pi Agent 技能框架</a>
             <a href="#features">HITL 人工确认</a>
             <a href="#features">隐私与安全</a>
           </div>
