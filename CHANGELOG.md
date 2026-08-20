@@ -4,9 +4,9 @@
 
 ---
 
-## [Unreleased] · `feat/calendar` — 本地日历、通讯录与邮件跨功能联动
+## [0.3.0] - 2026-08-20
 
-> 分支：`feat/calendar`（待合入 `main` 发 v0.2.0+）。全量本地优先、零云依赖；与 `main` 的差异见 `git diff main --stat`（约 60 文件 · 8k+ 行新增）。
+> 本地日历、通讯录与邮件跨功能联动。全量本地优先、零云依赖；`feat/calendar` 于 2026-08-18 合入 `main`（merge commit `e130a6a`，约 60 文件 · 8k+ 行新增）。
 
 ### 日历套件 (Calendar)
 

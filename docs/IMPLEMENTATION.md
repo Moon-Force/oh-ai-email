@@ -324,6 +324,6 @@
 | 重大决策变更 | 同步改 PRODUCT.md / ARCHITECTURE.md       |
 | 发版         | IMPLEMENTATION 顶部可加「当前版本：vX.Y」 |
 
-**当前版本目标**：v0.2.0+ Desktop（Spark 向 + 本地日历/通讯录 + 跨功能联动）  
-**当前分支**：`feat/calendar`（基于 `main` 的 10.1–10.20 增量）  
-**当前进度**：阶段 0–7 已完成并发布 v0.1.0；阶段 9 的 9.2–9.5 已随 `feat/calendar` 与 v0.2.0 提前达成；阶段 10 日历/通讯录/联动已在 `feat/calendar` 完成待合入 `main`。
+**当前版本目标**：v0.3.0 Desktop（Spark 向 + 本地日历/通讯录 + 跨功能联动）  
+**当前分支**：`main`（`feat/calendar` 已于 2026-08-18 合入，merge commit `e130a6a`）  
+**当前进度**：阶段 0–7 已完成并发布 v0.1.0；阶段 9 的 9.2–9.5 已随 v0.2.0 提前达成；阶段 10 全部任务已完成并合入 `main`，待发版 v0.3.0。

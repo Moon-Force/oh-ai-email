@@ -80,10 +80,11 @@
 
 ## 当前状态
 
-**v0.1.0 桌面端 MVP 已正式发布** 🎉 · **v0.2.0+ `feat/calendar` 开发中** 🚧
+**v0.3.0 功能已合入 `main`，待发版** 🚧
 
-- v0.1.0 涵盖 Phase 0 到 Phase 7 全部计划任务；提供 Windows（安装包与便携版）、macOS（.dmg / .zip）、Linux（.AppImage / .deb）跨平台构建；具备 IMAP IDLE 原生零延迟推信、混合双模 AI、智能分箱与稍后处理、语音听写与朗读、系统托盘常驻与自动更新检测。
-- `feat/calendar` 在 v0.1.0 之上新增：**本地日历**（四视图 + ICS 标准 + 30s 调度提醒）与**通讯录**（标签/星标/VCF + 邮件收割）两大本地套件；**读信直通**「转为日程 / 加为联系人 / ICS 一键写入」与**写信自动补全**；详见 [`docs/IMPLEMENTATION.md` 阶段 10](./docs/IMPLEMENTATION.md#阶段-10一期增强--日历通讯录与跨功能联动featcalendar)。
+- **v0.1.0** 桌面端 MVP：Phase 0 到 Phase 7 全部计划任务；Windows（安装包与便携版）、macOS（.dmg / .zip）、Linux（.AppImage / .deb）跨平台构建；IMAP IDLE 原生零延迟推信、混合双模 AI、智能分箱与稍后处理、语音听写与朗读、系统托盘常驻与自动更新检测。
+- **v0.2.0** 智能体架构升级：Pi Agent 核心引擎（流式思考 / 上下文压缩 / 会话持久化）、可视化技能管理器、内置 MCP Mail Server、黑曜石碳暗色系统。
+- **v0.3.0** 本地套件：日历（四视图 + ICS 标准 + 30s 调度提醒）与通讯录（标签/星标/VCF + 邮件收割）两大零云依赖套件；读信直通「转为日程 / 加为联系人 / ICS 一键写入」与写信自动补全；详见 [`docs/IMPLEMENTATION.md` 阶段 10](./docs/IMPLEMENTATION.md#阶段-10一期增强--日历通讯录与跨功能联动featcalendar)。
 
 ---
 
