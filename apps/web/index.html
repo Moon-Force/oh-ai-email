@@ -86,6 +86,10 @@
           <div class="hero-input-text" aria-live="polite">
             <span id="hero-prompt-text"></span><span class="hero-cursor"></span>
           </div>
+          <div class="hero-ai" id="hero-ai" aria-hidden="true">
+            <canvas class="hero-ai-orb" id="hero-ai-orb"></canvas>
+            <div class="hero-ai-text" id="hero-ai-text"></div>
+          </div>
           <button class="hero-send" id="hero-send" aria-label="下载客户端">
             <svg
               width="18"
@@ -750,6 +754,9 @@
 
       <section id="download" class="cta">
         <div class="grid-floor" aria-hidden="true"></div>
+        <div class="cta-band" aria-hidden="true">
+          <canvas id="cellular-band"></canvas>
+        </div>
         <div class="cta-inner">
           <h2 class="reveal">为高效而生，现已可用。</h2>
           <p class="cta-sub reveal">完全开源免费（MIT 协议），选择你的操作系统直接安装体验</p>
@@ -995,5 +1002,6 @@
 
     <script src="./vendor/unicornStudio-2.1.4.umd.js"></script>
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./cellular-band.js"></script>
   </body>
 </html>
