@@ -22,6 +22,7 @@ mac:
   target: [dmg, zip]
   category: public.app-category.productivity
 linux:
+  icon: build/icon.png
   target: [AppImage, deb]
   category: Office
 publish:
