@@ -95,7 +95,7 @@ test("switches preset to DeepSeek and fetches models and balance", async () => {
   expect(useAiSettings.getState().baseUrl).toBe("https://api.deepseek.com");
   expect(useAiSettings.getState().model).toBe("deepseek-chat");
 
-  await user.click(screen.getByRole("button", { name: "拉取模型" }));
+  await user.click(screen.getByRole("button", { name: "拉取 AI 模型" }));
   expect(await screen.findByText("deepseek-chat")).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "查询余额" }));

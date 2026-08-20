@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Chip,
+  Collapse,
   Divider,
   FormControl,
   FormControlLabel,
@@ -65,6 +66,8 @@ import { speakText, stopSpeaking, startSpeechRecognition } from "../voice/voiceS
 import SkillsTab from "./SkillsTab";
 
 type Tab = "general" | "accounts" | "ai" | "skills";
+
+const presetPillSx = { height: 30.5, boxSizing: "border-box" } as const;
 
 type Props = {
   onClose?: () => void;
@@ -595,19 +598,9 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                 </Button>
               </Stack>
 
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                value={mode}
-                onChange={(_, v) => v && setMode(v)}
-                aria-label="AI 模式"
-              >
-                <ToggleButton value="cloud">云端模式</ToggleButton>
-                <ToggleButton value="local">本机模式 (Ollama)</ToggleButton>
-              </ToggleButtonGroup>
             </Box>
 
-            {mode === "cloud" && (
+            <Collapse in={mode === "cloud"} unmountOnExit>
               <>
                 <Paper
                   variant="outlined"
@@ -908,6 +901,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     sx={{ height: 40, whiteSpace: "nowrap" }}
                     disabled={fetchingModels}
                     onClick={() => void onFetchModels()}
+                    data-testid="fetch-ai-models"
+                    aria-label="拉取 AI 模型"
                   >
                     {fetchingModels ? <CircularProgress size={16} /> : "拉取模型"}
                   </Button>
@@ -1051,9 +1046,9 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   label="发送云端前自动脱敏（邮箱、手机号、卡号替换为安全占位符）"
                 />
               </>
-            )}
+            </Collapse>
 
-            {mode === "local" && (
+            <Collapse in={mode === "local"} unmountOnExit>
               <>
                 <TextField
                   label="Ollama 地址"
@@ -1102,7 +1097,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   </Button>
                 </Box>
               </>
-            )}
+            </Collapse>
 
             <FormControl fullWidth size="small" sx={{ display: "none" }}>
               <InputLabel>兼容</InputLabel>
@@ -1212,11 +1207,16 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     label={sttService === "custom" ? "自定义模型" : "系统内置"}
                     color="primary"
                     variant="outlined"
-                    sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: "0.65rem" } }}
+                    sx={{
+                      height: 20,
+                      minWidth: 74,
+                      justifyContent: "center",
+                      "& .MuiChip-label": { px: 0.75, fontSize: "0.65rem" },
+                    }}
                   />
                 </Stack>
 
-                <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
+                <Stack direction="row" sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.75 }}>
                   <Button
                     size="small"
                     variant={
@@ -1226,6 +1226,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         ? "contained"
                         : "outlined"
                     }
+                    sx={presetPillSx}
                     onClick={() => {
                       setSttService("custom");
                       setSttBaseUrl("https://api.openai.com/v1");
@@ -1241,6 +1242,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         ? "contained"
                         : "outlined"
                     }
+                    sx={presetPillSx}
                     onClick={() => {
                       setSttService("custom");
                       setSttBaseUrl("https://api.xiaomimimo.com/v1");
@@ -1252,6 +1254,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   <Button
                     size="small"
                     variant={sttService === "browser" ? "contained" : "outlined"}
+                    sx={presetPillSx}
                     onClick={() => {
                       setSttService("browser");
                     }}
@@ -1260,19 +1263,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   </Button>
                 </Stack>
 
-                <ToggleButtonGroup
-                  exclusive
-                  size="small"
-                  value={sttService}
-                  onChange={(_, v) => v && setSttService(v)}
-                  sx={{ mb: 1.5 }}
-                >
-                  <ToggleButton value="custom">云端/自定义 STT 服务</ToggleButton>
-                  <ToggleButton value="browser">系统内置识别引擎</ToggleButton>
-                </ToggleButtonGroup>
-
-                {sttService === "custom" && (
-                  <Stack spacing={1.5}>
+                <Collapse in={sttService === "custom"} unmountOnExit>
+                  <Stack spacing={1.5} data-testid="stt-custom-fields">
                     <TextField
                       label="STT 服务地址 Base URL"
                       size="small"
@@ -1315,6 +1307,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         sx={{ height: 40, whiteSpace: "nowrap" }}
                         disabled={fetchingSttModels}
                         onClick={() => void onFetchSttModels()}
+                        data-testid="fetch-stt-models"
+                        aria-label="拉取 STT 模型"
                       >
                         {fetchingSttModels ? <CircularProgress size={16} /> : "拉取模型"}
                       </Button>
@@ -1334,7 +1328,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                       autoComplete="off"
                     />
                   </Stack>
-                )}
+                </Collapse>
 
                 {/* STT Test Box */}
                 <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
@@ -1437,11 +1431,16 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                     label={ttsService === "custom" ? "自定义模型" : "系统内置"}
                     color="primary"
                     variant="outlined"
-                    sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: "0.65rem" } }}
+                    sx={{
+                      height: 20,
+                      minWidth: 74,
+                      justifyContent: "center",
+                      "& .MuiChip-label": { px: 0.75, fontSize: "0.65rem" },
+                    }}
                   />
                 </Stack>
 
-                <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
+                <Stack direction="row" sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.75 }}>
                   <Button
                     size="small"
                     variant={
@@ -1451,6 +1450,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         ? "contained"
                         : "outlined"
                     }
+                    sx={presetPillSx}
                     onClick={() => {
                       setTtsService("custom");
                       setTtsBaseUrl("https://api.openai.com/v1");
@@ -1467,6 +1467,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         ? "contained"
                         : "outlined"
                     }
+                    sx={presetPillSx}
                     onClick={() => {
                       setTtsService("custom");
                       setTtsBaseUrl("https://api.xiaomimimo.com/v1");
@@ -1478,6 +1479,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   <Button
                     size="small"
                     variant={ttsService === "browser" ? "contained" : "outlined"}
+                    sx={presetPillSx}
                     onClick={() => {
                       setTtsService("browser");
                     }}
@@ -1486,19 +1488,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                   </Button>
                 </Stack>
 
-                <ToggleButtonGroup
-                  exclusive
-                  size="small"
-                  value={ttsService}
-                  onChange={(_, v) => v && setTtsService(v)}
-                  sx={{ mb: 1.5 }}
-                >
-                  <ToggleButton value="custom">云端/自定义 TTS 服务</ToggleButton>
-                  <ToggleButton value="browser">系统内置合成引擎</ToggleButton>
-                </ToggleButtonGroup>
-
-                {ttsService === "custom" && (
-                  <Stack spacing={1.5}>
+                <Collapse in={ttsService === "custom"} unmountOnExit>
+                  <Stack spacing={1.5} data-testid="tts-custom-fields">
                     <TextField
                       label="TTS 服务地址 Base URL"
                       size="small"
@@ -1557,6 +1548,8 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                         sx={{ height: 40, whiteSpace: "nowrap" }}
                         disabled={fetchingTtsModels}
                         onClick={() => void onFetchTtsModels()}
+                        data-testid="fetch-tts-models"
+                        aria-label="拉取 TTS 模型"
                       >
                         {fetchingTtsModels ? <CircularProgress size={16} /> : "拉取模型"}
                       </Button>
@@ -1576,7 +1569,7 @@ export default function Settings({ onClose, theme, onThemeChange }: Props) {
                       autoComplete="off"
                     />
                   </Stack>
-                )}
+                </Collapse>
 
                 {/* TTS Test Box */}
                 <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
