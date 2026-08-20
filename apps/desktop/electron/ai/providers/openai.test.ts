@@ -119,10 +119,10 @@ describe("OpenAI, DeepSeek & MiMo Provider Functions", () => {
 
   describe("synthesizeSpeechMiMo", () => {
     it("synthesizes audio speech into base64 data url with custom settings", async () => {
-      const fakeBuffer = new Uint8Array([1, 2, 3, 4]).buffer;
+      const fakeAudio = Buffer.from([1, 2, 3, 4]).toString("base64");
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
-        arrayBuffer: async () => fakeBuffer,
+        json: async () => ({ choices: [{ message: { audio: { data: fakeAudio } } }] }),
       });
       vi.stubGlobal("fetch", fetchMock);
 
