@@ -8,8 +8,8 @@
 
 ### 依赖前提
 
-- Node.js >= 20.x
-- pnpm >= 9.x
+- Node.js 22.x（与 GitHub Actions 一致；项目最低要求见根 `package.json`）
+- pnpm 10.31.0（由根 `package.json#packageManager` 锁定）
 - Windows: Visual Studio C++ Build Tools（或预编译的 sql.js wasm）
 - macOS: Xcode Command Line Tools
 - Linux: standard build essentials (`build-essential`, `libssl-dev`)
@@ -18,29 +18,31 @@
 
 ```bash
 # 1. 开发环境运行
-pnpm dev
+pnpm -C apps/desktop dev
 
 # 2. 编译打包测试（仅解包，快速验证 Electron 与 React 打包无误）
-pnpm build:unpack
+pnpm -C apps/desktop build:unpack
 
 # 3. Windows 安装包构建（生成 NSIS .exe 安装包与 Portable 便携版）
-pnpm build:win
+pnpm -C apps/desktop build:win
 
-# 4. 全平台构建（依据当前系统环境）
-pnpm build
+# 4. 当前系统的默认 Electron 安装包
+pnpm -C apps/desktop build
 ```
 
 构建产物输出目录位于：`apps/desktop/release/`。
+
+跨系统正式产物应通过 GitHub Actions 在对应系统 runner 上构建，不在单一开发机上交叉生成。v0.3.0 的三端产物已在 [GitHub Release](https://github.com/Moon-Force/oh-ai-email/releases/tag/v0.3.0) 验证发布。
 
 ---
 
 ## 2. 跨平台产物类型
 
-| 操作系统    | 产物格式                                    | 说明                                                  |
-| :---------- | :------------------------------------------ | :---------------------------------------------------- |
-| **Windows** | `.exe` (NSIS Installer) · `.exe` (Portable) | 支持自定义安装目录、桌面/开始菜单快捷方式、开机自启。 |
-| **macOS**   | `.dmg` (Disk Image) · `.zip`                | 支持 Apple Silicon (arm64) 与 Intel (x64) 通用架构。  |
-| **Linux**   | `.AppImage` · `.deb`                        | 适用于 Ubuntu/Debian 及主流通用 Linux 发行版。        |
+| 操作系统    | 当前架构 | 产物格式                                    | 说明                                                  |
+| :---------- | :------- | :------------------------------------------ | :---------------------------------------------------- |
+| **Windows** | x64      | `.exe` (NSIS Installer) · `.exe` (Portable) | 支持自定义安装目录、桌面/开始菜单快捷方式、开机自启。 |
+| **macOS**   | arm64    | `.dmg` (Disk Image) · `.zip`                | 当前官方产物面向 Apple Silicon；尚未发布 Intel x64 包。 |
+| **Linux**   | x64      | `.AppImage` · `.deb`                        | 适用于 Ubuntu/Debian 及主流通用 Linux 发行版。        |
 
 ---
 
@@ -80,20 +82,22 @@ pnpm build
 
 ### 自动触发打包流程：
 
-只需在本地推送版本 Tag，GitHub Actions 会自动在 Windows、macOS、Linux 云端虚拟机上并发打包，并将所有平台的安装包自动发布至 GitHub Releases：
+推送版本 Tag 后，GitHub Actions 会在 Windows、macOS、Linux runner 上并发打包。三个构建 job 只上传 Actions artifacts；全部成功后，独立的 `Publish GitHub Release` job 才统一创建公开 Release，避免并发发布半成品：
 
 ```bash
 # 1. 提交代码并打标签
-git tag v0.1.0
+git tag v0.3.0
 
 # 2. 推送 Tag 触发 GitHub 自动全平台打包
-git push origin v0.1.0
+git push origin v0.3.0
 ```
 
 ### 手动触发打包流程：
 
 1. 打开 GitHub 仓库页面；
 2. 导航至 **Actions** -> **Release** 工作流；
-3. 点击 **Run workflow** 按钮选择分支即可触发一键打包并下载产物。
+3. 点击 **Run workflow** 按钮选择分支，即可构建并从 Actions 下载三端 artifacts。
+
+手动触发没有 Tag 上下文，因此不会创建公开 GitHub Release；正式发布必须推送 `v*` Tag。
 
 客户端设置中心内的「检查更新」按钮将自动比对 GitHub Release 并引导用户下载最新版本。

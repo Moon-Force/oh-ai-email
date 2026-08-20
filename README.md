@@ -82,9 +82,11 @@
 
 **当前版本：v0.3.0** ✅
 
+[下载 v0.3.0](https://github.com/Moon-Force/oh-ai-email/releases/tag/v0.3.0)：Windows x64（安装版 / Portable）、macOS arm64（DMG / ZIP）、Linux x64（AppImage / DEB）。
+
 - **v0.1.0** 桌面端 MVP：Phase 0 到 Phase 7 全部计划任务；Windows（安装包与便携版）、macOS（.dmg / .zip）、Linux（.AppImage / .deb）跨平台构建；IMAP IDLE 原生零延迟推信、混合双模 AI、智能分箱与稍后处理、语音听写与朗读、系统托盘常驻与自动更新检测。
 - **v0.2.0** 智能体架构升级：Pi Agent 核心引擎（流式思考 / 上下文压缩 / 会话持久化）、可视化技能管理器、内置 MCP Mail Server、黑曜石碳暗色系统。
-- **v0.3.0** 本地套件：日历（四视图 + ICS 标准 + 30s 调度提醒）与通讯录（标签/星标/VCF + 邮件收割）两大零云依赖套件；读信直通「转为日程 / 加为联系人 / ICS 一键写入」与写信自动补全；详见 [`docs/IMPLEMENTATION.md` 阶段 10](./docs/IMPLEMENTATION.md#阶段-10一期增强--日历通讯录与跨功能联动featcalendar)。
+- **v0.3.0** 本地套件：日历（四视图 + ICS 标准 + 30s 调度提醒）与通讯录（标签/星标/VCF + 邮件收割）两大零云依赖套件；读信直通「转为日程 / 加为联系人 / ICS 一键写入」与写信自动补全；已于 2026-08-20 发布，详见 [`CHANGELOG.md`](CHANGELOG.md) 与 [`docs/IMPLEMENTATION.md` 阶段 10](./docs/IMPLEMENTATION.md#阶段-10一期增强--日历通讯录与跨功能联动featcalendar)。
 
 ---
 

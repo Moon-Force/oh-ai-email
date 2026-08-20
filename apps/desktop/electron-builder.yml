@@ -7,7 +7,7 @@ files:
 directories:
   output: release
   buildResources: build
-# Icons optional — place build/icon.ico | .icns | .png when ready
+# Platform package icons: Windows uses icon.ico; macOS/Linux use the 512px icon.png.
 win:
   target:
     - target: nsis
