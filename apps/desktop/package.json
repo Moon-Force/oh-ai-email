@@ -3,7 +3,11 @@
   "private": true,
   "version": "0.3.0",
   "description": "oh-ai-email desktop client",
-  "author": "Moon-Force",
+  "homepage": "https://github.com/Moon-Force/oh-ai-email",
+  "author": {
+    "name": "Moon-Force",
+    "email": "862315743@qq.com"
+  },
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

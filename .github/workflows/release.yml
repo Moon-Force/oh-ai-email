@@ -18,13 +18,13 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: win
-            build_cmd: pnpm -C apps/desktop exec electron-builder --win
+            build_cmd: pnpm -C apps/desktop exec electron-builder --win --publish never
           - os: macos-latest
             artifact_name: mac
-            build_cmd: pnpm -C apps/desktop exec electron-builder --mac
+            build_cmd: pnpm -C apps/desktop exec electron-builder --mac --publish never
           - os: ubuntu-latest
             artifact_name: linux
-            build_cmd: pnpm -C apps/desktop exec electron-builder --linux
+            build_cmd: pnpm -C apps/desktop exec electron-builder --linux --publish never
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
